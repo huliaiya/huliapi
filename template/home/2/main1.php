@@ -148,6 +148,41 @@ function getCallCountStyle($count) {
     right: 30px;
     bottom: 30px;
     z-index: 999;
+    transition: left 0.3s ease, top 0.3s ease;
+}
+.floating-sidebar-btn.is-dragging {
+    transition: none;
+}
+.floating-sidebar-btn .btn-float {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #bcd6fb, #7fb3f5);
+    color: #fff;
+    border: none;
+    box-shadow: 0 6px 18px rgba(127, 179, 245, 0.45);
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+.floating-sidebar-btn.is-dragging .btn-float {
+    cursor: grabbing;
+    box-shadow: 0 10px 24px rgba(127, 179, 245, 0.6);
+    transform: scale(1.06);
+}
+.floating-sidebar-btn .btn-float:hover {
+    background: linear-gradient(135deg, #aecdfb, #6ea8f3);
+}
+.floating-sidebar-btn .btn-float:focus {
+    box-shadow: none;
+}
+.floating-sidebar-btn .btn-float .mdi {
+    font-size: 26px;
+    line-height: 1;
 }
 .offcanvas-start {
     width: 300px;
@@ -426,8 +461,8 @@ function getCallCountStyle($count) {
         </div>
     </div>
 </div>
-<div class="floating-sidebar-btn">
-    <button class="btn btn-primary rounded-circle p-3" data-bs-toggle="offcanvas" data-bs-target="#apiSidebar">
+<div class="floating-sidebar-btn" id="floatingSidebarBtn">
+    <button class="btn-float" data-bs-toggle="offcanvas" data-bs-target="#apiSidebar" aria-label="API分类">
         <i class="mdi mdi-menu"></i>
     </button>
 </div>
@@ -458,6 +493,101 @@ function filterAPIs() {
         card.style.display = (regex.test(name) || regex.test(desc)) ? "block" : "none";
     });
 }
+(function () {
+    var wrap = document.getElementById('floatingSidebarBtn');
+    if (!wrap) { return; }
+    var LONG_PRESS = 350;
+    var MOVE_THRESHOLD = 8;
+    var pressed = false;
+    var moving = false;
+    var justDragged = false;
+    var startX = 0;
+    var startY = 0;
+    var rectLeft = 0;
+    var rectTop = 0;
+    var timer = null;
+
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+    function normalize() {
+        if (wrap.style.left) { return; }
+        var rect = wrap.getBoundingClientRect();
+        wrap.style.left = rect.left + 'px';
+        wrap.style.top = rect.top + 'px';
+        wrap.style.right = 'auto';
+        wrap.style.bottom = 'auto';
+    }
+
+    function snap() {
+        var rect = wrap.getBoundingClientRect();
+        var top = clamp(rect.top, 10, window.innerHeight - rect.height - 10);
+        var left = rect.left < (window.innerWidth - rect.width) / 2 ? 10 : (window.innerWidth - rect.width - 10);
+        wrap.style.left = left + 'px';
+        wrap.style.top = top + 'px';
+        wrap.classList.remove('is-dragging');
+    }
+
+    wrap.addEventListener('pointerdown', function (e) {
+        if (e.pointerType === 'mouse' && e.button !== 0) { return; }
+        normalize();
+        var rect = wrap.getBoundingClientRect();
+        pressed = true;
+        moving = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        rectLeft = rect.left;
+        rectTop = rect.top;
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            if (pressed) {
+                moving = true;
+                wrap.classList.add('is-dragging');
+            }
+        }, LONG_PRESS);
+    });
+
+    window.addEventListener('pointermove', function (e) {
+        if (!pressed) { return; }
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+        if (!moving && Math.hypot(dx, dy) > MOVE_THRESHOLD) {
+            moving = true;
+            justDragged = true;
+            clearTimeout(timer);
+            wrap.classList.add('is-dragging');
+        }
+        if (moving) {
+            justDragged = true;
+            var left = clamp(rectLeft + dx, 10 - wrap.offsetWidth, window.innerWidth - 10);
+            var top = clamp(rectTop + dy, 10, window.innerHeight - wrap.offsetHeight - 10);
+            wrap.style.left = left + 'px';
+            wrap.style.top = top + 'px';
+        }
+    });
+
+    function endDrag() {
+        if (!pressed) { return; }
+        pressed = false;
+        clearTimeout(timer);
+        if (moving) {
+            justDragged = true;
+            snap();
+        }
+        moving = false;
+        wrap.classList.remove('is-dragging');
+    }
+
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+
+    document.addEventListener('click', function (e) {
+        if (justDragged) {
+            e.preventDefault();
+            e.stopPropagation();
+            justDragged = false;
+        }
+    }, true);
+})();
 $(document).ready(function() {
     $('.scroll-numbers').scrollNumbers();
     function debounce(func, wait) {
