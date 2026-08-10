@@ -31,12 +31,12 @@ try {
         if ($password !== $confirm_password) {
             throw new Exception('两次输入的密码不一致。');
         }
-        if (!isset($_SESSION['reset_code']) || strtolower($code) != strtolower($_SESSION['reset_code']) || strtolower($email) != strtolower($_SESSION['reset_email'])) {
+        if (!isset($_SESSION['reset_code']) || !isset($_SESSION['reset_code_expire']) || time() > $_SESSION['reset_code_expire'] || strtolower($code) != strtolower($_SESSION['reset_code']) || strtolower($email) != strtolower($_SESSION['reset_email'])) {
             throw new Exception('邮箱验证码不正确或已过期。');
         }
         $stmt = $pdo->prepare("UPDATE huli_users SET password = ? WHERE email = ?");
-        $stmt->execute([$password, $email]);
-        unset($_SESSION['reset_code'], $_SESSION['reset_email']);
+        $stmt->execute([password_hash($password, PASSWORD_DEFAULT), $email]);
+        unset($_SESSION['reset_code'], $_SESSION['reset_email'], $_SESSION['reset_code_expire']);
         $success_msg = '密码重置成功！请使用新密码登录。';
     }
 } catch (Exception $e) {

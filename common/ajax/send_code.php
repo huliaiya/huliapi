@@ -132,6 +132,7 @@ if ($type === 'register') {
     ';
     $_SESSION['reset_code'] = $code;
     $_SESSION['reset_email'] = $email;
+    $_SESSION['reset_code_expire'] = time() + 300;
 } elseif ($type === 'friend_link') {
     $mail->Subject = '【' . ($settings['site_name'] ?? '系统') . '】友情链接申请 - 您的验证码';
     $mail->Body = '

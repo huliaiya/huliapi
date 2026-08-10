@@ -42,7 +42,7 @@ try {
         if ($password !== $confirm_password) {
             throw new Exception('两次输入的密码不一致');
         }
-        if (!isset($_SESSION['reset_code']) || strtolower($code) != strtolower($_SESSION['reset_code']) || strtolower($email) != strtolower($_SESSION['reset_email'])) {
+        if (!isset($_SESSION['reset_code']) || !isset($_SESSION['reset_code_expire']) || time() > $_SESSION['reset_code_expire'] || strtolower($code) != strtolower($_SESSION['reset_code']) || strtolower($email) != strtolower($_SESSION['reset_email'])) {
             throw new Exception('邮箱验证码不正确或已过期');
         }
         $stmt = $pdo->prepare("SELECT id FROM huli_users WHERE email = ?");
@@ -51,11 +51,11 @@ try {
             throw new Exception('该邮箱未注册');
         }
         $stmt = $pdo->prepare("UPDATE huli_users SET password = ? WHERE email = ?");
-        $stmt->execute([$password, $email]);
+        $stmt->execute([password_hash($password, PASSWORD_DEFAULT), $email]);
         if ($stmt->rowCount() === 0) {
             throw new Exception('密码更新失败，请重试');
         }
-        unset($_SESSION['reset_code'], $_SESSION['reset_email']);
+        unset($_SESSION['reset_code'], $_SESSION['reset_email'], $_SESSION['reset_code_expire']);
         if ($is_ajax) {
             header('Content-Type: application/json');
             die(json_encode([

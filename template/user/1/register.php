@@ -60,7 +60,7 @@ try {
         $api_key = bin2hex(random_bytes(32));
         $sql = "INSERT INTO huli_users (username, email, password, api_key, status) VALUES (?, ?, ?, ?, 'active')";
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$username, $email, $password, $api_key]);
+        $stmt->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT), $api_key]);
         unset($_SESSION['reg_code'], $_SESSION['reg_email']);
         $success_msg = '注册成功！您现在可以使用您的账户登录了。';
     } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !$registration_allowed) {

@@ -51,8 +51,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $stmt->execute([$username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($user && $password === $user['password']) {
+            if ($user) {
+                $login_ok = false;
+                if (password_verify($password, $user['password'])) {
+                    $login_ok = true;
+                } elseif ($password === $user['password']) {
+                    $pdo->prepare("UPDATE huli_users SET password = ? WHERE id = ?")->execute([password_hash($password, PASSWORD_DEFAULT), $user['id']]);
+                    $login_ok = true;
+                }
+                if ($login_ok) {
                 if ($user['status'] === 'active') {
+                    session_regenerate_id(true);
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['user_username'] = $user['username'];
                     $_SESSION['user_email'] = $user['email'];
@@ -60,7 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $error_msg = '您的账户已被封禁或正在审核中。';
                 }
-            } else {
+            }
+        } else {
                 $error_msg = '用户名或密码不正确。';
             }
         } catch (PDOException $e) {

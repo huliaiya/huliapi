@@ -97,7 +97,9 @@ try {
     }
     $where_sql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
     $results_per_page = 15;
-    $total_results = $pdo->query("SELECT count(*) FROM huli_users $where_sql")->fetchColumn();
+    $countStmt = $pdo->prepare("SELECT count(*) FROM huli_users $where_sql");
+    $countStmt->execute($params);
+    $total_results = $countStmt->fetchColumn();
     $total_pages = ceil($total_results / $results_per_page);
     $page = isset($_GET['page']) && is_numeric($_GET['page']) ? intval($_GET['page']) : 1;
     $page = max(1, min($page, $total_pages));

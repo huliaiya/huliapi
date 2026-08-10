@@ -58,7 +58,7 @@ try {
                     $params = [$new_username, $new_email, $new_qq, $new_status, $new_membership_level];
                     if (!empty($new_password)) {
                         $sql .= ", password = ?";
-                        $params[] = $new_password;
+                        $params[] = password_hash($new_password, PASSWORD_DEFAULT);
                     }
                     $sql .= " WHERE id = ?";
                     $params[] = $user_id;
@@ -75,7 +75,7 @@ try {
                     $sql = "INSERT INTO huli_users (username, email, qq, password, api_key, status, points, membership_level, membership_expire)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     $stmt = $pdo->prepare($sql);
-                    $stmt->execute([$new_username, $new_email, $new_qq, $new_password, $api_key, $new_status, 0, $new_membership_level, $membership_expire]);
+                    $stmt->execute([$new_username, $new_email, $new_qq, password_hash($new_password, PASSWORD_DEFAULT), $api_key, $new_status, 0, $new_membership_level, $membership_expire]);
                     $_SESSION['feedback_msg'] = '新用户已成功添加。';
                 }
             }

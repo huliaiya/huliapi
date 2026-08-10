@@ -74,7 +74,7 @@ try {
         $api_key = bin2hex(random_bytes(32));
         $sql = "INSERT INTO huli_users (username, email, qq, password, api_key, status, created_at) VALUES (?, ?, ?, ?, ?, 'active', NOW())";
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$username, $email, $qq, $password, $api_key]);
+        $stmt->execute([$username, $email, $qq, password_hash($password, PASSWORD_DEFAULT), $api_key]);
         if ($mail_reg_enabled) {
             unset($_SESSION['reg_code'], $_SESSION['reg_email']);
         }

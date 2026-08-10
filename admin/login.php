@@ -39,8 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("SELECT id, password, nickname, status FROM huli_admins WHERE username = ? LIMIT 1");
             $stmt->execute([$username]);
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($admin && (password_verify($password, $admin['password']) || hash_equals($admin['password'], $password))) {
+            if ($admin && password_verify($password, $admin['password'])) {
                 if ($admin['status'] == 1) {
+                    session_regenerate_id(true);
                     $_SESSION['admin_id'] = $admin['id'];
                     $_SESSION['admin_username'] = defined('ADMIN_NICKNAME') ? ADMIN_NICKNAME : ($admin['nickname'] ?: $username);
                     $updateStmt = $pdo->prepare("UPDATE huli_admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?");

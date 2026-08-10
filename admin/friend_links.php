@@ -14,7 +14,11 @@ if (file_exists('../config.php')) {
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
 $feedback_type = '';
-$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$get_page = isset($_GET['page']) ? intval($_GET['page']) : 0;
+$get_status = isset($_GET['status']) ? preg_replace('/[^a-z_0-9]/i', '', $_GET['status']) : '';
+$get_is_hidden = isset($_GET['is_hidden']) ? (int)$_GET['is_hidden'] : 0;
+$get_name = isset($_GET['name']) ? $_GET['name'] : '';
+$page = $get_page > 0 ? $get_page : 1;
 $limit = 18;
 $offset = ($page - 1) * $limit;
 $totalRecords = 0;
@@ -159,8 +163,8 @@ try {
         }
         $_SESSION['feedback_type'] = 'success';
         $redirectParams = [];
-        if (isset($_GET['page'])) $redirectParams[] = "page={$_GET['page']}";
-        if (isset($_GET['status'])) $redirectParams[] = "status={$_GET['status']}";
+        if (isset($get_page)) $redirectParams[] = "page={$get_page}";
+        if (isset($get_status)) $redirectParams[] = "status={$get_status}";
         $redirectUrl = 'friend_links.php' . (count($redirectParams) ? '?' . implode('&', $redirectParams) : '');
         header('Location: ' . $redirectUrl);
         exit;
@@ -293,25 +297,25 @@ try {
             throw $e;
         }
         $redirectParams = [];
-        if (isset($_GET['page'])) $redirectParams[] = "page={$_GET['page']}";
-        if (isset($_GET['status'])) $redirectParams[] = "status={$_GET['status']}";
+        if (isset($get_page)) $redirectParams[] = "page={$get_page}";
+        if (isset($get_status)) $redirectParams[] = "status={$get_status}";
         $redirectUrl = 'friend_links.php' . (count($redirectParams) ? '?' . implode('&', $redirectParams) : '');
         header('Location: ' . $redirectUrl);
         exit;
     }
     $where = [];
     $params = [];
-    if (!empty($_GET['name'])) {
+    if (!empty($get_name)) {
         $where[] = "site_name LIKE ?";
-        $params[] = "%{$_GET['name']}%";
+        $params[] = "%{$get_name}%";
     }
-    if (!empty($_GET['status'])) {
+    if (!empty($get_status)) {
         $where[] = "status = ?";
-        $params[] = $_GET['status'];
+        $params[] = $get_status;
     }
-    if (isset($_GET['is_hidden']) && $_GET['is_hidden'] !== '') {
+    if (isset($get_is_hidden) && $get_is_hidden !== '') {
         $where[] = "is_hidden = ?";
-        $params[] = intval($_GET['is_hidden']);
+        $params[] = intval($get_is_hidden);
     }
     $whereStr = $where ? "WHERE " . implode(' AND ', $where) : '';
     $countStmt = $pdo->prepare("SELECT COUNT(*) FROM huli_friend_links {$whereStr}");
@@ -480,7 +484,7 @@ function getStatusBadge($status) {
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <i class="fa fa-search text-gray-400"></i>
               </div>
-              <input type="text" name="name" id="name" value="<?= htmlspecialchars($_GET['name'] ?? '') ?>"
+              <input type="text" name="name" id="name" value="<?= htmlspecialchars($get_name ?? '') ?>"
                      placeholder="请输入网站名称" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200" />
             </div>
           </div>
@@ -491,9 +495,9 @@ function getStatusBadge($status) {
             <div class="relative">
               <select name="status" id="status" class="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary appearance-none transition-all duration-200">
                 <option value="">全部</option>
-                <option value="pending" <?= isset($_GET['status']) && $_GET['status'] === 'pending' ? 'selected' : '' ?>>待审核</option>
-                <option value="approved" <?= isset($_GET['status']) && $_GET['status'] === 'approved' ? 'selected' : '' ?>>已通过</option>
-                <option value="rejected" <?= isset($_GET['status']) && $_GET['status'] === 'rejected' ? 'selected' : '' ?>>已拒绝</option>
+                <option value="pending" <?= isset($get_status) && $get_status === 'pending' ? 'selected' : '' ?>>待审核</option>
+                <option value="approved" <?= isset($get_status) && $get_status === 'approved' ? 'selected' : '' ?>>已通过</option>
+                <option value="rejected" <?= isset($get_status) && $get_status === 'rejected' ? 'selected' : '' ?>>已拒绝</option>
               </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
                 <i class="fa fa-chevron-down text-xs"></i>
@@ -507,8 +511,8 @@ function getStatusBadge($status) {
             <div class="relative">
               <select name="is_hidden" id="is_hidden" class="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary appearance-none transition-all duration-200">
                 <option value="">全部</option>
-                <option value="0" <?= isset($_GET['is_hidden']) && $_GET['is_hidden'] === '0' ? 'selected' : '' ?>>显示</option>
-                <option value="1" <?= isset($_GET['is_hidden']) && $_GET['is_hidden'] === '1' ? 'selected' : '' ?>>隐藏</option>
+                <option value="0" <?= isset($get_is_hidden) && $get_is_hidden === '0' ? 'selected' : '' ?>>显示</option>
+                <option value="1" <?= isset($get_is_hidden) && $get_is_hidden === '1' ? 'selected' : '' ?>>隐藏</option>
               </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
                 <i class="fa fa-chevron-down text-xs"></i>
@@ -661,7 +665,7 @@ function getStatusBadge($status) {
                     <i class="fa fa-pencil mr-1"></i>编辑
                   </a>
                   <?php if ($link['status'] === 'pending'): ?>
-                    <a href="friend_links.php?action=approve&id=<?= $link['id'] ?><?= isset($_GET['page']) ? "&page={$_GET['page']}" : '' ?>"
+                    <a href="friend_links.php?action=approve&id=<?= $link['id'] ?><?= isset($get_page) ? "&page={$get_page}" : '' ?>"
                        class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 focus:outline-none"
                        onclick="return confirm('确定通过此友链？')">
                       <i class="fa fa-check mr-1"></i>通过
@@ -671,14 +675,14 @@ function getStatusBadge($status) {
                       <i class="fa fa-times mr-1"></i>拒绝
                     </button>
                   <?php else: ?>
-                    <a href="friend_links.php?action=toggle&id=<?= $link['id'] ?><?= isset($_GET['page']) ? "&page={$_GET['page']}" : '' ?>"
+                    <a href="friend_links.php?action=toggle&id=<?= $link['id'] ?><?= isset($get_page) ? "&page={$get_page}" : '' ?>"
                        class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 focus:outline-none"
                        title="<?= $link['is_hidden'] ? '显示' : '隐藏' ?>">
                       <i class="fa fa-<?= $link['is_hidden'] ? 'eye' : 'eye-slash' ?> mr-1"></i><?= $link['is_hidden'] ? '显示' : '隐藏' ?>
                     </a>
                   <?php endif; ?>
                 </div>
-                <a href="friend_links.php?action=delete&id=<?= $link['id'] ?><?= isset($_GET['page']) ? "&page={$_GET['page']}" : '' ?>"
+                <a href="friend_links.php?action=delete&id=<?= $link['id'] ?><?= isset($get_page) ? "&page={$get_page}" : '' ?>"
                    class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 focus:outline-none"
                    onclick="return confirm('确定删除此友链？删除后不可恢复！')">
                   <i class="fa fa-trash mr-1"></i>删除
@@ -699,7 +703,7 @@ function getStatusBadge($status) {
         </div>
         <div class="flex items-center space-x-1">
           <?php if ($page > 1): ?>
-            <a href="?page=1<?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>"
+            <a href="?page=1<?= !empty($get_name) ? "&name=" . urlencode($get_name) : '' ?><?= !empty($get_status) ? "&status={$get_status}" : '' ?><?= isset($get_is_hidden) ? "&is_hidden={$get_is_hidden}" : '' ?>"
                class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
               <i class="fa fa-angle-double-left"></i>
             </a>
@@ -709,7 +713,7 @@ function getStatusBadge($status) {
             </span>
           <?php endif; ?>
           <?php if ($page > 1): ?>
-            <a href="?page=<?= $page - 1 ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>"
+            <a href="?page=<?= $page - 1 ?><?= !empty($get_name) ? "&name=" . urlencode($get_name) : '' ?><?= !empty($get_status) ? "&status={$get_status}" : '' ?><?= isset($get_is_hidden) ? "&is_hidden={$get_is_hidden}" : '' ?>"
                class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
               <i class="fa fa-angle-left"></i>
             </a>
@@ -731,13 +735,13 @@ function getStatusBadge($status) {
           $showStartEllipsis = $startPage > 1;
           $showEndEllipsis = $endPage < $totalPages;
           if ($showStartEllipsis) {
-              echo '<a href="?page=1' . (!empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '') . (!empty($_GET['status']) ? "&status={$_GET['status']}" : '') . (isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '') . '" class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">1</a>';
+              echo '<a href="?page=1' . (!empty($get_name) ? "&name=" . urlencode($get_name) : '') . (!empty($get_status) ? "&status={$get_status}" : '') . (isset($get_is_hidden) ? "&is_hidden={$get_is_hidden}" : '') . '" class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">1</a>';
               if ($startPage > 2) {
                   echo '<span class="inline-flex items-center justify-center w-8 h-8 text-gray-400">...</span>';
               }
           }
           for ($i = $startPage; $i <= $endPage; $i++): ?>
-            <a href="?page=<?= $i ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>"
+            <a href="?page=<?= $i ?><?= !empty($get_name) ? "&name=" . urlencode($get_name) : '' ?><?= !empty($get_status) ? "&status={$get_status}" : '' ?><?= isset($get_is_hidden) ? "&is_hidden={$get_is_hidden}" : '' ?>"
                class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 <?= $page == $i ? 'bg-primary text-white border-primary' : '' ?>">
               <?= $i ?>
             </a>
@@ -746,13 +750,13 @@ function getStatusBadge($status) {
               <?php if ($endPage < $totalPages - 1): ?>
                   <span class="inline-flex items-center justify-center w-8 h-8 text-gray-400">...</span>
               <?php endif; ?>
-              <a href="?page=<?= $totalPages ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>"
+              <a href="?page=<?= $totalPages ?><?= !empty($get_name) ? "&name=" . urlencode($get_name) : '' ?><?= !empty($get_status) ? "&status={$get_status}" : '' ?><?= isset($get_is_hidden) ? "&is_hidden={$get_is_hidden}" : '' ?>"
                  class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                 <?= $totalPages ?>
               </a>
           <?php endif; ?>
           <?php if ($page < $totalPages): ?>
-            <a href="?page=<?= $page + 1 ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>"
+            <a href="?page=<?= $page + 1 ?><?= !empty($get_name) ? "&name=" . urlencode($get_name) : '' ?><?= !empty($get_status) ? "&status={$get_status}" : '' ?><?= isset($get_is_hidden) ? "&is_hidden={$get_is_hidden}" : '' ?>"
                class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
               <i class="fa fa-angle-right"></i>
             </a>
@@ -762,7 +766,7 @@ function getStatusBadge($status) {
             </span>
           <?php endif; ?>
           <?php if ($page < $totalPages): ?>
-            <a href="?page=<?= $totalPages ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>"
+            <a href="?page=<?= $totalPages ?><?= !empty($get_name) ? "&name=" . urlencode($get_name) : '' ?><?= !empty($get_status) ? "&status={$get_status}" : '' ?><?= isset($get_is_hidden) ? "&is_hidden={$get_is_hidden}" : '' ?>"
                class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
               <i class="fa fa-angle-double-right"></i>
             </a>
@@ -896,7 +900,7 @@ function getStatusBadge($status) {
     function submitReject() {
       var id = document.getElementById('reject-id').value;
       var note = document.getElementById('reject-note').value;
-      var page = <?= isset($_GET['page']) ? $_GET['page'] : 1 ?>;
+      var page = <?= isset($get_page) ? $get_page : 1 ?>;
       if (!id) return;
       showLoading();
       var formData = new FormData();

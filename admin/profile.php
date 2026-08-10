@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $stmt_pw = $pdo->prepare("SELECT password FROM huli_admins WHERE id = ?"); $stmt_pw->execute([$admin_id]);
                 $admin_data = $stmt_pw->fetch();
-                if ($admin_data && (password_verify($current_password, $admin_data['password']) || hash_equals($admin_data['password'], $current_password))) {
+                if ($admin_data && password_verify($current_password, $admin_data['password'])) {
                     $update_stmt = $pdo->prepare("UPDATE huli_admins SET password = ? WHERE id = ?");
                     $update_stmt->execute([password_hash($new_password, PASSWORD_DEFAULT), $admin_id]);
                     $feedback_msg = '密码已成功更新。'; $feedback_type = 'success';
