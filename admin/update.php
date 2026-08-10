@@ -35,10 +35,9 @@ function run_update() {
     global $feedback_msg, $feedback_type, $update_info;
     try {
         $update_info = huli_detect_update_info();
-        if (!$update_info || empty($update_info['zipball_url'])) { throw new Exception('无法获取更新包信息。'); }
+        if (!$update_info || empty($update_info['download_url'])) { throw new Exception('无法获取更新包信息。'); }
         if (empty($update_info['update_available'])) { $feedback_msg = '已经是最新版本，无需更新。'; $feedback_type = 'success'; return; }
-        $download_url = $update_info['zipball_url'];
-        $branch = defined('SENLIN_CLIENT_UPDATE_BRANCH') ? SENLIN_CLIENT_UPDATE_BRANCH : 'main';
+        $download_url = $update_info['download_url'];
         $temp_zip_path = rtrim(sys_get_temp_dir(), '/') . '/update_package_' . uniqid() . '.zip';
         $extract_path = dirname(__FILE__, 2);
         $fp = fopen($temp_zip_path, 'w+');
@@ -65,16 +64,13 @@ function run_update() {
                 break;
             }
         }
-        $protected = ['config.php', 'install/', 'install.lock', 'admin/fanghong_switch.txt'];
-        $skip_extracted_config = ($branch === 'miao');
+        $protected_files = ['config.php', 'install.lock', 'admin/fanghong_switch.txt'];
         $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($extracted_root, RecursiveDirectoryIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
         foreach ($iter as $item) {
-            $relative = substr($item->getPathname(), strlen($extracted_root) + 1);
-            $relative = str_replace('\\', '/', $relative);
+            $relative = str_replace('\\', '/', substr($item->getPathname(), strlen($extracted_root) + 1));
             $target = $extract_path . '/' . $relative;
-            if (in_array($relative, ['config.php', 'install/install.lock'], true)) { continue; }
+            if (in_array($relative, $protected_files, true)) { continue; }
             if (strpos($relative, 'install/') === 0) { continue; }
-            if ($skip_extracted_config && in_array($relative, ['config.php', 'README.md'], true)) { continue; }
             if ($item->isDir()) {
                 if (!is_dir($target)) { @mkdir($target, 0755, true); }
                 continue;
@@ -82,11 +78,15 @@ function run_update() {
             @mkdir(dirname($target), 0755, true);
             if (!copy($item->getPathname(), $target)) { throw new Exception('复制文件失败: ' . $relative); }
         }
+        $repo = defined('SENLIN_CLIENT_REPO') ? SENLIN_CLIENT_REPO : 'huliaiya/huliapi';
+        $repo_branch = defined('SENLIN_CLIENT_REPO_BRANCH') ? SENLIN_CLIENT_REPO_BRANCH : 'main';
+        $update_branch = defined('SENLIN_CLIENT_UPDATE_BRANCH') ? SENLIN_CLIENT_UPDATE_BRANCH : 'miao';
         $version_file_path = $extract_path . '/common/version.php';
-        $new_version_content = "<?php\ndefine('SENLIN_CLIENT_VERSION', '" . addslashes($update_info['version']) . "');\ndefine('SENLIN_CLIENT_REPO', '" . addslashes(SENLIN_CLIENT_REPO) . "');\ndefine('SENLIN_CLIENT_REPO_BRANCH', '" . addslashes(SENLIN_CLIENT_REPO_BRANCH) . "');\ndefine('SENLIN_CLIENT_UPDATE_BRANCH', '" . addslashes(SENLIN_CLIENT_UPDATE_BRANCH) . "');\n";
+        $new_version_content = "<?php\ndefine('SENLIN_CLIENT_VERSION', '" . addslashes($update_info['version']) . "');\n";
         if (!empty($update_info['published_at'])) {
             $new_version_content .= "define('SENLIN_CLIENT_RELEASE_DATE', '" . addslashes(date('Y-m-d', strtotime($update_info['published_at']))) . "');\n";
         }
+        $new_version_content .= "define('SENLIN_CLIENT_REPO', '" . addslashes($repo) . "');\ndefine('SENLIN_CLIENT_REPO_BRANCH', '" . addslashes($repo_branch) . "');\ndefine('SENLIN_CLIENT_UPDATE_BRANCH', '" . addslashes($update_branch) . "');\n";
         $new_version_content .= "?>";
         if (file_put_contents($version_file_path, $new_version_content) === false) {
             throw new Exception('无法自动更新本地版本号文件，请检查 /common/version.php 文件的权限。');
