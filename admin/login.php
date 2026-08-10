@@ -30,13 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $stmt = $pdo->prepare("SELECT id, password, status FROM huli_admins WHERE username = ? LIMIT 1");
+            $stmt = $pdo->prepare("SELECT id, password, nickname, status FROM huli_admins WHERE username = ? LIMIT 1");
             $stmt->execute([$username]);
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($admin && $password === $admin['password']) {
+            if ($admin && (password_verify($password, $admin['password']) || hash_equals($admin['password'], $password))) {
                 if ($admin['status'] == 1) {
                     $_SESSION['admin_id'] = $admin['id'];
-                    $_SESSION['admin_username'] = $username;
+                    $_SESSION['admin_username'] = defined('ADMIN_NICKNAME') ? ADMIN_NICKNAME : ($admin['nickname'] ?: $username);
                     $updateStmt = $pdo->prepare("UPDATE huli_admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?");
                     $updateStmt->execute([$admin['id']]);
                     unset($_SESSION['captcha_code']);

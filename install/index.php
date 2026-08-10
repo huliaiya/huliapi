@@ -5,15 +5,14 @@ $is_installed=file_exists('install.lock');if($is_installed&&basename($_SERVER['P
 if(!file_exists('install.lock')&&(!isset($_GET['step'])||(int)$_GET['step']!==STEP_CHECK_ENV)&&(!isset($_GET['step'])||(int)$_GET['step']!=STEP_COMPLETE)){header("Location: ?step=".STEP_CHECK_ENV);exit;}
 $current_step=isset($_GET['step'])?(int)$_GET['step']:STEP_CHECK_ENV;$error=null;$success_msg=null;
 if($_SERVER['REQUEST_METHOD']==='POST'){try{$action=$_POST['action']??'';if($action==='check_env'){checkEnvironment();$_SESSION['env_checked']=true;$current_step=STEP_DB_CONFIG;}elseif($action==='db_config'){if(empty($_SESSION['env_checked'])){throw new Exception('请先完成环境检测');}
-$db_host=$_POST['db_host']??'127.0.0.1';$db_name=$_POST['db_name']??'';$db_user=$_POST['db_user']??'';$db_pwd=$_POST['db_pwd']??'';if(empty($db_name)||empty($db_user)){throw new Exception('数据库名和用户名不能为空');}
-$dsn="mysql:host={$db_host};charset=utf8mb4";$pdo=new PDO($dsn,$db_user,$db_pwd,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);$stmt=$pdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{$db_name}'");if(!$stmt->fetch()){throw new Exception("数据库 {$db_name} 不存在，请先创建数据库");}
-$_SESSION['db_config']=['host'=>$db_host,'name'=>$db_name,'user'=>$db_user,'pwd'=>$db_pwd];$current_step=STEP_INSTALL_DB;}elseif($action==='install_db'){if(empty($_SESSION['db_config'])){throw new Exception('数据库配置丢失，请返回上一步重新配置');}
-$db=$_SESSION['db_config'];$log="";$log.="> 正在生成数据库配置文件...\n";$configContent="<?php
-define('DB_HOST','{$db['host']}');define('DB_NAME','{$db['name']}');define('DB_USER','{$db['user']}');define('DB_PASS','{$db['pwd']}');define('DB_CHARSET','utf8mb4');";if(!file_put_contents('../config.php',$configContent)){throw new Exception('无法创建配置文件，请检查目录权限');}$log.="✓ 配置文件生成成功\n";$log.="> 正在连接数据库...\n";$dsn="mysql:host={$db['host']};dbname={$db['name']};charset=utf8mb4";$pdo=new PDO($dsn,$db['user'],$db['pwd'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);$log.="> 正在清理现有数据表...\n";$pdo->exec("SET FOREIGN_KEY_CHECKS = 0");$tables=$pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);if(!empty($tables)){foreach($tables as $table){try{$pdo->exec("DROP TABLE `{$table}`");$log.="✓ 已删除表: {$table}\n";}catch(PDOException $e){$log.="⚠ 删除表失败: {$table} ({$e->getMessage()})\n";}}}
+ $db_host=trim($_POST['db_host']??'127.0.0.1');$db_name=trim($_POST['db_name']??'');$db_user=trim($_POST['db_user']??'');$db_pwd=$_POST['db_pwd']??'';$admin_username=trim($_POST['admin_username']??'admin');$admin_nickname=trim($_POST['admin_nickname']??'管理员');$admin_email=trim($_POST['admin_email']??'');$admin_password=$_POST['admin_password']??'';$admin_password_confirm=$_POST['admin_password_confirm']??'';$admin_path=trim($_POST['admin_path']??'admin');$smtp_host=trim($_POST['mail_smtp_host']??'');$smtp_port=(int)($_POST['mail_smtp_port']??465);$smtp_secure=$_POST['mail_smtp_secure']??'ssl';$smtp_user=trim($_POST['mail_smtp_user']??'');$smtp_pass=$_POST['mail_smtp_pass']??'';if($db_name===''||$db_user===''){throw new Exception('数据库名和用户名不能为空');}if(!preg_match('/^[A-Za-z0-9_]{2,32}$/',$admin_username)){throw new Exception('管理员账号需要使用2-32位字母、数字或下划线');}if($admin_nickname===''){throw new Exception('管理员昵称不能为空');}if(!filter_var($admin_email,FILTER_VALIDATE_EMAIL)){throw new Exception('请输入有效的管理员邮箱');}if(strlen($admin_password)<6||$admin_password!==$admin_password_confirm){throw new Exception('管理员密码至少6位，且两次输入必须一致');}if(!preg_match('/^[A-Za-z][A-Za-z0-9_-]{1,31}$/',$admin_path)||in_array(strtolower($admin_path),['install','api','assets','common','template','user'])){throw new Exception('后台目录名需要使用安全的字母、数字、下划线或短横线');}if($smtp_host!==''&&($smtp_port<1||$smtp_port>65535)){throw new Exception('SMTP端口范围无效');}if(!in_array($smtp_secure,['ssl','tls'],true)){throw new Exception('SMTP加密方式无效');}
+ $dsn="mysql:host={$db_host};charset=utf8mb4";$pdo=new PDO($dsn,$db_user,$db_pwd,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);$stmt=$pdo->prepare("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?");$stmt->execute([$db_name]);if(!$stmt->fetch()){throw new Exception("数据库 {$db_name} 不存在，请先创建数据库");}
+ $_SESSION['db_config']=['host'=>$db_host,'name'=>$db_name,'user'=>$db_user,'pwd'=>$db_pwd];$_SESSION['install_config']=['admin_username'=>$admin_username,'admin_nickname'=>$admin_nickname,'admin_email'=>$admin_email,'admin_password'=>$admin_password,'admin_path'=>$admin_path,'smtp_host'=>$smtp_host,'smtp_port'=>$smtp_port,'smtp_secure'=>$smtp_secure,'smtp_user'=>$smtp_user,'smtp_pass'=>$smtp_pass];$current_step=STEP_INSTALL_DB;}elseif($action==='install_db'){if(empty($_SESSION['db_config'])||empty($_SESSION['install_config'])){throw new Exception('安装配置丢失，请返回上一步重新配置');}
+ $db=$_SESSION['db_config'];$install=$_SESSION['install_config'];$log="";$log.="> 正在生成数据库配置文件...\n";$configContent="<?php\ndefine('DB_HOST',".var_export($db['host'],true).");define('DB_NAME',".var_export($db['name'],true).");define('DB_USER',".var_export($db['user'],true).");define('DB_PASS',".var_export($db['pwd'],true).");define('DB_CHARSET','utf8mb4');define('ADMIN_PATH',".var_export($install['admin_path'],true).");";if(!file_put_contents('../config.php',$configContent)){throw new Exception('无法创建配置文件，请检查目录权限');}$log.="✓ 配置文件生成成功\n";$log.="> 正在连接数据库...\n";$dsn="mysql:host={$db['host']};dbname={$db['name']};charset=utf8mb4";$pdo=new PDO($dsn,$db['user'],$db['pwd'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);$log.="> 正在清理现有数据表...\n";$pdo->exec("SET FOREIGN_KEY_CHECKS = 0");$tables=$pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);if(!empty($tables)){foreach($tables as $table){try{$pdo->exec("DROP TABLE `{$table}`");$log.="✓ 已删除表: {$table}\n";}catch(PDOException $e){$log.="⚠ 删除表失败: {$table} ({$e->getMessage()})\n";}}}
 $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");$log.="✓ 数据库清理完成\n";$log.="> 正在解析SQL文件...\n";$sql=@file_get_contents('install.sql');if(!$sql){throw new Exception('无法读取install.sql文件');}
 $sql_commands=preg_split('/;\s*\n/',$sql);$log.="> 开始导入数据库结构 (共 ".count($sql_commands)." 条SQL语句)...\n";foreach($sql_commands as $command){$command=trim($command);if(!empty($command)){$table_name='';if(preg_match('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([^\s`(]+)/i',$command,$matches)){$table_name=$matches[1];}if(empty($table_name)&&preg_match('/INSERT\s+INTO\s+`?([^\s`]+)/i',$command,$matches)){$table_name=$matches[1];}if(empty($table_name)){$table_name='SQL命令';}
 try{$start_time=microtime(true);$pdo->exec($command);$time_taken=round((microtime(true)-$start_time)*1000,2);$log.="✓ [{$table_name}] 执行成功 ({$time_taken}ms)\n";}catch(PDOException $e){if(strpos($e->getMessage(),'already exists')!==false){$log.="⚠ [{$table_name}] 表已存在 (跳过)\n";}else{$log.="✗ [{$table_name}] 执行失败: ".$e->getMessage()."\n";}}}}
-$log.="✓ 数据库导入完成\n";$log.="> 正在创建安装锁文件...\n";file_put_contents('install.lock','安装锁'.PHP_EOL.'安装完成时间: '.date('Y-m-d H:i:s'));$log.="✓ 安装锁文件创建成功\n";$_SESSION['install_log']=$log;header("Location: ?step=".STEP_COMPLETE);exit;}}catch(Exception $e){$error=$e->getMessage();if(file_exists('../config.php')){@unlink('../config.php');}if(file_exists('install.lock')){@unlink('install.lock');}}}
+ $log.="✓ 数据库导入完成\n";$adminStmt=$pdo->prepare("UPDATE huli_admins SET username = ?, password = ?, email = ? WHERE id = 1");$adminStmt->execute([$install['admin_username'],password_hash($install['admin_password'],PASSWORD_DEFAULT),$install['admin_email']]);$settingStmt=$pdo->prepare("UPDATE huli_settings SET setting_value = ? WHERE setting_key = ?");foreach([['mail_smtp_host',$install['smtp_host']],['mail_smtp_port',(string)$install['smtp_port']],['mail_smtp_secure',$install['smtp_secure']],['mail_smtp_user',$install['smtp_user']],['mail_smtp_pass',$install['smtp_pass']]] as $setting){$settingStmt->execute([$setting[1],$setting[0]]);}$log.="✓ 管理员和邮件配置保存成功\n";if($install['admin_path']!=='admin'){if(!is_dir('../admin')){throw new Exception('默认后台目录不存在，无法重命名');}if(file_exists('../'.$install['admin_path'])){throw new Exception('后台目录名已存在，请更换名称');}if(!rename('../admin','../'.$install['admin_path'])){throw new Exception('后台目录重命名失败，请检查目录权限');}$log.="✓ 后台目录已设置为 /{$install['admin_path']}/\n";}$log.="> 正在创建安装锁文件...\n";file_put_contents('install.lock','安装锁'.PHP_EOL.'安装完成时间: '.date('Y-m-d H:i:s'));$log.="✓ 安装锁文件创建成功\n";$_SESSION['install_log']=$log;$_SESSION['installed_admin']=$install;header("Location: ?step=".STEP_COMPLETE);exit;}}catch(Exception $e){$error=$e->getMessage();if(file_exists('../config.php')){@unlink('../config.php');}if(file_exists('install.lock')){@unlink('install.lock');}}}
 function checkEnvironment(){if(version_compare(PHP_VERSION,'7.4.0','<')){throw new Exception('PHP版本需要7.4.0或更高，当前版本: '.PHP_VERSION);}
 $required_extensions=['pdo','pdo_mysql','zip'];$missing=[];foreach($required_extensions as $ext){if(!extension_loaded($ext)){$missing[]=$ext;}}if(!empty($missing)){throw new Exception('缺少必需的PHP扩展: '.implode(', ',$missing));}
 $check_dirs=['../','../config.php','../API'];foreach($check_dirs as $dir){if(!is_writable($dir)){throw new Exception("目录/文件不可写: {$dir}");}}}
@@ -266,6 +265,10 @@ body {
   border-radius: 8px;
   padding: 15px;
 }
+.section-heading { display:flex; align-items:center; gap:8px; margin:24px 0 16px; padding-bottom:10px; border-bottom:1px solid #edf1f5; color:var(--primary-dark); font-weight:600; }
+.section-heading i { font-size:1.3rem; }
+.section-heading small { margin-left:auto; color:var(--text-secondary); font-weight:400; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 @media (max-width: 768px) {
   .step {
     padding: 0 15px;
@@ -281,6 +284,8 @@ body {
   .card-body {
     padding: 20px;
   }
+  .form-row { grid-template-columns:1fr; gap:0; }
+  .section-heading small { display:none; }
 }
 </style>
 </head>
@@ -355,6 +360,7 @@ body {
           </ul>
         </div>
         <?php elseif ($step == STEP_DB_CONFIG): ?>
+        <div class="section-heading"><i class="mdi mdi-database-outline"></i><span>数据库连接</span></div>
         <div class="form-group mb-4">
           <label class="form-label"><i class="mdi mdi-server-network mr-2"></i>数据库主机</label>
           <input class="form-control" type="text" name="db_host" value="<?= isset($_SESSION['db_config']['host']) ? htmlspecialchars($_SESSION['db_config']['host']) : '127.0.0.1' ?>" required>
@@ -371,8 +377,31 @@ body {
         </div>
         <div class="form-group mb-4">
           <label class="form-label"><i class="mdi mdi-key mr-2"></i>数据库密码</label>
-          <input class="form-control" type="password" name="db_pwd" value="<?= isset($_SESSION['db_config']['pwd']) ? htmlspecialchars($_SESSION['db_config']['pwd']) : '' ?>">
+         <input class="form-control" type="password" name="db_pwd" value="<?= isset($_SESSION['db_config']['pwd']) ? htmlspecialchars($_SESSION['db_config']['pwd']) : '' ?>">
         </div>
+        <div class="section-heading"><i class="mdi mdi-account-cog-outline"></i><span>管理员账户</span></div>
+        <div class="form-row">
+          <div class="form-group mb-4"><label class="form-label">登录账号</label><input class="form-control" type="text" name="admin_username" value="<?= htmlspecialchars($_SESSION['install_config']['admin_username'] ?? 'admin') ?>" required><small class="text-muted">2-32位字母、数字或下划线</small></div>
+          <div class="form-group mb-4"><label class="form-label">管理员昵称</label><input class="form-control" type="text" name="admin_nickname" value="<?= htmlspecialchars($_SESSION['install_config']['admin_nickname'] ?? '管理员') ?>" required></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group mb-4"><label class="form-label">管理员邮箱</label><input class="form-control" type="email" name="admin_email" value="<?= htmlspecialchars($_SESSION['install_config']['admin_email'] ?? '') ?>" required></div>
+          <div class="form-group mb-4"><label class="form-label">后台目录名</label><input class="form-control" type="text" name="admin_path" value="<?= htmlspecialchars($_SESSION['install_config']['admin_path'] ?? 'admin') ?>" required><small class="text-muted">安装后后台地址为 /此目录名/</small></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group mb-4"><label class="form-label">登录密码</label><input class="form-control" type="password" name="admin_password" required minlength="6"></div>
+          <div class="form-group mb-4"><label class="form-label">确认密码</label><input class="form-control" type="password" name="admin_password_confirm" required minlength="6"></div>
+        </div>
+        <div class="section-heading"><i class="mdi mdi-email-fast-outline"></i><span>SMTP 邮件配置</span><small>可留空，安装后可在后台设置</small></div>
+        <div class="form-row">
+          <div class="form-group mb-4"><label class="form-label">SMTP 主机</label><input class="form-control" type="text" name="mail_smtp_host" value="<?= htmlspecialchars($_SESSION['install_config']['smtp_host'] ?? '') ?>" placeholder="smtp.example.com"></div>
+          <div class="form-group mb-4"><label class="form-label">SMTP 端口</label><input class="form-control" type="number" name="mail_smtp_port" value="<?= htmlspecialchars($_SESSION['install_config']['smtp_port'] ?? '465') ?>"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group mb-4"><label class="form-label">加密方式</label><select class="form-control" name="mail_smtp_secure"><option value="ssl">SSL</option><option value="tls">TLS</option></select></div>
+          <div class="form-group mb-4"><label class="form-label">SMTP 用户名</label><input class="form-control" type="text" name="mail_smtp_user" value="<?= htmlspecialchars($_SESSION['install_config']['smtp_user'] ?? '') ?>"></div>
+        </div>
+        <div class="form-group mb-4"><label class="form-label">SMTP 密码</label><input class="form-control" type="password" name="mail_smtp_pass" value="<?= htmlspecialchars($_SESSION['install_config']['smtp_pass'] ?? '') ?>"></div>
         <?php elseif ($step == STEP_INSTALL_DB): ?>
         <div class="terminal-container">
           <h5 class="mb-3"><i class="mdi mdi-console-line mr-2"></i>安装终端</h5>
@@ -414,12 +443,12 @@ body {
             <div class="credential-item">
               <i class="mdi mdi-account-circle credential-icon"></i>
               <span class="credential-label">用户名</span>
-              <span class="credential-value">admin</span>
+               <span class="credential-value"><?= htmlspecialchars($_SESSION['installed_admin']['admin_username'] ?? '已设置') ?></span>
             </div>
             <div class="credential-item">
               <i class="mdi mdi-key credential-icon"></i>
               <span class="credential-label">初始密码</span>
-              <span class="credential-value">123456</span>
+               <span class="credential-value">安装时设置的密码</span>
             </div>
             <div class="credential-item">
               <i class="mdi mdi-alert-circle credential-icon" style="color: var(--warning);"></i>
@@ -431,7 +460,7 @@ body {
             <a href="../" class="btn btn-primary mr-3">
               <i class="mdi mdi-home mr-2"></i>前往首页
             </a>
-            <a href="../admin/" class="btn btn-outline-primary">
+            <a href="../<?= htmlspecialchars($_SESSION['installed_admin']['admin_path'] ?? 'admin') ?>/" class="btn btn-outline-primary">
               <i class="mdi mdi-settings mr-2"></i>前往后台
             </a>
           </div>

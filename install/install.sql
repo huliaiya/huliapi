@@ -42,6 +42,7 @@ DROP TABLE IF EXISTS `huli_admins`;
 CREATE TABLE `huli_admins` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '管理员ID',
   `username` varchar(50) NOT NULL COMMENT '管理员用户名',
+  `nickname` varchar(100) NOT NULL DEFAULT '管理员' COMMENT '管理员昵称',
   `password` varchar(100) NOT NULL COMMENT '管理员密码',
   `email` varchar(100) NOT NULL COMMENT '管理员邮箱',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp() COMMENT '创建时间',

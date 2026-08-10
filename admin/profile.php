@@ -18,9 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $stmt = $pdo->prepare("SELECT password FROM huli_admins WHERE id = ?"); $stmt->execute([$admin_id]);
             $admin = $stmt->fetch();
-            if ($admin && $current_password === $admin['password']) {
+            if ($admin && (password_verify($current_password, $admin['password']) || hash_equals($admin['password'], $current_password))) {
                 $update_stmt = $pdo->prepare("UPDATE huli_admins SET password = ? WHERE id = ?");
-                $update_stmt->execute([$new_password, $admin_id]);
+                $update_stmt->execute([password_hash($new_password, PASSWORD_DEFAULT), $admin_id]);
                 $feedback_msg = '密码已成功更新。'; $feedback_type = 'success';
             } else { $feedback_msg = '当前密码不正确。'; $feedback_type = 'error'; }
         } catch (PDOException $e) { $feedback_msg = '出现错误！数据库操作失败。'; $feedback_type = 'error'; }
