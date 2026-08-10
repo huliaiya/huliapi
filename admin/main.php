@@ -52,43 +52,43 @@ try {
         DB_PASS
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->exec("CREATE TABLE IF NOT EXISTS sl_daily_stats (
+    $pdo->exec("CREATE TABLE IF NOT EXISTS huli_daily_stats (
         id INT AUTO_INCREMENT PRIMARY KEY,
         stat_date DATE NOT NULL,
         call_count INT NOT NULL DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY unique_date (stat_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS sl_feedback (
+    $pdo->exec("CREATE TABLE IF NOT EXISTS huli_feedback (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         content TEXT NOT NULL,
         status ENUM('pending', 'processed') NOT NULL DEFAULT 'pending',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS sl_orders (
+    $pdo->exec("CREATE TABLE IF NOT EXISTS huli_orders (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         amount DECIMAL(10,2) NOT NULL,
         status ENUM('pending', 'paid', 'failed') NOT NULL DEFAULT 'pending',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $stats['today_calls'] = $pdo->query("SELECT COUNT(*) FROM sl_api_logs WHERE DATE(request_time) = CURDATE()")->fetchColumn() ?: 0;
-    $stats['yesterday_calls'] = $pdo->query("SELECT COUNT(*) FROM sl_api_logs WHERE DATE(request_time) = CURDATE() - INTERVAL 1 DAY")->fetchColumn() ?: 0;
-    $stats['month_calls'] = $pdo->query("SELECT COUNT(*) FROM sl_api_logs WHERE MONTH(request_time) = MONTH(CURDATE()) AND YEAR(request_time) = YEAR(CURDATE())")->fetchColumn() ?: 0;
-    $stats['total_apis'] = $pdo->query("SELECT COUNT(*) FROM sl_apis")->fetchColumn() ?: 0;
-    $stats['total_users'] = $pdo->query("SELECT COUNT(*) FROM sl_users")->fetchColumn() ?: 0;
-    $stats['total_calls_all'] = $pdo->query("SELECT SUM(total_calls) FROM sl_apis")->fetchColumn() ?: 0;
-    $stats['pending_feedback'] = $pdo->query("SELECT COUNT(*) FROM sl_feedback WHERE status = 'pending'")->fetchColumn() ?: 0;
-    $stats['success_orders'] = $pdo->query("SELECT COUNT(*) FROM sl_orders WHERE status = 'paid' AND DATE(created_at) = CURDATE()")->fetchColumn() ?: 0;
-    $stats['failed_orders'] = $pdo->query("SELECT COUNT(*) FROM sl_orders WHERE status = 'failed' AND DATE(created_at) = CURDATE()")->fetchColumn() ?: 0;
-    $stats['pending_orders'] = $pdo->query("SELECT COUNT(*) FROM sl_orders WHERE status = 'pending'")->fetchColumn() ?: 0;
-    $stats['today_income'] = $pdo->query("SELECT SUM(amount) FROM sl_orders WHERE status = 'paid' AND DATE(created_at) = CURDATE()")->fetchColumn() ?: 0;
+    $stats['today_calls'] = $pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE DATE(request_time) = CURDATE()")->fetchColumn() ?: 0;
+    $stats['yesterday_calls'] = $pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE DATE(request_time) = CURDATE() - INTERVAL 1 DAY")->fetchColumn() ?: 0;
+    $stats['month_calls'] = $pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE MONTH(request_time) = MONTH(CURDATE()) AND YEAR(request_time) = YEAR(CURDATE())")->fetchColumn() ?: 0;
+    $stats['total_apis'] = $pdo->query("SELECT COUNT(*) FROM huli_apis")->fetchColumn() ?: 0;
+    $stats['total_users'] = $pdo->query("SELECT COUNT(*) FROM huli_users")->fetchColumn() ?: 0;
+    $stats['total_calls_all'] = $pdo->query("SELECT SUM(total_calls) FROM huli_apis")->fetchColumn() ?: 0;
+    $stats['pending_feedback'] = $pdo->query("SELECT COUNT(*) FROM huli_feedback WHERE status = 'pending'")->fetchColumn() ?: 0;
+    $stats['success_orders'] = $pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'paid' AND DATE(created_at) = CURDATE()")->fetchColumn() ?: 0;
+    $stats['failed_orders'] = $pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'failed' AND DATE(created_at) = CURDATE()")->fetchColumn() ?: 0;
+    $stats['pending_orders'] = $pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'pending'")->fetchColumn() ?: 0;
+    $stats['today_income'] = $pdo->query("SELECT SUM(amount) FROM huli_orders WHERE status = 'paid' AND DATE(created_at) = CURDATE()")->fetchColumn() ?: 0;
     $server_info['mysql_version'] = $pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
     $chart_query = $pdo->query("
-        SELECT stat_date, call_count 
-        FROM sl_daily_stats 
-        WHERE stat_date >= CURDATE() - INTERVAL 30 DAY 
+        SELECT stat_date, call_count
+        FROM huli_daily_stats
+        WHERE stat_date >= CURDATE() - INTERVAL 30 DAY
         ORDER BY stat_date ASC
     ");
     $chart_raw_data = $chart_query->fetchAll(PDO::FETCH_ASSOC);
@@ -115,11 +115,11 @@ try {
     $chart_data_json = json_encode(['labels' => $chart_labels, 'data' => $chart_values]);
 
     $top_apis_query = $pdo->query("
-        SELECT api_id, COUNT(*) as call_count 
-        FROM sl_api_logs 
-        WHERE DATE(request_time) = CURDATE() 
-        GROUP BY api_id 
-        ORDER BY call_count DESC 
+        SELECT api_id, COUNT(*) as call_count
+        FROM huli_api_logs
+        WHERE DATE(request_time) = CURDATE()
+        GROUP BY api_id
+        ORDER BY call_count DESC
         LIMIT 5
     ");
     $top_apis_today = $top_apis_query->fetchAll(PDO::FETCH_ASSOC);
@@ -127,7 +127,7 @@ try {
     if (!empty($top_apis_today)) {
         $api_ids = array_column($top_apis_today, 'api_id');
         $placeholders = implode(',', array_fill(0, count($api_ids), '?'));
-        $stmt_api_names = $pdo->prepare("SELECT id, name FROM sl_apis WHERE id IN ($placeholders)");
+        $stmt_api_names = $pdo->prepare("SELECT id, name FROM huli_apis WHERE id IN ($placeholders)");
         $stmt_api_names->execute($api_ids);
         $api_names = $stmt_api_names->fetchAll(PDO::FETCH_KEY_PAIR);
 

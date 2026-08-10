@@ -4,63 +4,63 @@
 @ini_set('display_errors', 'Off');
 $rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (isset($_SESSION['user_id'])) { 
-    header('Location: ' . ROOT_PATH); 
-    exit; 
+if (isset($_SESSION['user_id'])) {
+    header('Location: ' . ROOT_PATH);
+    exit;
 }
-if (!file_exists(ROOT_PATH . 'config.php')) { 
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+if (!file_exists(ROOT_PATH . 'config.php')) {
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
 $error_msg = '';
 try {
     $pdo_check = new PDO(
-        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, 
-        DB_USER, 
+        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET,
+        DB_USER,
         DB_PASS
     );
     $stmt_settings = $pdo_check->query(
-        "SELECT setting_value FROM sl_settings WHERE setting_key = 'mail_forgot_enabled'"
+        "SELECT setting_value FROM huli_settings WHERE setting_key = 'mail_forgot_enabled'"
     );
     $mail_forgot_enabled = ($stmt_settings->fetchColumn() == 1);
-} catch(Exception $e) { 
-    $mail_forgot_enabled = false; 
+} catch(Exception $e) {
+    $mail_forgot_enabled = false;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
-    if (empty($username) || empty($password)) { 
+    if (empty($username) || empty($password)) {
         $error_msg = '用户名或密码不能为空。';
     } else {
         try {
             $pdo = new PDO(
-                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, 
-                DB_USER, 
+                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET,
+                DB_USER,
                 DB_PASS
             );
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $stmt = $pdo->prepare(
-                "SELECT id, username, email, password, status 
-                 FROM sl_users 
-                 WHERE username = ? 
+                "SELECT id, username, email, password, status
+                 FROM huli_users
+                 WHERE username = ?
                  LIMIT 1"
             );
             $stmt->execute([$username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($user && $password === $user['password']) {
                 if ($user['status'] === 'active') {
-                    $_SESSION['user_id'] = $user['id']; 
-                    $_SESSION['user_username'] = $user['username']; 
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['user_username'] = $user['username'];
                     $_SESSION['user_email'] = $user['email'];
                     header('Location: index.php'); exit;
-                } else { 
-                    $error_msg = '您的账户已被封禁或正在审核中。'; 
+                } else {
+                    $error_msg = '您的账户已被封禁或正在审核中。';
                 }
-            } else { 
-                $error_msg = '用户名或密码不正确。'; 
+            } else {
+                $error_msg = '用户名或密码不正确。';
             }
-        } catch (PDOException $e) { 
-            $error_msg = '系统服务暂时不可用。'; 
+        } catch (PDOException $e) {
+            $error_msg = '系统服务暂时不可用。';
         }
     }
 }

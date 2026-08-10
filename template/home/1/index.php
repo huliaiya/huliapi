@@ -7,10 +7,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     header('Location: index.php');
     exit;
 }
-$rootPath = dirname(__DIR__, 3); 
+$rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+if (!file_exists(ROOT_PATH . 'config.php')) {
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 if (!file_exists(ROOT_PATH . 'config.php')) { die("出现错误！系统尚未安装，请先访问 /install.php 完成安装。"); }
 require_once 'config.php';
@@ -21,11 +21,11 @@ $user_info = $is_logged_in ? ['username' => $_SESSION['user_username'], 'email' 
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_apis = $pdo->query("SELECT * FROM sl_apis ORDER BY id DESC");
+    $stmt_apis = $pdo->query("SELECT * FROM huli_apis ORDER BY id DESC");
     $apis = $stmt_apis->fetchAll(PDO::FETCH_ASSOC);
-    $stmt_announcement = $pdo->query("SELECT * FROM sl_announcements WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1");
+    $stmt_announcement = $pdo->query("SELECT * FROM huli_announcements WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1");
     $announcement = $stmt_announcement->fetch(PDO::FETCH_ASSOC);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
 } catch (PDOException $e) { }
     $site_name = $settings['site_name'] ?? 'huliapi';

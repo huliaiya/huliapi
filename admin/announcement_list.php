@@ -13,10 +13,10 @@ try {
         $id = intval($_GET['id']);
         switch ($_GET['action']) {
             case 'delete':
-                $stmt = $pdo->prepare("DELETE FROM sl_announcements WHERE id = ?"); $stmt->execute([$id]);
+                $stmt = $pdo->prepare("DELETE FROM huli_announcements WHERE id = ?"); $stmt->execute([$id]);
                 $_SESSION['feedback_msg'] = '公告已成功删除。'; break;
             case 'toggle':
-                $stmt = $pdo->prepare("UPDATE sl_announcements SET is_active = 1 - is_active WHERE id = ?"); $stmt->execute([$id]);
+                $stmt = $pdo->prepare("UPDATE huli_announcements SET is_active = 1 - is_active WHERE id = ?"); $stmt->execute([$id]);
                 $_SESSION['feedback_msg'] = '公告状态已成功切换。'; break;
         }
         $_SESSION['feedback_type'] = 'success';
@@ -27,12 +27,12 @@ try {
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
     $results_per_page = 15;
-    $total_results = $pdo->query("SELECT count(*) FROM sl_announcements")->fetchColumn();
+    $total_results = $pdo->query("SELECT count(*) FROM huli_announcements")->fetchColumn();
     $total_pages = ceil($total_results / $results_per_page);
     $page = isset($_GET['page']) && is_numeric($_GET['page']) ? intval($_GET['page']) : 1;
     $page = max(1, min($page, $total_pages));
     $offset = ($page - 1) * $results_per_page;
-    $stmt_list = $pdo->prepare("SELECT * FROM sl_announcements ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
+    $stmt_list = $pdo->prepare("SELECT * FROM huli_announcements ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
     $stmt_list->bindValue(':limit', $results_per_page, PDO::PARAM_INT);
     $stmt_list->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt_list->execute();

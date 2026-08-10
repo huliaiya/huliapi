@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_msg = '请输入验证码';
     } elseif ($captcha !== $_SESSION['captcha_code']) {
         $error_msg = '验证码不正确';
-        unset($_SESSION['captcha_code']); 
+        unset($_SESSION['captcha_code']);
     }
     elseif (empty($username) || empty($password)) {
         $error_msg = '账号或密码不能为空';
@@ -30,16 +30,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $stmt = $pdo->prepare("SELECT id, password, status FROM sl_admins WHERE username = ? LIMIT 1");
+            $stmt = $pdo->prepare("SELECT id, password, status FROM huli_admins WHERE username = ? LIMIT 1");
             $stmt->execute([$username]);
-            $admin = $stmt->fetch(PDO::FETCH_ASSOC);            
+            $admin = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($admin && $password === $admin['password']) {
                 if ($admin['status'] == 1) {
                     $_SESSION['admin_id'] = $admin['id'];
                     $_SESSION['admin_username'] = $username;
-                    $updateStmt = $pdo->prepare("UPDATE sl_admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?");
+                    $updateStmt = $pdo->prepare("UPDATE huli_admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?");
                     $updateStmt->execute([$admin['id']]);
-                    unset($_SESSION['captcha_code']); 
+                    unset($_SESSION['captcha_code']);
                     header('Location: index.php');
                     exit;
                 } else {
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     left: 15px;
 }
 body {
-    background-image: url(images/login-bg-2.jpg); 
+    background-image: url(images/login-bg-2.jpg);
     background-size: cover;
     display: flex;
     justify-content: center;
@@ -127,7 +127,7 @@ body {
   <form method="POST" action="login.php" class="signin-form needs-validation" novalidate>
     <?php if (!empty($error_msg)): ?>
         <div class="alert alert-danger error-message mb-3"><?php echo htmlspecialchars($error_msg); ?></div>
-    <?php endif; ?>  
+    <?php endif; ?>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-account" aria-hidden="true"></span>
       <input type="text" class="form-control" id="username" name="username" placeholder="管理员账号" required>
@@ -135,7 +135,7 @@ body {
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-lock" aria-hidden="true"></span>
       <input type="password" class="form-control" id="password" name="password" placeholder="密码" required>
-    </div> 
+    </div>
     <div class="mb-3 has-feedback row">
       <div class="col-7">
         <span class="mdi mdi-shield-check" aria-hidden="true"></span>
@@ -169,7 +169,7 @@ $(document).ready(function() {
             return false;
         }
     });
-    
+
     function refreshCaptcha() {
         $('#captcha').attr('src', '../../../common/ajax/captcha.php?r=' + Math.random());
     }

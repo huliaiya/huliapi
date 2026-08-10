@@ -79,8 +79,8 @@ echo "
 </body>
 </html>
 ";
-exit; 
-} 
+exit;
+}
 ?>
 
 
@@ -88,10 +88,10 @@ exit;
 @session_start();
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
-$rootPath = dirname(__DIR__, 3); 
+$rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+if (!file_exists(ROOT_PATH . 'config.php')) {
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once 'config.php';
 require_once 'common/TemplateManager.php';
@@ -103,7 +103,7 @@ function checkUserLoginStatus() {
     try {
         $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $stmt = $pdo->prepare("SELECT username, email FROM sl_users WHERE id = ? AND status = 1");
+        $stmt = $pdo->prepare("SELECT username, email FROM huli_users WHERE id = ? AND status = 1");
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($user) {
@@ -133,13 +133,13 @@ $apis = []; $announcement = null; $settings = []; $recent_announcements = [];
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_apis = $pdo->query("SELECT * FROM sl_apis ORDER BY id DESC");
+    $stmt_apis = $pdo->query("SELECT * FROM huli_apis ORDER BY id DESC");
     $apis = $stmt_apis->fetchAll(PDO::FETCH_ASSOC);
-    $stmt_announcement = $pdo->query("SELECT * FROM sl_announcements WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1");
+    $stmt_announcement = $pdo->query("SELECT * FROM huli_announcements WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1");
     $announcement = $stmt_announcement->fetch(PDO::FETCH_ASSOC);
-    $stmt_recent = $pdo->query("SELECT * FROM sl_announcements WHERE is_active = 1 ORDER BY created_at DESC LIMIT 3");
+    $stmt_recent = $pdo->query("SELECT * FROM huli_announcements WHERE is_active = 1 ORDER BY created_at DESC LIMIT 3");
     $recent_announcements = $stmt_recent->fetchAll(PDO::FETCH_ASSOC);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
 } catch (PDOException $e) {
     error_log("数据库连接错误: " . $e->getMessage());
@@ -234,11 +234,11 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
                     游客, 您好！
                 </div>
                 <div class="sidebar-auth-actions d-flex gap-3 px-3">
-                    <a href="<?= $userTemplateBaseUrl ?>login.php" 
+                    <a href="<?= $userTemplateBaseUrl ?>login.php"
                        class="btn btn-outline-primary flex-grow-1">
                         登录
                     </a>
-                    <a href="<?= $userTemplateBaseUrl ?>register.php" 
+                    <a href="<?= $userTemplateBaseUrl ?>register.php"
                        class="btn btn-primary flex-grow-1">
                         注册
                     </a>
@@ -249,7 +249,7 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
             <h6 class="fw-bold mb-3"><i class="mdi mdi-bullhorn-outline me-2"></i>最新公告</h6>
             <?php if (!empty($recent_announcements)): ?>
                 <ul class="list-unstyled mb-0">
-                    <?php foreach ($recent_announcements as $item): 
+                    <?php foreach ($recent_announcements as $item):
                         $year = date('Y', strtotime($item['created_at']));
                         $month = date('n', strtotime($item['created_at']));
                         $day = date('j', strtotime($item['created_at']));
@@ -587,15 +587,15 @@ function formatTime(datetimeStr) {
     var hours = date.getHours();
     var minutes = date.getMinutes();
     var seconds = date.getSeconds();
-    return year + '年' + month + '月' + day + '日 ' + 
-           (hours < 10 ? '0' + hours : hours) + ':' + 
-           (minutes < 10 ? '0' + minutes : minutes) + ':' + 
+    return year + '年' + month + '月' + day + '日 ' +
+           (hours < 10 ? '0' + hours : hours) + ':' +
+           (minutes < 10 ? '0' + minutes : minutes) + ':' +
            (seconds < 10 ? '0' + seconds : seconds);
 }
 
 $(document).ready(function() {
-    if (performance.navigation.type === 1 && 
-        (document.referrer.indexOf('login.php') !== -1 || 
+    if (performance.navigation.type === 1 &&
+        (document.referrer.indexOf('login.php') !== -1 ||
          document.referrer.indexOf('logout.php') !== -1)) {
         location.reload(true);
     }
@@ -611,7 +611,7 @@ $(document).ready(function() {
             }
         });
     }, 300000);
-    
+
     function updateRunningTime() {
         var startTime = new Date('<?php echo date('Y-m-d H:i:s', filemtime(ROOT_PATH . 'config.php')); ?>');
         var now = new Date();
@@ -619,19 +619,19 @@ $(document).ready(function() {
         var days = Math.floor(diff / (1000 * 60 * 60 * 24));
         var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        var seconds = Math.floor((diff % (1000 * 60)) / 1000);  
+        var seconds = Math.floor((diff % (1000 * 60)) / 1000);
         var runningTimeStr = days + '天 ' + hours + '小时 ' + minutes + '分钟';
         $('#running-time').text(runningTimeStr);
     }
     updateRunningTime();
     setInterval(updateRunningTime, 1000);
-    <?php if (!empty($announcement)): 
+    <?php if (!empty($announcement)):
         $announcement_id = $announcement['id'];
         $announcement_title = $announcement['title'];
         $announcement_content = $announcement['content'];
         $simple_time = date('Y-m-d H:i:s', strtotime($announcement['created_at']));
     ?>
-    
+
     function shouldShowAnnouncement() {
         var today = new Date().toISOString().split('T')[0];
         var storedData = localStorage.getItem('announcement_viewed');

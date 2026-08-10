@@ -9,15 +9,15 @@ try {
     $withCategories = isset($_GET['with_categories']) && $_GET['with_categories'] == '1';
     if ($withCategories) {
         $categories = [];
-        $stmtCategories = $pdo->query("SELECT * FROM sl_api_categories ORDER BY name");
+        $stmtCategories = $pdo->query("SELECT * FROM huli_api_categories ORDER BY name");
         while ($category = $stmtCategories->fetch(PDO::FETCH_ASSOC)) {
-            $stmtApis = $pdo->prepare("SELECT id, name, endpoint FROM sl_apis WHERE category_id = ? ORDER BY name");
+            $stmtApis = $pdo->prepare("SELECT id, name, endpoint FROM huli_apis WHERE category_id = ? ORDER BY name");
             $stmtApis->execute([$category['id']]);
             $category['apis'] = $stmtApis->fetchAll(PDO::FETCH_ASSOC);
             $category['api_count'] = count($category['apis']);
             $categories[] = $category;
         }
-        $stmtUncategorized = $pdo->query("SELECT id, name, endpoint FROM sl_apis WHERE category_id IS NULL OR category_id = 0 ORDER BY name");
+        $stmtUncategorized = $pdo->query("SELECT id, name, endpoint FROM huli_apis WHERE category_id IS NULL OR category_id = 0 ORDER BY name");
         $uncategorized = $stmtUncategorized->fetchAll(PDO::FETCH_ASSOC);
         header('Content-Type: application/json');
         echo json_encode([
@@ -25,7 +25,7 @@ try {
             'uncategorized' => $uncategorized
         ]);
     } else {
-        $stmt = $pdo->query("SELECT id, name, endpoint, is_billable, price_per_call, points_per_call, category_id FROM sl_apis WHERE status = 'normal'");
+        $stmt = $pdo->query("SELECT id, name, endpoint, is_billable, price_per_call, points_per_call, category_id FROM huli_apis WHERE status = 'normal'");
         $apis = $stmt->fetchAll(PDO::FETCH_ASSOC);
         header('Content-Type: application/json');
         echo json_encode($apis);

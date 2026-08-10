@@ -41,7 +41,7 @@ function checkUserLoginStatus()
     }
     try {
         $pdo = getDb();
-        $stmt = $pdo->prepare("SELECT username, email FROM sl_users WHERE id = ? AND status = 1");
+        $stmt = $pdo->prepare("SELECT username, email FROM huli_users WHERE id = ? AND status = 1");
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -128,13 +128,13 @@ $pdo           = getDb();
 
 try {
     // 读取友链列表
-    $sql = "SELECT * FROM sl_friend_links WHERE status='approved' AND is_hidden=0 ORDER BY sort_order DESC, created_at DESC";
+    $sql = "SELECT * FROM huli_friend_links WHERE status='approved' AND is_hidden=0 ORDER BY sort_order DESC, created_at DESC";
     $stmt_links = $pdo->query($sql);
     $links = $stmt_links->fetchAll(PDO::FETCH_ASSOC);
     $total_links = count($links);
 
     // 统计异常友链（优化：SQL聚合替代PHP循环，大数据更高效）
-    $cntStmt = $pdo->query("SELECT COUNT(*) AS cnt FROM sl_friend_links WHERE status='approved' AND is_hidden=0 AND status_check='broken'");
+    $cntStmt = $pdo->query("SELECT COUNT(*) AS cnt FROM huli_friend_links WHERE status='approved' AND is_hidden=0 AND status_check='broken'");
     $broken_links = (int)$cntStmt->fetchColumn();
 
     // 处理POST提交 - 友链申请
@@ -172,14 +172,14 @@ try {
         $user_id = $_SESSION['user_id'];
         // 插入友链数据
         $stmt_apply = $pdo->prepare("
-            INSERT INTO sl_friend_links 
-            (site_name, url, description, logo, user_id, status, created_at) 
+            INSERT INTO huli_friend_links
+            (site_name, url, description, logo, user_id, status, created_at)
             VALUES (?, ?, ?, ?, ?, 'pending', NOW())
         ");
         $stmt_apply->execute([$site_name, $url, $description, $logo_url, $user_id]);
 
         // 读取站点配置
-        $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+        $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
         $settings = [];
         while ($row = $stmt_settings->fetch(PDO::FETCH_ASSOC)) {
             $settings[$row['setting_key']] = $row['setting_value'];
@@ -190,7 +190,7 @@ try {
         $site_name_config = $settings['site_name'] ?? 'huliapi';
         $admin_url      = $settings['admin_url'] ?? '#';
         $current_year   = date('Y');
-        $logo_url_config = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') 
+        $logo_url_config = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://')
             . $_SERVER['HTTP_HOST'] . '/assets/images/logo-sidebar.png';
 
         // 邮件内容 - 全部转义防止XSS
@@ -416,7 +416,7 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                                                     <?php if (!empty($link['logo'])): ?>
                                                         <img src="<?= htmlspecialchars($link['logo']) ?>" class="friend-logo-img" alt="<?= htmlspecialchars($link['site_name']) ?>" loading="lazy">
                                                     <?php else: ?>
-                                                        <?php 
+                                                        <?php
                                                         $siteType = 'mdi mdi-web';
                                                         if (strpos($link['url'], 'blog') !== false) $siteType = 'mdi mdi-blog';
                                                         elseif (strpos($link['url'], 'api') !== false) $siteType = 'mdi mdi-api';

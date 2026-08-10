@@ -18,7 +18,7 @@ try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->beginTransaction();
-    $stmt_cdkey = $pdo->prepare("SELECT * FROM sl_cdkeys WHERE cdkey = ? AND status = 'unused' FOR UPDATE");
+    $stmt_cdkey = $pdo->prepare("SELECT * FROM huli_cdkeys WHERE cdkey = ? AND status = 'unused' FOR UPDATE");
     $stmt_cdkey->execute([$cdkey]);
     $key_data = $stmt_cdkey->fetch(PDO::FETCH_ASSOC);
     if (!$key_data) {
@@ -28,21 +28,21 @@ try {
     $message = '';
     if ($key_data['type'] === 'balance') {
         $balance_to_add = $key_data['balance'];
-        $stmt_update_user = $pdo->prepare("UPDATE sl_users SET balance = balance + ? WHERE id = ?");
+        $stmt_update_user = $pdo->prepare("UPDATE huli_users SET balance = balance + ? WHERE id = ?");
         $stmt_update_user->execute([$balance_to_add, $user_id]);
         $message = "兑换成功！您的账户已增加 ¥" . number_format($balance_to_add, 2) . " 余额。";
     } elseif ($key_data['type'] === 'points') {
         $points_to_add = $key_data['points'];
-        $stmt_update_user = $pdo->prepare("UPDATE sl_users SET points = points + ? WHERE id = ?");
+        $stmt_update_user = $pdo->prepare("UPDATE huli_users SET points = points + ? WHERE id = ?");
         $stmt_update_user->execute([$points_to_add, $user_id]);
         $message = "兑换成功！您的账户已增加 " . number_format($points_to_add) . " 点数。";
     } elseif ($key_data['type'] === 'membership') {
         $membership_days = $key_data['membership_days'];
-        $stmt_update_user = $pdo->prepare("UPDATE sl_users SET membership_level = 'super', membership_expire = DATE_ADD(NOW(), INTERVAL ? DAY) WHERE id = ?");
+        $stmt_update_user = $pdo->prepare("UPDATE huli_users SET membership_level = 'super', membership_expire = DATE_ADD(NOW(), INTERVAL ? DAY) WHERE id = ?");
         $stmt_update_user->execute([$membership_days, $user_id]);
         $message = "兑换成功！您已成为超级会员，有效期增加 " . number_format($membership_days) . " 天。";
     }
-    $stmt_update_cdkey = $pdo->prepare("UPDATE sl_cdkeys SET status = 'used', used_by_user_id = ?, used_at = CURRENT_TIMESTAMP WHERE id = ?");
+    $stmt_update_cdkey = $pdo->prepare("UPDATE huli_cdkeys SET status = 'used', used_by_user_id = ?, used_at = CURRENT_TIMESTAMP WHERE id = ?");
     $stmt_update_cdkey->execute([$user_id, $key_data['id']]);
     $pdo->commit();
     json_response(true, $message);

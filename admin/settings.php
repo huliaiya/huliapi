@@ -23,11 +23,11 @@ $defaults = [
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $init_sql = "INSERT IGNORE INTO sl_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100');";
+    $init_sql = "INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100');";
     $pdo->exec($init_sql);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare("UPDATE sl_settings SET setting_value = ? WHERE setting_key = ?");
+        $stmt = $pdo->prepare("UPDATE huli_settings SET setting_value = ? WHERE setting_key = ?");
         foreach ($settings_keys as $key) {
             if(in_array($key, ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'enable_warn_notification', 'enable_daily_points'])) {
                 $value = isset($_POST[$key]) ? '1' : '0';
@@ -40,7 +40,7 @@ try {
         $feedback_msg = '设置已成功保存。';
         $feedback_type = 'success';
     }
-    $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $db_settings = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
     $settings = array_merge($defaults, $db_settings);
 } catch (Exception $e) {
@@ -62,14 +62,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <link rel="stylesheet" type="text/css" href="../assets/css/materialdesignicons.min.css">
     <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
-</head>  
+</head>
 <body>
-<div class="container-fluid">  
-  <div class="row">    
+<div class="container-fluid">
+  <div class="row">
     <div class="col-lg-12">
       <div class="card">
         <header class="card-header"><div class="card-title">系统设置</div></header>
-        <div class="card-body">          
+        <div class="card-body">
           <ul class="nav nav-tabs">
             <li class="nav-item">
               <button class="nav-link active" id="basic-config" data-bs-toggle="tab" data-bs-target="#config" type="button">基本设置</button>
@@ -80,7 +80,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <li class="nav-item">
               <button class="nav-link" id="basic-mail" data-bs-toggle="tab" data-bs-target="#mail" type="button">邮件设置</button>
             </li>
-          </ul>          
+          </ul>
           <form method="POST" action="settings.php" class="edit-form">
             <div class="tab-content">
               <div class="tab-pane fade show active" id="config" aria-labelledby="basic-config">
@@ -88,7 +88,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
                   <?php echo htmlspecialchars($feedback_msg); ?>
                 </div>
-                <?php endif; ?>              
+                <?php endif; ?>
                 <div class="mb-3">
                   <label for="site_name" class="form-label">网站标题</label>
                   <input class="form-control" type="text" id="site_name" name="site_name" value="<?php echo htmlspecialchars($settings['site_name']); ?>" placeholder="请输入站点标题">

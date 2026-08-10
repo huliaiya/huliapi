@@ -13,7 +13,7 @@ $allow_temp_key = false;
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $allow_temp_key = $settings['allow_temp_key'] ?? 0;
 } catch (PDOException $e) { /* silent fail */ }
@@ -112,7 +112,7 @@ try {
                 .then(data => {
                     let alertClass = data.success ? 'success' : 'error';
                     resultArea.innerHTML = `<p class="feedback ${alertClass}">${data.message}</p>`;
-                    if (data.success) { 
+                    if (data.success) {
                         tempKeyForm.reset();
                     }
                     refreshCaptcha();

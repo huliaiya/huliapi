@@ -2,49 +2,49 @@
 @session_start();
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
-if (!isset($_SESSION['user_id'])) { 
-    header('Location: login.php'); 
-    exit; 
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
 }
 $rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+if (!file_exists(ROOT_PATH . 'config.php')) {
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
 $template = TemplateManager::getActiveUserTemplate();
 $template_base_url = "/template/user/{$template}/";
-$feedback_msg = ''; 
+$feedback_msg = '';
 $feedback_type = '';
 $user_id = $_SESSION['user_id'];
 $user_info = [
-    'username' => $_SESSION['user_username'], 
+    'username' => $_SESSION['user_username'],
     'email' => $_SESSION['user_email']
 ];
 $user_data = [
-    'api_key' => 'N/A', 
-    'call_count' => 0, 
+    'api_key' => 'N/A',
+    'call_count' => 0,
     'balance' => '0.00',
     'points' => 0,
     'created_at' => 'N/A'
 ];
-$recent_logs = []; 
-$billing_plans = []; 
+$recent_logs = [];
+$billing_plans = [];
 $payment_methods = [];
 try {
     $pdo = new PDO(
-        "mysql:host=" . DB_HOST . 
-        ";dbname=" . DB_NAME . 
-        ";charset=" . DB_CHARSET, 
-        DB_USER, 
+        "mysql:host=" . DB_HOST .
+        ";dbname=" . DB_NAME .
+        ";charset=" . DB_CHARSET,
+        DB_USER,
         DB_PASS
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if (isset($_GET['action']) && $_GET['action'] === 'regenerate_key') {
         $new_key = bin2hex(random_bytes(32));
-        $stmt_update = $pdo->prepare("UPDATE sl_users SET api_key = ? WHERE id = ?");
-        $stmt_update->execute([$new_key, $user_id]);    
+        $stmt_update = $pdo->prepare("UPDATE huli_users SET api_key = ? WHERE id = ?");
+        $stmt_update->execute([$new_key, $user_id]);
         if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
             header('Content-Type: application/json');
             echo json_encode(['success' => true, 'new_key' => $new_key]);
@@ -52,13 +52,13 @@ try {
         } else {
             $_SESSION['feedback_msg'] = 'API密钥已成功重新生成！';
             $_SESSION['feedback_type'] = 'success';
-            header('Location: index.php'); 
+            header('Location: index.php');
             exit;
         }
     }
     if(isset($_POST['cdkey']) && !empty($_POST['cdkey'])) {
-        $cdkey = trim($_POST['cdkey']);       
-        $stmt = $pdo->prepare("SELECT * FROM sl_cdkeys WHERE cdkey = ? AND status = 'unused'");
+        $cdkey = trim($_POST['cdkey']);
+        $stmt = $pdo->prepare("SELECT * FROM huli_cdkeys WHERE cdkey = ? AND status = 'unused'");
         $stmt->execute([$cdkey]);
         $cdkey_info = $stmt->fetch(PDO::FETCH_ASSOC);
         if(!$cdkey_info) {
@@ -72,25 +72,25 @@ try {
         }
         $pdo->beginTransaction();
         try {
-            $stmt = $pdo->prepare("UPDATE sl_cdkeys SET status = 'used', used_by_user_id = ?, used_at = NOW() WHERE cdkey = ?");
+            $stmt = $pdo->prepare("UPDATE huli_cdkeys SET status = 'used', used_by_user_id = ?, used_at = NOW() WHERE cdkey = ?");
             $stmt->execute([$user_id, $cdkey]);
             if($cdkey_type === 'balance') {
-                $stmt = $pdo->prepare("UPDATE sl_users SET balance = balance + ? WHERE id = ?");
+                $stmt = $pdo->prepare("UPDATE huli_users SET balance = balance + ? WHERE id = ?");
                 $transaction_desc = "余额卡密充值: {$cdkey}";
             } else {
-                $stmt = $pdo->prepare("UPDATE sl_users SET points = points + ? WHERE id = ?");
+                $stmt = $pdo->prepare("UPDATE huli_users SET points = points + ? WHERE id = ?");
                 $transaction_desc = "点数卡密充值: {$cdkey}";
             }
             $stmt->execute([$value, $user_id]);
-            $stmt = $pdo->prepare("INSERT INTO sl_transactions (user_id, amount, type, description, created_at) VALUES (?, ?, 'cdkey', ?, NOW())");
+            $stmt = $pdo->prepare("INSERT INTO huli_transactions (user_id, amount, type, description, created_at) VALUES (?, ?, 'cdkey', ?, NOW())");
             $stmt->execute([$user_id, $value, $transaction_desc]);
             if($cdkey_type === 'balance') {
-                $stmt_get = $pdo->prepare("SELECT balance FROM sl_users WHERE id = ?");
+                $stmt_get = $pdo->prepare("SELECT balance FROM huli_users WHERE id = ?");
                 $stmt_get->execute([$user_id]);
                 $new_value = $stmt_get->fetchColumn();
                 $formatted_value = number_format($new_value, 3, '.', '');
             } else {
-                $stmt_get = $pdo->prepare("SELECT points FROM sl_users WHERE id = ?");
+                $stmt_get = $pdo->prepare("SELECT points FROM huli_users WHERE id = ?");
                 $stmt_get->execute([$user_id]);
                 $new_value = $stmt_get->fetchColumn();
                 $formatted_value = number_format($new_value);
@@ -99,8 +99,8 @@ try {
             die(json_encode([
                 'success' => true,
                 'type' => $cdkey_type,
-                'message' => $cdkey_type === 'balance' ? 
-                    "成功充值 ¥{$value} 元" : 
+                'message' => $cdkey_type === 'balance' ?
+                    "成功充值 ¥{$value} 元" :
                     "成功充值 {$value} 点",
                 'new_value' => $formatted_value
             ]));
@@ -114,36 +114,36 @@ try {
         $feedback_type = $_SESSION['feedback_type'];
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
-    $stmt_get_user = $pdo->prepare("SELECT api_key, call_count, balance, points, created_at, membership_level, membership_expire FROM sl_users WHERE id = ?");
+    $stmt_get_user = $pdo->prepare("SELECT api_key, call_count, balance, points, created_at, membership_level, membership_expire FROM huli_users WHERE id = ?");
     $stmt_get_user->execute([$user_id]);
     $fetched_data = $stmt_get_user->fetch(PDO::FETCH_ASSOC);
-    if ($fetched_data) { 
-        $user_data = $fetched_data; 
+    if ($fetched_data) {
+        $user_data = $fetched_data;
         $user_data['balance'] = number_format($user_data['balance'], 3, '.', '');
         $user_data['points'] = intval($user_data['points']);
         $user_data['membership_level'] = $fetched_data['membership_level'] ?? 'normal';
         $user_data['membership_expire'] = $fetched_data['membership_expire'] ?? null;
-    } else { 
-        session_destroy(); 
-        header('Location: login.php'); 
-        exit; 
+    } else {
+        session_destroy();
+        header('Location: login.php');
+        exit;
     }
     $stmt_get_logs = $pdo->prepare("
-        SELECT l.request_time, l.is_success, a.name as api_name 
-        FROM sl_api_logs l 
-        JOIN sl_apis a ON l.api_id = a.id 
-        WHERE l.user_id = ? 
-        ORDER BY l.request_time DESC 
+        SELECT l.request_time, l.is_success, a.name as api_name
+        FROM huli_api_logs l
+        JOIN huli_apis a ON l.api_id = a.id
+        WHERE l.user_id = ?
+        ORDER BY l.request_time DESC
         LIMIT 5
     ");
     $stmt_get_logs->execute([$user_id]);
     $recent_logs = $stmt_get_logs->fetchAll(PDO::FETCH_ASSOC);
     $billing_plans = $pdo->query("
-        SELECT * FROM sl_billing_plans 
-        WHERE is_active = 1 
+        SELECT * FROM huli_billing_plans
+        WHERE is_active = 1
         ORDER BY price ASC
     ")->fetchAll(PDO::FETCH_ASSOC);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $site_name = $settings['site_name'] ?? 'huliapi';
     $payment_map = [
@@ -160,9 +160,9 @@ try {
     if(!empty($settings['payment_qqpay_enabled'])) {
         $payment_methods['qqpay'] = $payment_map['qqpay'];
     }
-} catch (PDOException $e) { 
-    $feedback_msg = '无法加载您的数据，请稍后重试。'; 
-    $feedback_type = 'error'; 
+} catch (PDOException $e) {
+    $feedback_msg = '无法加载您的数据，请稍后重试。';
+    $feedback_type = 'error';
 }
 ?>
 
@@ -323,7 +323,7 @@ try {
                                 <div class="col-md-6">
                                     <div class="card">
                                         <div class="card-body">
-                                            <h5 class="card-title">API密钥管理</h5>                                           
+                                            <h5 class="card-title">API密钥管理</h5>
                                             <div class="api-key-box"><?php echo htmlspecialchars($user_data['api_key']); ?></div>
                                             <div class="d-flex gap-2">
                                                 <button id="copy-key-btn" class="btn btn-primary">复制密钥</button>
@@ -519,7 +519,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.removeChild(textarea);
         }
     }
-    
+
     function showCopySuccess(button) {
         const originalText = button.innerHTML;
         button.innerHTML = '<i class="mdi mdi-check me-1"></i>已复制';
@@ -531,7 +531,7 @@ document.addEventListener('DOMContentLoaded', function() {
             button.classList.add('btn-primary');
         }, 2000);
     }
-    
+
     function showCopyFailed(button) {
         const originalText = button.innerHTML;
         button.innerHTML = '<i class="mdi mdi-alert me-1"></i>复制失败';
@@ -589,7 +589,7 @@ document.addEventListener('DOMContentLoaded', function() {
             $('#confirm-payment-btn').prop('disabled', true);
         }
     }
-    
+
     $('#confirm-payment-btn').click(function(e) {
         e.preventDefault();
         if (!$('#selected-plan-id').val() || !$('#selected-payment-method').val()) {

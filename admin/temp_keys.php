@@ -9,25 +9,25 @@ $feedback_msg = ''; $feedback_type = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $columns = $pdo->query("SHOW COLUMNS FROM `sl_users`")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('expires_at', $columns)) $pdo->exec("ALTER TABLE `sl_users` ADD `expires_at` TIMESTAMP NULL DEFAULT NULL AFTER `status`;");
-    if (!in_array('call_limit', $columns)) $pdo->exec("ALTER TABLE `sl_users` ADD `call_limit` INT NULL DEFAULT NULL AFTER `expires_at`;");
+    $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('expires_at', $columns)) $pdo->exec("ALTER TABLE `huli_users` ADD `expires_at` TIMESTAMP NULL DEFAULT NULL AFTER `status`;");
+    if (!in_array('call_limit', $columns)) $pdo->exec("ALTER TABLE `huli_users` ADD `call_limit` INT NULL DEFAULT NULL AFTER `expires_at`;");
     if (isset($_GET['action'])) {
         if ($_GET['action'] === 'cleanup') {
-            $stmt = $pdo->prepare("DELETE FROM sl_users WHERE username LIKE 'temp_%' AND (expires_at < NOW() OR call_limit <= 0)");
+            $stmt = $pdo->prepare("DELETE FROM huli_users WHERE username LIKE 'temp_%' AND (expires_at < NOW() OR call_limit <= 0)");
             $deleted_count = $stmt->execute() ? $stmt->rowCount() : 0;
             $_SESSION['feedback_msg'] = "成功清理了 {$deleted_count} 个过期或无效的临时密钥。";
         } else if (isset($_GET['id'])) {
             $id = intval($_GET['id']);
             switch ($_GET['action']) {
                 case 'delete':
-                    $stmt = $pdo->prepare("DELETE FROM sl_users WHERE id = ? AND username LIKE 'temp_%'"); $stmt->execute([$id]);
+                    $stmt = $pdo->prepare("DELETE FROM huli_users WHERE id = ? AND username LIKE 'temp_%'"); $stmt->execute([$id]);
                     $_SESSION['feedback_msg'] = '临时密钥已成功删除。'; break;
                 case 'ban':
-                    $stmt = $pdo->prepare("UPDATE sl_users SET status = 'banned' WHERE id = ? AND username LIKE 'temp_%'"); $stmt->execute([$id]);
+                    $stmt = $pdo->prepare("UPDATE huli_users SET status = 'banned' WHERE id = ? AND username LIKE 'temp_%'"); $stmt->execute([$id]);
                     $_SESSION['feedback_msg'] = '临时密钥已成功封禁。'; break;
                 case 'unban':
-                    $stmt = $pdo->prepare("UPDATE sl_users SET status = 'active' WHERE id = ? AND username LIKE 'temp_%'"); $stmt->execute([$id]);
+                    $stmt = $pdo->prepare("UPDATE huli_users SET status = 'active' WHERE id = ? AND username LIKE 'temp_%'"); $stmt->execute([$id]);
                     $_SESSION['feedback_msg'] = '临时密钥已成功解封。'; break;
             }
         }
@@ -38,7 +38,7 @@ try {
         $feedback_msg = $_SESSION['feedback_msg']; $feedback_type = $_SESSION['feedback_type'];
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
-    $keys = $pdo->query("SELECT * FROM sl_users WHERE username LIKE 'temp_%' ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+    $keys = $pdo->query("SELECT * FROM huli_users WHERE username LIKE 'temp_%' ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { $feedback_msg = '数据库操作失败: ' . $e->getMessage(); $feedback_type = 'error'; $keys = []; }
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
@@ -100,8 +100,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <td><?php echo $key['call_limit'] !== null ? number_format($key['call_limit']) : '无限'; ?></td>
                         <td><?php echo $key['expires_at'] ?: '永不'; ?></td>
                         <td>
-                            <span class="badge <?php 
-                                echo $key['status'] === 'active' ? 'badge-green' : 
+                            <span class="badge <?php
+                                echo $key['status'] === 'active' ? 'badge-green' :
                                     ($key['status'] === 'banned' ? 'badge-red' : 'badge-yellow'); ?>">
                                 <?php echo htmlspecialchars($key['status']); ?>
                             </span>

@@ -7,7 +7,7 @@ require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
 require_once __DIR__ . '/PHPMailer/src/SMTP.php';
 function send_mail($to, $subject, $body, $pdo) {
     try {
-        $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+        $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
         $settings = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
         $site_name = $settings['site_name'] ?? 'huliapi';
         $mail = new PHPMailer(true);

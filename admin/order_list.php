@@ -9,7 +9,7 @@ $feedback_msg = ''; $feedback_type = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->exec("CREATE TABLE IF NOT EXISTS `sl_orders` (
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_orders` (
         `id` INT AUTO_INCREMENT PRIMARY KEY, `order_id` VARCHAR(64) NOT NULL UNIQUE, `user_id` INT NOT NULL, `plan_id` INT NOT NULL,
         `amount` DECIMAL(10, 2) NOT NULL, `status` ENUM('pending', 'paid', 'failed') NOT NULL DEFAULT 'pending',
         `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, `paid_at` TIMESTAMP NULL DEFAULT NULL
@@ -18,24 +18,24 @@ try {
         $id = intval($_GET['id']);
         switch ($_GET['action']) {
             case 'delete':
-                $stmt = $pdo->prepare("DELETE FROM sl_orders WHERE id = ?"); $stmt->execute([$id]);
+                $stmt = $pdo->prepare("DELETE FROM huli_orders WHERE id = ?"); $stmt->execute([$id]);
                 $_SESSION['feedback_msg'] = '订单已成功删除。'; $_SESSION['feedback_type'] = 'success';
                 break;
             case 'mark_failed':
-                $stmt = $pdo->prepare("UPDATE sl_orders SET status = 'failed' WHERE id = ? AND status = 'pending'"); $stmt->execute([$id]);
+                $stmt = $pdo->prepare("UPDATE huli_orders SET status = 'failed' WHERE id = ? AND status = 'pending'"); $stmt->execute([$id]);
                 $_SESSION['feedback_msg'] = '订单已成功标记为失败。'; $_SESSION['feedback_type'] = 'success';
                 break;
             case 'mark_paid':
                 $pdo->beginTransaction();
-                $stmt_order = $pdo->prepare("SELECT * FROM sl_orders WHERE id = ? AND status = 'pending' FOR UPDATE");
+                $stmt_order = $pdo->prepare("SELECT * FROM huli_orders WHERE id = ? AND status = 'pending' FOR UPDATE");
                 $stmt_order->execute([$id]); $order = $stmt_order->fetch(PDO::FETCH_ASSOC);
                 if ($order) {
-                    $stmt_plan = $pdo->prepare("SELECT balance_to_add FROM sl_billing_plans WHERE id = ?");
+                    $stmt_plan = $pdo->prepare("SELECT balance_to_add FROM huli_billing_plans WHERE id = ?");
                     $stmt_plan->execute([$order['plan_id']]); $balance_to_add = $stmt_plan->fetchColumn();
                     if ($balance_to_add) {
-                        $stmt_update_user = $pdo->prepare("UPDATE sl_users SET balance = balance + ? WHERE id = ?");
+                        $stmt_update_user = $pdo->prepare("UPDATE huli_users SET balance = balance + ? WHERE id = ?");
                         $stmt_update_user->execute([$balance_to_add, $order['user_id']]);
-                        $stmt_update_order = $pdo->prepare("UPDATE sl_orders SET status = 'paid', paid_at = CURRENT_TIMESTAMP WHERE id = ?");
+                        $stmt_update_order = $pdo->prepare("UPDATE huli_orders SET status = 'paid', paid_at = CURRENT_TIMESTAMP WHERE id = ?");
                         $stmt_update_order->execute([$order['id']]);
                         $pdo->commit();
                         $_SESSION['feedback_msg'] = '订单已成功标记为已支付，并已为用户增加余额。'; $_SESSION['feedback_type'] = 'success';
@@ -50,12 +50,12 @@ try {
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
     $results_per_page = 15;
-    $total_results = $pdo->query("SELECT count(*) FROM sl_orders")->fetchColumn();
+    $total_results = $pdo->query("SELECT count(*) FROM huli_orders")->fetchColumn();
     $total_pages = ceil($total_results / $results_per_page);
     $page = isset($_GET['page']) && is_numeric($_GET['page']) ? intval($_GET['page']) : 1;
     $page = max(1, min($page, $total_pages));
     $offset = ($page - 1) * $results_per_page;
-    $stmt_list = $pdo->prepare("SELECT o.*, u.username, p.name as plan_name FROM sl_orders o LEFT JOIN sl_users u ON o.user_id = u.id LEFT JOIN sl_billing_plans p ON o.plan_id = p.id ORDER BY o.created_at DESC LIMIT :limit OFFSET :offset");
+    $stmt_list = $pdo->prepare("SELECT o.*, u.username, p.name as plan_name FROM huli_orders o LEFT JOIN huli_users u ON o.user_id = u.id LEFT JOIN huli_billing_plans p ON o.plan_id = p.id ORDER BY o.created_at DESC LIMIT :limit OFFSET :offset");
     $stmt_list->bindValue(':limit', $results_per_page, PDO::PARAM_INT);
     $stmt_list->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt_list->execute();
@@ -232,7 +232,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <span class="page-link">上一页</span>
               </li>
             <?php endif; ?>
-            <?php 
+            <?php
             $start_page = max(1, $page - 2);
             $end_page = min($total_pages, $page + 2);
             if ($start_page > 1): ?>
@@ -286,7 +286,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <script type="text/javascript" src="../assets/js/main.min.js"></script>
 <script>
 $(function () {
-    $('[data-bs-toggle="tooltip"]').tooltip(); 
+    $('[data-bs-toggle="tooltip"]').tooltip();
     <?php if ($feedback_msg): ?>
     setTimeout(function() {
         $('.alert').alert('close');

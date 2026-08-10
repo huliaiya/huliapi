@@ -2,14 +2,14 @@
 @session_start();
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
-if (!isset($_SESSION['admin_id'])) { 
-    header('Location: login.php'); 
-    exit; 
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
 }
-if (file_exists('../config.php')) { 
-    require_once '../config.php'; 
-} else { 
-    die("出现错误！配置文件丢失。"); 
+if (file_exists('../config.php')) {
+    require_once '../config.php';
+} else {
+    die("出现错误！配置文件丢失。");
 }
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($data['link_url']) || !filter_var($data['link_url'], FILTER_VALIDATE_URL)) {
             throw new Exception("请输入有效的链接URL（以http://或https://开头）");
         }
-        $stmt = $pdo->prepare("INSERT INTO sl_advertisements (title, link_url, contact, status, sort_order) VALUES (?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO huli_advertisements (title, link_url, contact, status, sort_order) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute([$data['title'], $data['link_url'], $data['contact'], $data['status'], $data['sort_order']]);
         $feedback_msg = "广告添加成功！";
         $feedback_type = "success";

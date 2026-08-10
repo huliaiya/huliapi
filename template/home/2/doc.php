@@ -4,8 +4,8 @@
 @ini_set('display_errors', 'Off');
 $rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+if (!file_exists(ROOT_PATH . 'config.php')) {
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
@@ -15,7 +15,7 @@ $is_logged_in = isset($_SESSION['user_id']);
 if ($is_logged_in) {
     try {
         $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
-        $stmt = $pdo->prepare("SELECT api_key FROM sl_users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT api_key FROM huli_users WHERE id = ?");
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         $_SESSION['user_api_key'] = $user['api_key'] ?? '';
@@ -30,16 +30,16 @@ if (!$api_id) { header('Location: index.php'); exit; }
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $columns = $pdo->query("SHOW COLUMNS FROM `sl_apis`")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('created_at', $columns)) $pdo->exec("ALTER TABLE `sl_apis` ADD `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `status`;");
-    if (!in_array('updated_at', $columns)) $pdo->exec("ALTER TABLE `sl_apis` ADD `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`;");
-    $stmt_api = $pdo->prepare("SELECT * FROM sl_apis WHERE id = ?");
+    $columns = $pdo->query("SHOW COLUMNS FROM `huli_apis`")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('created_at', $columns)) $pdo->exec("ALTER TABLE `huli_apis` ADD `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `status`;");
+    if (!in_array('updated_at', $columns)) $pdo->exec("ALTER TABLE `huli_apis` ADD `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`;");
+    $stmt_api = $pdo->prepare("SELECT * FROM huli_apis WHERE id = ?");
     $stmt_api->execute([$api_id]);
     $api = $stmt_api->fetch(PDO::FETCH_ASSOC);
     if (!$api) { header('Location: index.php'); exit; }
     $params = json_decode($api['parameters'], true);
     if (!is_array($params)) $params = [];
-    $stmt_settings = $pdo->query("SELECT setting_value FROM sl_settings WHERE setting_key = 'site_name'");
+    $stmt_settings = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_name'");
     $db_site_name = $stmt_settings->fetchColumn();
     if($db_site_name) $site_name = $db_site_name;
 } catch (PDOException $e) { }
@@ -432,7 +432,7 @@ body {
                 </div>
                 <div class="info-row">
                     <i class="mdi mdi-shield-account"></i>
-                    访问权限: 
+                    访问权限:
                     <?php if ($api['visibility'] === 'public' && !$api['is_billable']): ?>
                         <strong>公开访问（无需密钥）</strong>
                     <?php elseif ($api['visibility'] === 'public' && $api['is_billable']): ?>
@@ -664,7 +664,7 @@ fetch(url)
             const apiMethod = $(this).data('method').toUpperCase();
             const formData = $(this).serialize();
             let requestUrl = apiUrl;
-            let fetchOptions = { 
+            let fetchOptions = {
                 method: apiMethod,
                 headers: {}
             };

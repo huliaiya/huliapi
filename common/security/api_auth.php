@@ -108,36 +108,36 @@ try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    $user_columns = $pdo->query("SHOW COLUMNS FROM `sl_users`")->fetchAll(PDO::FETCH_COLUMN);
+    $user_columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
     if (!in_array('points', $user_columns)) {
-        $pdo->exec("ALTER TABLE `sl_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`");
+        $pdo->exec("ALTER TABLE `huli_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`");
     }
     if (!in_array('membership_level', $user_columns)) {
-        $pdo->exec("ALTER TABLE `sl_users` ADD `membership_level` ENUM('normal', 'super') NOT NULL DEFAULT 'normal'");
+        $pdo->exec("ALTER TABLE `huli_users` ADD `membership_level` ENUM('normal', 'super') NOT NULL DEFAULT 'normal'");
     }
     if (!in_array('membership_expire', $user_columns)) {
-        $pdo->exec("ALTER TABLE `sl_users` ADD `membership_expire` DATETIME NULL DEFAULT NULL");
+        $pdo->exec("ALTER TABLE `huli_users` ADD `membership_expire` DATETIME NULL DEFAULT NULL");
     }
     if (!in_array('last_points_warn_date', $user_columns)) {
-        $pdo->exec("ALTER TABLE `sl_users` ADD `last_points_warn_date` DATE NULL DEFAULT NULL");
+        $pdo->exec("ALTER TABLE `huli_users` ADD `last_points_warn_date` DATE NULL DEFAULT NULL");
     }
     if (!in_array('last_balance_warn_date', $user_columns)) {
-        $pdo->exec("ALTER TABLE `sl_users` ADD `last_balance_warn_date` DATE NULL DEFAULT NULL");
+        $pdo->exec("ALTER TABLE `huli_users` ADD `last_balance_warn_date` DATE NULL DEFAULT NULL");
     }
-    $log_columns = $pdo->query("SHOW COLUMNS FROM `sl_api_logs`")->fetchAll(PDO::FETCH_COLUMN);
+    $log_columns = $pdo->query("SHOW COLUMNS FROM `huli_api_logs`")->fetchAll(PDO::FETCH_COLUMN);
     if (!in_array('billing_type', $log_columns)) {
-        $pdo->exec("ALTER TABLE `sl_api_logs` ADD `billing_type` VARCHAR(20) NOT NULL DEFAULT 'free' AFTER `is_success`");
+        $pdo->exec("ALTER TABLE `huli_api_logs` ADD `billing_type` VARCHAR(20) NOT NULL DEFAULT 'free' AFTER `is_success`");
     }
     if (!in_array('billing_amount', $log_columns)) {
-        $pdo->exec("ALTER TABLE `sl_api_logs` ADD `billing_amount` DECIMAL(10,4) NOT NULL DEFAULT 0 AFTER `billing_type`");
+        $pdo->exec("ALTER TABLE `huli_api_logs` ADD `billing_amount` DECIMAL(10,4) NOT NULL DEFAULT 0 AFTER `billing_type`");
     }
-    $index_check = $pdo->query("SHOW INDEX FROM `sl_api_logs` WHERE Key_name = 'idx_user_time'")->fetch();
-    if (!$index_check) $pdo->exec("ALTER TABLE `sl_api_logs` ADD INDEX `idx_user_time` (`user_id`, `request_time`)");
-    $ip_index_check = $pdo->query("SHOW INDEX FROM `sl_api_logs` WHERE Key_name = 'idx_ip_time'")->fetch();
-    if (!$ip_index_check) $pdo->exec("ALTER TABLE `sl_api_logs` ADD INDEX `idx_ip_time` (`ip_address`, `request_time`)");
-    $claim_table_check = $pdo->query("SHOW TABLES LIKE 'sl_daily_points_claim'")->fetch();
+    $index_check = $pdo->query("SHOW INDEX FROM `huli_api_logs` WHERE Key_name = 'idx_user_time'")->fetch();
+    if (!$index_check) $pdo->exec("ALTER TABLE `huli_api_logs` ADD INDEX `idx_user_time` (`user_id`, `request_time`)");
+    $ip_index_check = $pdo->query("SHOW INDEX FROM `huli_api_logs` WHERE Key_name = 'idx_ip_time'")->fetch();
+    if (!$ip_index_check) $pdo->exec("ALTER TABLE `huli_api_logs` ADD INDEX `idx_ip_time` (`ip_address`, `request_time`)");
+    $claim_table_check = $pdo->query("SHOW TABLES LIKE 'huli_daily_points_claim'")->fetch();
     if (!$claim_table_check) {
-        $pdo->exec("CREATE TABLE sl_daily_points_claim (
+        $pdo->exec("CREATE TABLE huli_daily_points_claim (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT NOT NULL,
             claim_date DATE NOT NULL,
@@ -160,15 +160,15 @@ try {
         'warn_balance_threshold'   => 0.01,
         'enable_warn_notification' => 1
     ];
-    $settings_check = $pdo->query("SELECT setting_key FROM sl_settings")->fetchAll(PDO::FETCH_COLUMN);
+    $settings_check = $pdo->query("SELECT setting_key FROM huli_settings")->fetchAll(PDO::FETCH_COLUMN);
     foreach ($required_settings as $key => $value) {
         if (!in_array($key, $settings_check)) {
-            $stmt = $pdo->prepare("INSERT IGNORE INTO sl_settings (setting_key, setting_value) VALUES (?, ?)");
+            $stmt = $pdo->prepare("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES (?, ?)");
             $stmt->execute([$key, $value]);
         }
     }
     $settings = [];
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     while ($row = $stmt_settings->fetch(PDO::FETCH_ASSOC)) {
         $settings[$row['setting_key']] = $row['setting_value'];
     }
@@ -184,7 +184,7 @@ try {
     $warn_balance_threshold  = (float)($settings['warn_balance_threshold'] ?? 0.01);
     $enable_warn_notification= (int)($settings['enable_warn_notification'] ?? 1);
     $api = null;
-    $stmt = $pdo->prepare("SELECT * FROM sl_apis WHERE endpoint = ? LIMIT 1");
+    $stmt = $pdo->prepare("SELECT * FROM huli_apis WHERE endpoint = ? LIMIT 1");
     $stmt->execute([$encoded_endpoint]);
     $api = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$api) {
@@ -220,7 +220,7 @@ try {
     $valid_user = null;
     $is_super_member = false;
     if ($api_key) {
-        $stmt_user = $pdo->prepare("SELECT id, username, status, balance, points, membership_level, membership_expire FROM sl_users WHERE api_key = ? LIMIT 1");
+        $stmt_user = $pdo->prepare("SELECT id, username, status, balance, points, membership_level, membership_expire FROM huli_users WHERE api_key = ? LIMIT 1");
         $stmt_user->execute([$api_key]);
         $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
         if ($user && $user['status'] === 'active') {
@@ -231,7 +231,7 @@ try {
                 if (!$user['membership_expire'] || strtotime($user['membership_expire']) > time()) {
                     $is_super_member = true;
                 } else {
-                    $stmt_update = $pdo->prepare("UPDATE sl_users SET membership_level = 'normal', membership_expire = NULL WHERE id = ?");
+                    $stmt_update = $pdo->prepare("UPDATE huli_users SET membership_level = 'normal', membership_expire = NULL WHERE id = ?");
                     $stmt_update->execute([$user['id']]);
                 }
             }
@@ -240,7 +240,7 @@ try {
     if (!$valid_apikey_provided && $enable_free_qps_limit && $free_qps_limit > 0 && $free_qps_seconds > 0) {
         $now = time();
         $window_start = $now - $free_qps_seconds;
-        $stmt_qps = $pdo->prepare("SELECT COUNT(*) FROM sl_api_logs WHERE ip_address = ? AND request_time >= FROM_UNIXTIME(?)");
+        $stmt_qps = $pdo->prepare("SELECT COUNT(*) FROM huli_api_logs WHERE ip_address = ? AND request_time >= FROM_UNIXTIME(?)");
         $stmt_qps->execute([$log_ip_address, $window_start]);
         if ($stmt_qps->fetchColumn() >= $free_qps_limit) {
             api_error_exit(429, "提示：无apikey访问，{$free_qps_seconds}秒内最多{$free_qps_limit}次请求，请稍后再试或获取apikey");
@@ -262,21 +262,21 @@ try {
             if ($enable_member_qps_limit && $member_qps_limit > 0 && $member_qps_seconds > 0) {
                 $now = time();
                 $window_start = $now - $member_qps_seconds;
-                $stmt_qps = $pdo->prepare("SELECT COUNT(*) FROM sl_api_logs WHERE user_id = ? AND request_time >= FROM_UNIXTIME(?)");
+                $stmt_qps = $pdo->prepare("SELECT COUNT(*) FROM huli_api_logs WHERE user_id = ? AND request_time >= FROM_UNIXTIME(?)");
                 $stmt_qps->execute([$user['id'], $window_start]);
                 if ($stmt_qps->fetchColumn() >= $member_qps_limit) {
                     api_error_exit(429, "提示：普通会员{$member_qps_seconds}秒内最多{$member_qps_limit}次请求，超级会员无限制");
                 }
             }
             if ($enable_daily_points && $daily_free_points > 0) {
-                $stmt_check = $pdo->prepare("SELECT id FROM sl_daily_points_claim WHERE user_id = ? AND claim_date = CURDATE()");
+                $stmt_check = $pdo->prepare("SELECT id FROM huli_daily_points_claim WHERE user_id = ? AND claim_date = CURDATE()");
                 $stmt_check->execute([$user['id']]);
                 if (!$stmt_check->fetch()) {
                     $pdo->beginTransaction();
                     try {
-                        $stmt_add = $pdo->prepare("UPDATE sl_users SET points = points + ? WHERE id = ?");
+                        $stmt_add = $pdo->prepare("UPDATE huli_users SET points = points + ? WHERE id = ?");
                         $stmt_add->execute([$daily_free_points, $user['id']]);
-                        $stmt_rec = $pdo->prepare("INSERT INTO sl_daily_points_claim (user_id, claim_date, points_granted) VALUES (?, CURDATE(), ?)");
+                        $stmt_rec = $pdo->prepare("INSERT INTO huli_daily_points_claim (user_id, claim_date, points_granted) VALUES (?, CURDATE(), ?)");
                         $stmt_rec->execute([$user['id'], $daily_free_points]);
                         $pdo->commit();
                         $user['points'] += $daily_free_points;
@@ -287,7 +287,7 @@ try {
                 }
             }
 if ($billing_type !== 'free' && $enable_warn_notification) {
-    $stmt_user_info = $pdo->prepare("SELECT email, last_points_warn_date, last_balance_warn_date FROM sl_users WHERE id = ?");
+    $stmt_user_info = $pdo->prepare("SELECT email, last_points_warn_date, last_balance_warn_date FROM huli_users WHERE id = ?");
     $stmt_user_info->execute([$user['id']]);
     $user_info = $stmt_user_info->fetch(PDO::FETCH_ASSOC);
     if ($user_info && $user_info['email']) {
@@ -397,9 +397,9 @@ if ($billing_type !== 'free' && $enable_warn_notification) {
                 $mail->Body    = $mail_body;
                 $mail->send();
                 if ($billing_type === 'points') {
-                    $pdo->prepare("UPDATE sl_users SET last_points_warn_date = ? WHERE id = ?")->execute([$today, $user['id']]);
+                    $pdo->prepare("UPDATE huli_users SET last_points_warn_date = ? WHERE id = ?")->execute([$today, $user['id']]);
                 } else {
-                    $pdo->prepare("UPDATE sl_users SET last_balance_warn_date = ? WHERE id = ?")->execute([$today, $user['id']]);
+                    $pdo->prepare("UPDATE huli_users SET last_balance_warn_date = ? WHERE id = ?")->execute([$today, $user['id']]);
                 }
             } catch (Exception $e) {
             }
@@ -424,18 +424,18 @@ if ($billing_type !== 'free' && $enable_warn_notification) {
     }
     $pdo->beginTransaction();
     try {
-        $pdo->prepare("UPDATE sl_apis SET total_calls = total_calls + 1 WHERE id = ?")->execute([$log_api_id]);
+        $pdo->prepare("UPDATE huli_apis SET total_calls = total_calls + 1 WHERE id = ?")->execute([$log_api_id]);
         if ($log_user_id) {
-            $pdo->prepare("UPDATE sl_users SET call_count = call_count + 1 WHERE id = ?")->execute([$log_user_id]);
+            $pdo->prepare("UPDATE huli_users SET call_count = call_count + 1 WHERE id = ?")->execute([$log_user_id]);
             if ($is_success && !$is_super_member) {
                 if ($billing_type === 'balance') {
-                    $pdo->prepare("UPDATE sl_users SET balance = balance - ? WHERE id = ?")->execute([$billing_amount, $log_user_id]);
+                    $pdo->prepare("UPDATE huli_users SET balance = balance - ? WHERE id = ?")->execute([$billing_amount, $log_user_id]);
                 } elseif ($billing_type === 'points') {
-                    $pdo->prepare("UPDATE sl_users SET points = points - ? WHERE id = ?")->execute([$billing_amount, $log_user_id]);
+                    $pdo->prepare("UPDATE huli_users SET points = points - ? WHERE id = ?")->execute([$billing_amount, $log_user_id]);
                 }
             }
         }
-        $stmt_log = $pdo->prepare("INSERT INTO sl_api_logs (api_id, user_id, ip_address, response_code, is_success, billing_type, billing_amount) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt_log = $pdo->prepare("INSERT INTO huli_api_logs (api_id, user_id, ip_address, response_code, is_success, billing_type, billing_amount) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt_log->execute([$log_api_id, $log_user_id, $log_ip_address, 200, $is_success ? 1 : 0, $billing_type, $billing_amount]);
         $pdo->commit();
     } catch (Exception $e) {

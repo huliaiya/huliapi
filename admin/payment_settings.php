@@ -10,10 +10,10 @@ $settings = ['epay_pid' => '', 'epay_key' => '', 'epay_url' => '', 'payment_alip
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->exec("INSERT IGNORE INTO sl_settings (setting_key, setting_value) VALUES ('epay_pid', ''), ('epay_key', ''), ('epay_url', ''), ('payment_alipay_enabled', '1'), ('payment_wxpay_enabled', '1'), ('payment_qqpay_enabled', '1');");
+    $pdo->exec("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('epay_pid', ''), ('epay_key', ''), ('epay_url', ''), ('payment_alipay_enabled', '1'), ('payment_wxpay_enabled', '1'), ('payment_qqpay_enabled', '1');");
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare("UPDATE sl_settings SET setting_value = ? WHERE setting_key = ?");
+        $stmt = $pdo->prepare("UPDATE huli_settings SET setting_value = ? WHERE setting_key = ?");
         $stmt->execute([trim($_POST['epay_pid']), 'epay_pid']);
         $stmt->execute([trim($_POST['epay_key']), 'epay_key']);
         $stmt->execute([trim($_POST['epay_url']), 'epay_url']);
@@ -24,7 +24,7 @@ try {
         $feedback_msg = '支付设置已成功保存。';
         $feedback_type = 'success';
     }
-    $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM sl_settings WHERE setting_key LIKE 'epay_%' OR setting_key LIKE 'payment_%'");
+    $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key LIKE 'epay_%' OR setting_key LIKE 'payment_%'");
     $db_settings = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
     $settings = array_merge($settings, $db_settings);
 } catch (Exception $e) {

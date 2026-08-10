@@ -3,40 +3,40 @@ session_start();
 error_reporting(0);
 ini_set('display_errors', 'Off');
 $is_ajax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
-if (isset($_SESSION['user_id'])) { 
+if (isset($_SESSION['user_id'])) {
     if ($is_ajax) {
         header('Content-Type: application/json');
         die(json_encode(['success' => false, 'message' => '您已登录']));
     }
-    header('Location: ../'); 
-    exit; 
+    header('Location: ../');
+    exit;
 }
 $rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
+if (!file_exists(ROOT_PATH . 'config.php')) {
     if ($is_ajax) {
         header('Content-Type: application/json');
         die(json_encode(['success' => false, 'message' => '系统错误：配置文件丢失']));
     }
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
-$error_msg = ''; 
-$success_msg = ''; 
+$error_msg = '';
+$success_msg = '';
 $settings = [];
 $registration_allowed = true;
 $mail_reg_enabled = false;
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings WHERE setting_key IN ('allow_registration', 'mail_reg_enabled')");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('allow_registration', 'mail_reg_enabled')");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $registration_allowed = isset($settings['allow_registration']) ? (bool)$settings['allow_registration'] : true;
     $mail_reg_enabled = isset($settings['mail_reg_enabled']) ? (bool)$settings['mail_reg_enabled'] : false;
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $username = trim($_POST['username'] ?? ''); 
-        $email = trim($_POST['email'] ?? ''); 
-        $password = trim($_POST['password'] ?? ''); 
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = trim($_POST['password'] ?? '');
         $confirm_password = trim($_POST['confirm_password'] ?? '');
         $code = trim($_POST['code'] ?? '');
         if (empty($username) || empty($email) || empty($password)) {
@@ -56,18 +56,18 @@ try {
                 throw new Exception('邮箱验证码不正确或已过期');
             }
         }
-        $stmt_check_user = $pdo->prepare("SELECT id FROM sl_users WHERE username = ?");
+        $stmt_check_user = $pdo->prepare("SELECT id FROM huli_users WHERE username = ?");
         $stmt_check_user->execute([$username]);
         if ($stmt_check_user->fetch()) {
             throw new Exception('该用户名已被注册');
         }
-        $stmt_check_email = $pdo->prepare("SELECT id FROM sl_users WHERE email = ?");
+        $stmt_check_email = $pdo->prepare("SELECT id FROM huli_users WHERE email = ?");
         $stmt_check_email->execute([$email]);
         if ($stmt_check_email->fetch()) {
             throw new Exception('该邮箱已被注册');
         }
-        $api_key = bin2hex(random_bytes(32));      
-        $sql = "INSERT INTO sl_users (username, email, password, api_key, status, created_at) VALUES (?, ?, ?, ?, 'active', NOW())";
+        $api_key = bin2hex(random_bytes(32));
+        $sql = "INSERT INTO huli_users (username, email, password, api_key, status, created_at) VALUES (?, ?, ?, ?, 'active', NOW())";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$username, $email, $password, $api_key]);
         if ($mail_reg_enabled) {
@@ -82,7 +82,7 @@ try {
         }
         $success_msg = '注册成功！您现在可以使用您的账户登录了。';
     }
-} catch (Exception $e) { 
+} catch (Exception $e) {
     if ($is_ajax) {
         header('Content-Type: application/json');
         die(json_encode([
@@ -90,7 +90,7 @@ try {
             'message' => $e->getMessage()
         ]));
     }
-    $error_msg = $e->getMessage(); 
+    $error_msg = $e->getMessage();
 }
 ?>
 
@@ -117,11 +117,11 @@ try {
 }
 .form-code-group .mdi {
     position: absolute;
-    left: 12px; 
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
     z-index: 1;
-    color: #6c757d; 
+    color: #6c757d;
 }
 .form-code-group input#code {
     flex: 1;
@@ -144,7 +144,7 @@ try {
     color: #6c757d;
 }
 .has-feedback input {
-    padding-left: 38px; 
+    padding-left: 38px;
 }
 </style>
 </head>
@@ -213,7 +213,7 @@ $(document).ready(function() {
         $btn.prop('disabled', true);
         let countdown = 60;
         $btn.text(countdown + 's 后重试');
-        
+
         const interval = setInterval(() => {
             countdown--;
             $btn.text(countdown + 's 后重试');
@@ -287,7 +287,7 @@ $(document).ready(function() {
             placement: { from: 'top', align: 'right' },
             z_index: 10800,
             delay: 1500,
-            animate: { 
+            animate: {
                 enter: 'animate__animated animate__shakeX',
                 exit: 'animate__animated animate__fadeOutDown'
             }
@@ -302,7 +302,7 @@ $(document).ready(function() {
             placement: { from: 'top', align: 'right' },
             z_index: 10800,
             delay: 1500,
-            animate: { 
+            animate: {
                 enter: 'animate__animated animate__fadeInUp',
                 exit: 'animate__animated animate__fadeOutDown'
             }

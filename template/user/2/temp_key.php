@@ -2,10 +2,10 @@
 session_start();
 error_reporting(0);
 ini_set('display_errors', 'Off');
-$rootPath = dirname(__DIR__, 3); 
+$rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+if (!file_exists(ROOT_PATH . 'config.php')) {
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
 $settings = [];
@@ -13,7 +13,7 @@ $allow_temp_key = false;
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $allow_temp_key = $settings['allow_temp_key'] ?? 0;
 } catch (PDOException $e) { /* silent fail */ }
@@ -32,15 +32,15 @@ $site_name = $settings['site_name'];
     <link rel="stylesheet" type="text/css" href="../../../assets/css/style.min.css">
     <style>
         :root {
-            --bg-color: #f8f9fa; 
-            --card-bg: #ffffff; 
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
             --primary-color: #4a69bd;
-            --text-dark: #212529; 
-            --text-light: #6c757d; 
+            --text-dark: #212529;
+            --text-light: #6c757d;
             --border-color: #dee2e6;
-            --success-bg: #d1e7dd; 
-            --success-text: #0f5132; 
-            --error-bg: #f8d7da; 
+            --success-bg: #d1e7dd;
+            --success-text: #0f5132;
+            --error-bg: #f8d7da;
             --error-text: #721c24;
         }
         body {
@@ -164,7 +164,7 @@ $site_name = $settings['site_name'];
         <form id="temp-key-form">
             <div class="mb-3">
                 <label for="email" class="form-label"><span class="mdi mdi-email" aria-hidden="true"></span>邮箱地址</label>
-                <div class="has-feedback">                 
+                <div class="has-feedback">
                     <input type="email" id="email" name="email" class="form-control" placeholder="用于接收临时密钥" required>
                 </div>
             </div>
@@ -194,9 +194,9 @@ $site_name = $settings['site_name'];
     $(document).ready(function() {
         function refreshCaptcha() {
             $('#captcha-image').attr('src', '../../../common/ajax/captcha.php?r=' + Date.now());
-        }       
-        refreshCaptcha();        
-        $('#captcha-image').on('click', refreshCaptcha);        
+        }
+        refreshCaptcha();
+        $('#captcha-image').on('click', refreshCaptcha);
         $('#temp-key-form').on('submit', function(e) {
             e.preventDefault();
             const email = $('#email').val().trim();

@@ -9,7 +9,7 @@ $feedback_msg = ''; $feedback_type = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->exec("CREATE TABLE IF NOT EXISTS `sl_billing_plans` (
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_billing_plans` (
         `id` INT AUTO_INCREMENT PRIMARY KEY,
         `name` VARCHAR(255) NOT NULL,
         `description` TEXT NULL,
@@ -22,43 +22,43 @@ try {
         `is_card` TINYINT(1) NOT NULL DEFAULT 0,
         `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
-    $columns = $pdo->query("SHOW COLUMNS FROM `sl_billing_plans`")->fetchAll(PDO::FETCH_COLUMN);
+    $columns = $pdo->query("SHOW COLUMNS FROM `huli_billing_plans`")->fetchAll(PDO::FETCH_COLUMN);
     if (!in_array('membership_days', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_billing_plans` ADD `membership_days` INT NOT NULL DEFAULT 0 AFTER `points_to_add`;");
+        $pdo->exec("ALTER TABLE `huli_billing_plans` ADD `membership_days` INT NOT NULL DEFAULT 0 AFTER `points_to_add`;");
     }
     if (isset($_GET['action']) && isset($_GET['id'])) {
         $id = intval($_GET['id']);
         switch ($_GET['action']) {
             case 'delete':
-                $stmt = $pdo->prepare("DELETE FROM sl_billing_plans WHERE id = ?"); 
+                $stmt = $pdo->prepare("DELETE FROM huli_billing_plans WHERE id = ?");
                 $stmt->execute([$id]);
-                $_SESSION['feedback_msg'] = '计费方案已成功删除。'; 
+                $_SESSION['feedback_msg'] = '计费方案已成功删除。';
                 break;
             case 'toggle':
-                $stmt = $pdo->prepare("UPDATE sl_billing_plans SET is_active = 1 - is_active WHERE id = ?"); 
+                $stmt = $pdo->prepare("UPDATE huli_billing_plans SET is_active = 1 - is_active WHERE id = ?");
                 $stmt->execute([$id]);
-                $_SESSION['feedback_msg'] = '方案状态已成功切换。'; 
+                $_SESSION['feedback_msg'] = '方案状态已成功切换。';
                 break;
             case 'toggle_card':
-                $stmt = $pdo->prepare("UPDATE sl_billing_plans SET is_card = 1 - is_card WHERE id = ?"); 
+                $stmt = $pdo->prepare("UPDATE huli_billing_plans SET is_card = 1 - is_card WHERE id = ?");
                 $stmt->execute([$id]);
-                $_SESSION['feedback_msg'] = '卡密属性已成功切换。'; 
+                $_SESSION['feedback_msg'] = '卡密属性已成功切换。';
                 break;
         }
         $_SESSION['feedback_type'] = 'success';
-        header('Location: billing_plans.php'); 
+        header('Location: billing_plans.php');
         exit;
     }
     if(isset($_SESSION['feedback_msg'])){
-        $feedback_msg = $_SESSION['feedback_msg']; 
+        $feedback_msg = $_SESSION['feedback_msg'];
         $feedback_type = $_SESSION['feedback_type'];
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
-    $plans = $pdo->query("SELECT * FROM sl_billing_plans ORDER BY price ASC")->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) { 
-    $feedback_msg = '数据库操作失败: ' . $e->getMessage(); 
-    $feedback_type = 'error'; 
-    $plans = []; 
+    $plans = $pdo->query("SELECT * FROM huli_billing_plans ORDER BY price ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $feedback_msg = '数据库操作失败: ' . $e->getMessage();
+    $feedback_type = 'error';
+    $plans = [];
 }
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>

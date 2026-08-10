@@ -5,15 +5,15 @@ ini_set('display_errors', 'Off');
 if (isset($_SESSION['user_id'])) { header('Location: ../'); exit; }
 $rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+if (!file_exists(ROOT_PATH . 'config.php')) {
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
 $mail_forgot_enabled = false;
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt = $pdo->query("SELECT setting_value FROM sl_settings WHERE setting_key = 'mail_forgot_enabled'");
+    $stmt = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'mail_forgot_enabled'");
     $mail_forgot_enabled = ($stmt->fetchColumn() == 1);
 } catch (Exception $e) { /* silent fail */ }
 ?>

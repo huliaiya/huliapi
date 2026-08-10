@@ -4,8 +4,8 @@
 @ini_set('display_errors', 'Off');
 $rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+if (!file_exists(ROOT_PATH . 'config.php')) {
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
@@ -17,19 +17,19 @@ $apis = [];
 try {
     $pdo = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_apis = $pdo->query("SELECT * FROM sl_apis ORDER BY id DESC");
+    $stmt_apis = $pdo->query("SELECT * FROM huli_apis ORDER BY id DESC");
     $apis = $stmt_apis->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
 }
 $announcement = null;
 try {
-    $stmt_announcement = $pdo->query("SELECT * FROM sl_announcements WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1");
+    $stmt_announcement = $pdo->query("SELECT * FROM huli_announcements WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1");
     $announcement = $stmt_announcement->fetch(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
 }
 $advertisements = [];
 try {
-    $stmt_ads = $pdo->query("SELECT id, title, link_url FROM sl_advertisements WHERE status = 'active' ORDER BY sort_order DESC");
+    $stmt_ads = $pdo->query("SELECT id, title, link_url FROM huli_advertisements WHERE status = 'active' ORDER BY sort_order DESC");
     $advertisements = $stmt_ads->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
 }
@@ -276,7 +276,7 @@ function getCallCountStyle($count) {
 <div class="container-fluid py-4">
 <ul class="ad-list">
     <?php if (!empty($advertisements)): ?>
-        <?php foreach ($advertisements as $index => $ad): 
+        <?php foreach ($advertisements as $index => $ad):
             $colorIndex = $ad['id'] % 8;
         ?>
             <li class="ad-item">
@@ -361,7 +361,7 @@ function getCallCountStyle($count) {
     </div>
 </div>
 <div class="row" id="api-grid">
-    <?php foreach ($apis as $api): 
+    <?php foreach ($apis as $api):
         $style = getCallCountStyle($api['total_calls']);
         $api['price_per_call'] = isset($api['price_per_call']) ? $api['price_per_call'] : 0;
         $api['points_per_call'] = isset($api['points_per_call']) ? $api['points_per_call'] : 0;
@@ -377,8 +377,8 @@ function getCallCountStyle($count) {
                     <?php echo getVisibilityAndBillingBadges($api['visibility'], $api['is_billable'], $api['price_per_call'], $api['points_per_call']); ?>
                 </div>
                 <?php if (!empty($api['category_id'])): ?>
-                    <?php 
-                    $stmtCat = $pdo->prepare("SELECT name FROM sl_api_categories WHERE id = ?");
+                    <?php
+                    $stmtCat = $pdo->prepare("SELECT name FROM huli_api_categories WHERE id = ?");
                     $stmtCat->execute([$api['category_id']]);
                     $categoryName = $stmtCat->fetchColumn();
                     ?>

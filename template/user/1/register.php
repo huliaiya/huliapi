@@ -15,7 +15,7 @@ $settings = [];
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings WHERE setting_key IN ('allow_registration', 'mail_reg_enabled')");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('allow_registration', 'mail_reg_enabled')");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $registration_allowed = $settings['allow_registration'] ?? 1;
     $mail_reg_enabled = $settings['mail_reg_enabled'] ?? 0;
@@ -43,18 +43,18 @@ try {
                 throw new Exception('邮箱验证码不正确或已过期。');
             }
         }
-        $stmt_check_user = $pdo->prepare("SELECT id FROM sl_users WHERE username = ?");
+        $stmt_check_user = $pdo->prepare("SELECT id FROM huli_users WHERE username = ?");
         $stmt_check_user->execute([$username]);
         if ($stmt_check_user->fetch()) {
             throw new Exception('该用户名已被注册。');
         }
-        $stmt_check_email = $pdo->prepare("SELECT id FROM sl_users WHERE email = ?");
+        $stmt_check_email = $pdo->prepare("SELECT id FROM huli_users WHERE email = ?");
         $stmt_check_email->execute([$email]);
         if ($stmt_check_email->fetch()) {
             throw new Exception('该邮箱已被注册。');
         }
         $api_key = bin2hex(random_bytes(32));
-        $sql = "INSERT INTO sl_users (username, email, password, api_key, status) VALUES (?, ?, ?, ?, 'active')";
+        $sql = "INSERT INTO huli_users (username, email, password, api_key, status) VALUES (?, ?, ?, ?, 'active')";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$username, $email, $password, $api_key]);
         unset($_SESSION['reg_code'], $_SESSION['reg_email']);

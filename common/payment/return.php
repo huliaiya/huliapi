@@ -10,7 +10,7 @@ $status = 'error'; $message = '支付验证失败，请联系管理员。';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings WHERE setting_key IN ('epay_pid', 'epay_key', 'epay_url')");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('epay_pid', 'epay_key', 'epay_url')");
     $epay_db_config = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $epay_sdk_config = [
         'pid' => $epay_db_config['epay_pid'],

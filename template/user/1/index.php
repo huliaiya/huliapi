@@ -4,10 +4,10 @@
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['user_id'])) { header('Location: /template/user/1/login.php');
 exit; }
-$rootPath = dirname(__DIR__, 3); 
+$rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+if (!file_exists(ROOT_PATH . 'config.php')) {
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
@@ -21,7 +21,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if (isset($_GET['action']) && $_GET['action'] === 'regenerate_key') {
         $new_key = bin2hex(random_bytes(32));
-        $stmt_update = $pdo->prepare("UPDATE sl_users SET api_key = ? WHERE id = ?");
+        $stmt_update = $pdo->prepare("UPDATE huli_users SET api_key = ? WHERE id = ?");
         $stmt_update->execute([$new_key, $user_id]);
         $_SESSION['feedback_msg'] = 'API密钥已成功重新生成！';
         $_SESSION['feedback_type'] = 'success';
@@ -32,20 +32,20 @@ try {
         $feedback_type = $_SESSION['feedback_type'];
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
-    $stmt_get_user = $pdo->prepare("SELECT api_key, call_count, balance, created_at, membership_level, membership_expire FROM sl_users WHERE id = ?");
+    $stmt_get_user = $pdo->prepare("SELECT api_key, call_count, balance, created_at, membership_level, membership_expire FROM huli_users WHERE id = ?");
     $stmt_get_user->execute([$user_id]);
     $fetched_data = $stmt_get_user->fetch(PDO::FETCH_ASSOC);
-    if ($fetched_data) { 
-        $user_data = $fetched_data; 
+    if ($fetched_data) {
+        $user_data = $fetched_data;
         $user_data['membership_level'] = $fetched_data['membership_level'] ?? 'normal';
         $user_data['membership_expire'] = $fetched_data['membership_expire'] ?? null;
-    } 
+    }
     else { session_destroy(); header('Location: login.php'); exit; }
-    $stmt_get_logs = $pdo->prepare("SELECT l.request_time, l.is_success, a.name as api_name FROM sl_api_logs l JOIN sl_apis a ON l.api_id = a.id WHERE l.user_id = ? ORDER BY l.request_time DESC LIMIT 5");
+    $stmt_get_logs = $pdo->prepare("SELECT l.request_time, l.is_success, a.name as api_name FROM huli_api_logs l JOIN huli_apis a ON l.api_id = a.id WHERE l.user_id = ? ORDER BY l.request_time DESC LIMIT 5");
     $stmt_get_logs->execute([$user_id]);
     $recent_logs = $stmt_get_logs->fetchAll(PDO::FETCH_ASSOC);
-    $billing_plans = $pdo->query("SELECT * FROM sl_billing_plans WHERE is_active = 1 ORDER BY price ASC")->fetchAll(PDO::FETCH_ASSOC);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $billing_plans = $pdo->query("SELECT * FROM huli_billing_plans WHERE is_active = 1 ORDER BY price ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $site_name = $settings['site_name'] ?? 'huliapi';
     $payment_map = [
@@ -71,13 +71,13 @@ if ($currentTemplate !== $activeTemplate) {
             body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
             .container { max-width: 600px; margin: 0 auto; }
             h1 { color: #d9534f; }
-            .btn { 
-                display: inline-block; 
-                padding: 10px 20px; 
-                background: #337ab7; 
-                color: white; 
-                text-decoration: none; 
-                border-radius: 4px; 
+            .btn {
+                display: inline-block;
+                padding: 10px 20px;
+                background: #337ab7;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
                 margin-top: 20px;
             }
             .btn:hover { background: #286090; }

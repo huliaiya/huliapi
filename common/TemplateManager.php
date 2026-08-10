@@ -19,7 +19,7 @@ class TemplateManager {
     }
     public static function getActiveHomeTemplate() {
         try {
-            $stmt = self::getDb()->prepare("SELECT folder FROM site_home_templates WHERE is_active = 1 LIMIT 1");
+            $stmt = self::getDb()->prepare("SELECT folder FROM huli_site_home_templates WHERE is_active = 1 LIMIT 1");
             $stmt->execute();
             $result = $stmt->fetch();
             return $result ? $result['folder'] : 'default';
@@ -29,7 +29,7 @@ class TemplateManager {
     }
     public static function getAllHomeTemplates() {
         try {
-            $stmt = self::getDb()->query("SELECT * FROM site_home_templates ORDER BY is_active DESC, name ASC");
+            $stmt = self::getDb()->query("SELECT * FROM huli_site_home_templates ORDER BY is_active DESC, name ASC");
             return $stmt->fetchAll();
         } catch (Exception $e) {
             return [];
@@ -38,9 +38,9 @@ class TemplateManager {
     public static function setActiveHomeTemplate($id) {
         try {
             self::getDb()->beginTransaction();
-            $stmt = self::getDb()->prepare("UPDATE site_home_templates SET is_active = 0");
+            $stmt = self::getDb()->prepare("UPDATE huli_site_home_templates SET is_active = 0");
             $stmt->execute();
-            $stmt = self::getDb()->prepare("UPDATE site_home_templates SET is_active = 1 WHERE id = ?");
+            $stmt = self::getDb()->prepare("UPDATE huli_site_home_templates SET is_active = 1 WHERE id = ?");
             $success = $stmt->execute([$id]);
             self::getDb()->commit();
             return $success;
@@ -53,7 +53,7 @@ class TemplateManager {
     }
     public static function addHomeTemplate($name, $folder, $description = '') {
         try {
-            $stmt = self::getDb()->prepare("INSERT INTO site_home_templates (name, folder, description) VALUES (?, ?, ?)");
+            $stmt = self::getDb()->prepare("INSERT INTO huli_site_home_templates (name, folder, description) VALUES (?, ?, ?)");
             return $stmt->execute([$name, $folder, $description]);
         } catch (Exception $e) {
             return false;
@@ -61,7 +61,7 @@ class TemplateManager {
     }
     public static function deleteHomeTemplate($id) {
         try {
-            $stmt = self::getDb()->prepare("DELETE FROM site_home_templates WHERE id = ?");
+            $stmt = self::getDb()->prepare("DELETE FROM huli_site_home_templates WHERE id = ?");
             return $stmt->execute([$id]);
         } catch (Exception $e) {
             return false;
@@ -69,7 +69,7 @@ class TemplateManager {
     }
     public static function getActiveUserTemplate() {
         try {
-            $stmt = self::getDb()->prepare("SELECT folder FROM site_user_templates WHERE is_active = 1 LIMIT 1");
+            $stmt = self::getDb()->prepare("SELECT folder FROM huli_site_user_templates WHERE is_active = 1 LIMIT 1");
             $stmt->execute();
             $result = $stmt->fetch();
             return $result ? $result['folder'] : 'default';
@@ -79,7 +79,7 @@ class TemplateManager {
     }
     public static function getAllUserTemplates() {
         try {
-            $stmt = self::getDb()->query("SELECT * FROM site_user_templates ORDER BY is_active DESC, name ASC");
+            $stmt = self::getDb()->query("SELECT * FROM huli_site_user_templates ORDER BY is_active DESC, name ASC");
             return $stmt->fetchAll();
         } catch (Exception $e) {
             return [];
@@ -88,9 +88,9 @@ class TemplateManager {
     public static function setActiveUserTemplate($id) {
         try {
             self::getDb()->beginTransaction();
-            $stmt = self::getDb()->prepare("UPDATE site_user_templates SET is_active = 0");
+            $stmt = self::getDb()->prepare("UPDATE huli_site_user_templates SET is_active = 0");
             $stmt->execute();
-            $stmt = self::getDb()->prepare("UPDATE site_user_templates SET is_active = 1 WHERE id = ?");
+            $stmt = self::getDb()->prepare("UPDATE huli_site_user_templates SET is_active = 1 WHERE id = ?");
             $success = $stmt->execute([$id]);
             self::getDb()->commit();
             return $success;
@@ -103,7 +103,7 @@ class TemplateManager {
     }
     public static function addUserTemplate($name, $folder, $description = '') {
         try {
-            $stmt = self::getDb()->prepare("INSERT INTO site_user_templates (name, folder, description) VALUES (?, ?, ?)");
+            $stmt = self::getDb()->prepare("INSERT INTO huli_site_user_templates (name, folder, description) VALUES (?, ?, ?)");
             return $stmt->execute([$name, $folder, $description]);
         } catch (Exception $e) {
             return false;
@@ -111,7 +111,7 @@ class TemplateManager {
     }
     public static function deleteUserTemplate($id) {
         try {
-            $stmt = self::getDb()->prepare("DELETE FROM site_user_templates WHERE id = ?");
+            $stmt = self::getDb()->prepare("DELETE FROM huli_site_user_templates WHERE id = ?");
             return $stmt->execute([$id]);
         } catch (Exception $e) {
             return false;
@@ -152,7 +152,7 @@ class TemplateManager {
         $error .= "当前存在的模板文件夹:\n";
         $error .= implode("\n", array_map('htmlspecialchars', $availableTemplates))."\n\n";
         $error .= "建议检查:\n";
-        $error .= "1. 数据库site_user_templates表中的folder字段值\n";
+        $error .= "1. 数据库huli_site_user_templates表中的folder字段值\n";
         $error .= "2. template/user/目录下的文件夹名称\n";
         $error .= "3. 文件权限(确保www-data可读)";
         throw new Exception($error);
@@ -180,7 +180,7 @@ class TemplateManager {
         $error .= "当前存在的模板文件夹:\n";
         $error .= implode("\n", array_map('htmlspecialchars', $availableTemplates))."\n\n";
         $error .= "建议检查:\n";
-        $error .= "1. 数据库site_home_templates表中的folder字段值\n";
+        $error .= "1. 数据库huli_site_home_templates表中的folder字段值\n";
         $error .= "2. template/home/目录下的文件夹名称\n";
         $error .= "3. 文件权限(确保www-data可读)";
         throw new Exception($error);

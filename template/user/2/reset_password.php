@@ -3,34 +3,34 @@ session_start();
 error_reporting(0);
 ini_set('display_errors', 'Off');
 $is_ajax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
-if (isset($_SESSION['user_id'])) { 
+if (isset($_SESSION['user_id'])) {
     if ($is_ajax) {
         header('Content-Type: application/json');
         die(json_encode(['success' => false, 'message' => '您已登录']));
     }
-    header('Location: ../'); 
-    exit; 
+    header('Location: ../');
+    exit;
 }
 $rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
+if (!file_exists(ROOT_PATH . 'config.php')) {
     if ($is_ajax) {
         header('Content-Type: application/json');
         die(json_encode(['success' => false, 'message' => '系统错误：配置文件丢失']));
     }
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
 $email_from_get = isset($_GET['email']) ? trim($_GET['email']) : '';
-$error_msg = ''; 
+$error_msg = '';
 $success_msg = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $email = trim($_POST['email']); 
-        $code = trim($_POST['code']); 
-        $password = trim($_POST['password']); 
+        $email = trim($_POST['email']);
+        $code = trim($_POST['code']);
+        $password = trim($_POST['password']);
         $confirm_password = trim($_POST['confirm_password']);
         if (empty($email) || empty($code) || empty($password)) {
             throw new Exception('所有字段均为必填项');
@@ -41,12 +41,12 @@ try {
         if (!isset($_SESSION['reset_code']) || strtolower($code) != strtolower($_SESSION['reset_code']) || strtolower($email) != strtolower($_SESSION['reset_email'])) {
             throw new Exception('邮箱验证码不正确或已过期');
         }
-        $stmt = $pdo->prepare("SELECT id FROM sl_users WHERE email = ?");
+        $stmt = $pdo->prepare("SELECT id FROM huli_users WHERE email = ?");
         $stmt->execute([$email]);
         if ($stmt->rowCount() === 0) {
             throw new Exception('该邮箱未注册');
         }
-        $stmt = $pdo->prepare("UPDATE sl_users SET password = ? WHERE email = ?");
+        $stmt = $pdo->prepare("UPDATE huli_users SET password = ? WHERE email = ?");
         $stmt->execute([$password, $email]);
         if ($stmt->rowCount() === 0) {
             throw new Exception('密码更新失败，请重试');
@@ -61,7 +61,7 @@ try {
         }
         $success_msg = '密码重置成功！请使用新密码登录';
     }
-} catch (Exception $e) { 
+} catch (Exception $e) {
     if ($is_ajax) {
         header('Content-Type: application/json');
         die(json_encode([
@@ -69,7 +69,7 @@ try {
             'message' => $e->getMessage()
         ]));
     }
-    $error_msg = $e->getMessage(); 
+    $error_msg = $e->getMessage();
 }
 ?>
 
@@ -95,23 +95,23 @@ try {
     width: 100%;
 }
 .code-group input#code {
-    flex: 1; 
+    flex: 1;
     min-width: 0;
 }
 .code-group button#send-code-btn {
     white-space: nowrap;
-    padding: 0.375rem 0.75rem; 
+    padding: 0.375rem 0.75rem;
 }
 .has-feedback {
     position: relative;
 }
 .has-feedback .mdi {
     position: absolute;
-    left: 12px; 
+    left: 12px;
     top: 50%;
-    transform: translateY(-50%); 
-    z-index: 1; 
-    color: #6c757d;  
+    transform: translateY(-50%);
+    z-index: 1;
+    color: #6c757d;
 }
 .has-feedback input {
     padding-left: 38px;

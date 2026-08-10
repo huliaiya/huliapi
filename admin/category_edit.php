@@ -15,7 +15,7 @@ try {
     if ($edit_mode) {
         $page_title = '编辑分类';
         $id_to_edit = intval($_GET['id']);
-        $stmt_get = $pdo->prepare("SELECT * FROM sl_api_categories WHERE id = ?"); 
+        $stmt_get = $pdo->prepare("SELECT * FROM huli_api_categories WHERE id = ?");
         $stmt_get->execute([$id_to_edit]);
         $category = $stmt_get->fetch(PDO::FETCH_ASSOC);
         if (!$category) { header('Location: category_list.php'); exit; }
@@ -23,16 +23,16 @@ try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $category_id = isset($_POST['id']) ? intval($_POST['id']) : null;
         $name = trim($_POST['name']);
-        if (empty($name)) { 
-            throw new Exception('分类名称不能为空。'); 
+        if (empty($name)) {
+            throw new Exception('分类名称不能为空。');
         }
         if ($category_id) {
-            $sql = "UPDATE sl_api_categories SET name=?, description=? WHERE id=?";
+            $sql = "UPDATE huli_api_categories SET name=?, description=? WHERE id=?";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$name, trim($_POST['description']), $category_id]);
             $_SESSION['feedback_msg'] = '分类已成功更新。';
         } else {
-            $sql = "INSERT INTO sl_api_categories (name, description) VALUES (?, ?)";
+            $sql = "INSERT INTO huli_api_categories (name, description) VALUES (?, ?)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$name, trim($_POST['description'])]);
             $_SESSION['feedback_msg'] = '分类已成功添加。';
@@ -41,9 +41,9 @@ try {
         header('Location: category_list.php');
         exit;
     }
-} catch (Exception $e) { 
-    $feedback_msg = '操作失败: ' . $e->getMessage(); 
-    $feedback_type = 'error'; 
+} catch (Exception $e) {
+    $feedback_msg = '操作失败: ' . $e->getMessage();
+    $feedback_type = 'error';
 }
 ?>
 
@@ -73,7 +73,7 @@ try {
                 <input type="hidden" name="id" value="<?php echo $category['id']; ?>">
                 <div class="mb-3">
                     <label for="name" class="form-label">分类名称</label>
-                    <input type="text" id="name" name="name" class="form-control" 
+                    <input type="text" id="name" name="name" class="form-control"
                            placeholder="例如：用户接口" value="<?php echo htmlspecialchars($category['name']); ?>" required>
                 </div>
                 <div class="mb-3">

@@ -26,7 +26,7 @@ require_once 'lib/epaycore.php';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings WHERE setting_key IN ('epay_pid', 'epay_key', 'epay_url')");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('epay_pid', 'epay_key', 'epay_url')");
     $epay_db_config = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     log_message("支付配置: " . json_encode($epay_db_config));
     $epay_sdk_config = [
@@ -51,7 +51,7 @@ try {
         }
         $pdo->beginTransaction();
         try {
-            $stmt_order = $pdo->prepare("SELECT * FROM sl_orders WHERE order_id = ? AND status = 'pending' FOR UPDATE");
+            $stmt_order = $pdo->prepare("SELECT * FROM huli_orders WHERE order_id = ? AND status = 'pending' FOR UPDATE");
             $stmt_order->execute([$out_trade_no]);
             $order = $stmt_order->fetch(PDO::FETCH_ASSOC);
             if (!$order) {
@@ -61,7 +61,7 @@ try {
                 exit;
             }
             log_message("订单信息: " . json_encode($order));
-            $stmt_plan = $pdo->prepare("SELECT billing_type, balance_to_add, points_to_add, membership_days FROM sl_billing_plans WHERE id = ?");
+            $stmt_plan = $pdo->prepare("SELECT billing_type, balance_to_add, points_to_add, membership_days FROM huli_billing_plans WHERE id = ?");
             $stmt_plan->execute([$order['plan_id']]);
             $plan = $stmt_plan->fetch(PDO::FETCH_ASSOC);
             if (!$plan) {
@@ -73,19 +73,19 @@ try {
             log_message("套餐信息: " . json_encode($plan));
             $updated = false;
             if ($plan['balance_to_add'] > 0) {
-                $stmt_update_user = $pdo->prepare("UPDATE sl_users SET balance = balance + ? WHERE id = ?");
+                $stmt_update_user = $pdo->prepare("UPDATE huli_users SET balance = balance + ? WHERE id = ?");
                 $stmt_update_user->execute([$plan['balance_to_add'], $order['user_id']]);
                 log_message("充值余额: " . $plan['balance_to_add'] . " 元");
                 $updated = true;
             }
             if ($plan['points_to_add'] > 0) {
-                $stmt_update_user = $pdo->prepare("UPDATE sl_users SET points = points + ? WHERE id = ?");
+                $stmt_update_user = $pdo->prepare("UPDATE huli_users SET points = points + ? WHERE id = ?");
                 $stmt_update_user->execute([$plan['points_to_add'], $order['user_id']]);
                 log_message("充值点数: " . $plan['points_to_add']);
                 $updated = true;
             }
             if ($plan['membership_days'] > 0) {
-                $stmt_check_user = $pdo->prepare("SELECT membership_expire FROM sl_users WHERE id = ?");
+                $stmt_check_user = $pdo->prepare("SELECT membership_expire FROM huli_users WHERE id = ?");
                 $stmt_check_user->execute([$order['user_id']]);
                 $user = $stmt_check_user->fetch(PDO::FETCH_ASSOC);
                 $expire_date = null;
@@ -94,13 +94,13 @@ try {
                 } else {
                     $expire_date = "DATE_ADD(NOW(), INTERVAL ? DAY)";
                 }
-                $stmt_update_user = $pdo->prepare("UPDATE sl_users SET membership_level = 'super', membership_expire = $expire_date WHERE id = ?");
+                $stmt_update_user = $pdo->prepare("UPDATE huli_users SET membership_level = 'super', membership_expire = $expire_date WHERE id = ?");
                 $stmt_update_user->execute([$plan['membership_days'], $order['user_id']]);
                 log_message("充值会员: " . $plan['membership_days'] . " 天");
                 $updated = true;
             }
             if ($updated) {
-                $stmt_update_order = $pdo->prepare("UPDATE sl_orders SET status = 'paid', paid_at = CURRENT_TIMESTAMP, payment_method = ? WHERE id = ?");
+                $stmt_update_order = $pdo->prepare("UPDATE huli_orders SET status = 'paid', paid_at = CURRENT_TIMESTAMP, payment_method = ? WHERE id = ?");
                 $stmt_update_order->execute([$_REQUEST['type'] ?? 'unknown', $order['id']]);
                 $pdo->commit();
                 log_message("订单处理成功，已提交事务");

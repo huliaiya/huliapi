@@ -2,14 +2,14 @@
 @session_start();
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
-if (!isset($_SESSION['admin_id'])) { 
-    header('Location: login.php'); 
-    exit; 
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
 }
-if (file_exists('../config.php')) { 
-    require_once '../config.php'; 
-} else { 
-    die("出现错误！配置文件丢失。"); 
+if (file_exists('../config.php')) {
+    require_once '../config.php';
+} else {
+    die("出现错误！配置文件丢失。");
 }
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
@@ -19,19 +19,19 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if (isset($_GET['delete'])) {
         $id = intval($_GET['delete']);
-        $stmt = $pdo->prepare("DELETE FROM sl_advertisements WHERE id = ?");
+        $stmt = $pdo->prepare("DELETE FROM huli_advertisements WHERE id = ?");
         $stmt->execute([$id]);
         $feedback_msg = "广告删除成功！";
         $feedback_type = "success";
     }
     if (isset($_GET['toggle_status'])) {
         $id = intval($_GET['toggle_status']);
-        $stmt = $pdo->prepare("UPDATE sl_advertisements SET status = IF(status = 'active', 'inactive', 'active') WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE huli_advertisements SET status = IF(status = 'active', 'inactive', 'active') WHERE id = ?");
         $stmt->execute([$id]);
         $feedback_msg = "广告状态已更新！";
         $feedback_type = "success";
     }
-    $stmt = $pdo->query("SELECT * FROM sl_advertisements ORDER BY sort_order DESC, created_at DESC");
+    $stmt = $pdo->query("SELECT * FROM huli_advertisements ORDER BY sort_order DESC, created_at DESC");
     $ads = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     $feedback_msg = "数据库错误: " . $e->getMessage();

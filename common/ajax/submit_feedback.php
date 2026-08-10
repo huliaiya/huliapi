@@ -32,7 +32,7 @@ if ($type === 'api' && $api_id === null) {
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $sql = "INSERT INTO sl_feedback (user_id, api_id, type, content, contact) VALUES (?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO huli_feedback (user_id, api_id, type, content, contact) VALUES (?, ?, ?, ?, ?)";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$user_id, $api_id, $type, $content, $contact]);
     $feedback_id = $pdo->lastInsertId();
@@ -40,9 +40,9 @@ try {
         throw new Exception("无法将反馈存入数据库。");
     }
     try {
-        $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+        $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
         $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
-        $admin_email_stmt = $pdo->query("SELECT email FROM sl_admins ORDER BY id ASC LIMIT 1");
+        $admin_email_stmt = $pdo->query("SELECT email FROM huli_admins ORDER BY id ASC LIMIT 1");
         $admin_email = $admin_email_stmt->fetchColumn();
         if ($admin_email && !empty($settings['mail_smtp_host']) && !empty($settings['mail_smtp_user']) && !empty($settings['mail_smtp_pass'])) {
             if (file_exists('../../common/PHPMailer/src/Exception.php')) {

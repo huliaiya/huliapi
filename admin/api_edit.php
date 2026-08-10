@@ -2,36 +2,36 @@
 @session_start();
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
-if (!isset($_SESSION['admin_id'])) { 
-    header('Location: login.php'); 
-    exit; 
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
 }
-if (file_exists('../config.php')) { 
-    require_once '../config.php'; 
-} else { 
-    die("出现错误！配置文件丢失。"); 
+if (file_exists('../config.php')) {
+    require_once '../config.php';
+} else {
+    die("出现错误！配置文件丢失。");
 }
 $admin_id = $_SESSION['admin_id'];
-$feedback_msg = ''; 
-$feedback_type = ''; 
+$feedback_msg = '';
+$feedback_type = '';
 $page_title = '添加新接口';
 $api = [
-    'id' => null, 
-    'name' => '', 
-    'description' => '', 
-    'endpoint' => '', 
-    'type' => 'local', 
+    'id' => null,
+    'name' => '',
+    'description' => '',
+    'endpoint' => '',
+    'type' => 'local',
     'status' => 'normal',
-    'visibility' => 'public', 
-    'is_billable' => 0, 
-    'price_per_call' => '0.01', 
-    'points_per_call' => 1, 
-    'remote_url' => '', 
-    'method' => 'GET', 
-    'file_path' => '', 
+    'visibility' => 'public',
+    'is_billable' => 0,
+    'price_per_call' => '0.01',
+    'points_per_call' => 1,
+    'remote_url' => '',
+    'method' => 'GET',
+    'file_path' => '',
     'parameters' => '[]',
-    'request_example' => '', 
-    'response_format' => 'text', 
+    'request_example' => '',
+    'response_format' => 'text',
     'response_example' => '',
     'category_id' => null
 ];
@@ -67,30 +67,30 @@ function hasAuthCode($content, $relativePath) {
 try {
     $pdo = new PDO(
         "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET,
-        DB_USER, 
+        DB_USER,
         DB_PASS,
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
     );
-    $columns = $pdo->query("SHOW COLUMNS FROM `sl_apis`")->fetchAll(PDO::FETCH_COLUMN);
+    $columns = $pdo->query("SHOW COLUMNS FROM `huli_apis`")->fetchAll(PDO::FETCH_COLUMN);
     if (!in_array('admin_id', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_apis` ADD `admin_id` INT NOT NULL AFTER `id`;");
+        $pdo->exec("ALTER TABLE `huli_apis` ADD `admin_id` INT NOT NULL AFTER `id`;");
     }
     if (!in_array('category_id', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_apis` ADD `category_id` INT NULL AFTER `admin_id`;");
+        $pdo->exec("ALTER TABLE `huli_apis` ADD `category_id` INT NULL AFTER `admin_id`;");
     }
     if (!in_array('points_per_call', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_apis` ADD `points_per_call` INT NOT NULL DEFAULT 1 AFTER `price_per_call`;");
+        $pdo->exec("ALTER TABLE `huli_apis` ADD `points_per_call` INT NOT NULL DEFAULT 1 AFTER `price_per_call`;");
     }
-    
+
     if ($edit_mode) {
         $page_title = '编辑接口';
         $id_to_edit = (int)$_GET['id'];
-        $stmt_get = $pdo->prepare("SELECT * FROM sl_apis WHERE id = ? AND admin_id = ?"); 
+        $stmt_get = $pdo->prepare("SELECT * FROM huli_apis WHERE id = ? AND admin_id = ?");
         $stmt_get->execute([$id_to_edit, $admin_id]);
         $api = $stmt_get->fetch(PDO::FETCH_ASSOC);
-        if (!$api) { 
-            header('Location: api_list.php'); 
-            exit; 
+        if (!$api) {
+            header('Location: api_list.php');
+            exit;
         }
         $api['endpoint'] = rawurldecode($api['endpoint']);
         $api['is_billable'] = isset($api['is_billable']) ? $api['is_billable'] : 0;
@@ -120,9 +120,9 @@ try {
         $status = $_POST['status'];
         $visibility = $_POST['visibility'];
         $category_id = !empty($_POST['category_id']) && ctype_digit($_POST['category_id']) ? (int)$_POST['category_id'] : null;
-        
-        if (empty($name) || empty($endpoint_raw)) { 
-            throw new Exception('接口名称和调用地址不能为空。'); 
+
+        if (empty($name) || empty($endpoint_raw)) {
+            throw new Exception('接口名称和调用地址不能为空。');
         }
         if (!in_array($visibility, ['public', 'private', 'balance', 'points'])) {
             throw new Exception('无效的权限设置');
@@ -132,8 +132,8 @@ try {
         $filename = array_pop($endpoint_parts);
         $subdirectory = implode('/', $endpoint_parts);
         $api_dir = '../API' . (!empty($subdirectory) ? '/' . $subdirectory : '');
-        if (!is_dir($api_dir)) { 
-            mkdir($api_dir, 0755, true); 
+        if (!is_dir($api_dir)) {
+            mkdir($api_dir, 0755, true);
         }
         $encoded_filename = rawurlencode($filename);
         $file_path = 'API/' . (!empty($subdirectory) ? $subdirectory . '/' : '') . $encoded_filename . '.php';
@@ -189,13 +189,13 @@ try {
             if (!preg_match('/\?>\s*$/', $file_content)) {
                 $file_content .= "\n?>";
             }
-            $remote_url = null; 
+            $remote_url = null;
             $method = 'GET';
         } else {
-            $remote_url = trim($_POST['remote_url']); 
+            $remote_url = trim($_POST['remote_url']);
             $method = $_POST['method'];
-            if (empty($remote_url)) { 
-                throw new Exception('远程接口地址不能为空。'); 
+            if (empty($remote_url)) {
+                throw new Exception('远程接口地址不能为空。');
             }
             $proxy_script = "@error_reporting(0);\n\$remote_url = '" . addslashes($remote_url) . "';\n\$method = '" . $method . "';\n\$params = array_merge(\$_GET, \$_POST);\n\$ch = curl_init();\n";
             $proxy_script .= "if (\$method === 'GET' && !empty(\$params)) { \$remote_url .= (strpos(\$remote_url, '?') === false ? '?' : '&') . http_build_query(\$params); }\n";
@@ -206,8 +206,8 @@ try {
             $proxy_script .= "http_response_code(\$http_code);\nif(\$content_type) { header('Content-Type: ' . \$content_type); }\necho \$response;";
             $file_content = $auth_bootstrap . $proxy_script . "\n?>";
         }
-        if (file_put_contents($full_path, $file_content) === false) { 
-            throw new Exception('无法创建或写入接口文件，请检查API目录权限。'); 
+        if (file_put_contents($full_path, $file_content) === false) {
+            throw new Exception('无法创建或写入接口文件，请检查API目录权限。');
         }
         $params_json = $_POST['parameters_json'];
         $params_data = json_decode($params_json, true);
@@ -215,19 +215,19 @@ try {
             $params_json = '[]';
         }
         if ($api_id) {
-            $sql = "UPDATE sl_apis SET 
-                    name=?, description=?, endpoint=?, type=?, status=?, 
+            $sql = "UPDATE huli_apis SET
+                    name=?, description=?, endpoint=?, type=?, status=?,
                     visibility=?, is_billable=?, price_per_call=?, points_per_call=?,
-                    remote_url=?, method=?, file_path=?, parameters=?, request_example=?, 
+                    remote_url=?, method=?, file_path=?, parameters=?, request_example=?,
                     response_format=?, response_example=?, category_id=?,
-                    updated_at=CURRENT_TIMESTAMP 
+                    updated_at=CURRENT_TIMESTAMP
                     WHERE id=? AND admin_id = ?";
             $stmt = $pdo->prepare($sql);
             $result = $stmt->execute([
-                $name, trim($_POST['description']), $endpoint_raw, $type, $status, 
+                $name, trim($_POST['description']), $endpoint_raw, $type, $status,
                 $visibility, $is_billable, $price_per_call, $points_per_call,
-                $remote_url, $method, $file_path, $params_json, 
-                trim($_POST['request_example']), $_POST['response_format'], 
+                $remote_url, $method, $file_path, $params_json,
+                trim($_POST['request_example']), $_POST['response_format'],
                 trim($_POST['response_example']), $category_id,
                 $api_id, $admin_id
             ]);
@@ -236,18 +236,18 @@ try {
             }
             $_SESSION['feedback_msg'] = '接口已成功更新';
         } else {
-            $sql = "INSERT INTO sl_apis (
-                    admin_id, name, description, endpoint, type, status, visibility, 
-                    is_billable, price_per_call, points_per_call, remote_url, method, 
-                    file_path, parameters, request_example, response_format, 
+            $sql = "INSERT INTO huli_apis (
+                    admin_id, name, description, endpoint, type, status, visibility,
+                    is_billable, price_per_call, points_per_call, remote_url, method,
+                    file_path, parameters, request_example, response_format,
                     response_example, category_id, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
-                $admin_id, $name, trim($_POST['description']), $endpoint_raw, $type, $status, 
+                $admin_id, $name, trim($_POST['description']), $endpoint_raw, $type, $status,
                 $visibility, $is_billable, $price_per_call, $points_per_call,
-                $remote_url, $method, $file_path, $params_json, 
-                trim($_POST['request_example']), $_POST['response_format'], 
+                $remote_url, $method, $file_path, $params_json,
+                trim($_POST['request_example']), $_POST['response_format'],
                 trim($_POST['response_example']), $category_id
             ]);
             $_SESSION['feedback_msg'] = '接口已成功添加。';
@@ -257,11 +257,11 @@ try {
         exit;
     }
     $categories = [];
-    $stmt_cats = $pdo->query("SELECT * FROM sl_api_categories ORDER BY name");
+    $stmt_cats = $pdo->query("SELECT * FROM huli_api_categories ORDER BY name");
     $categories = $stmt_cats->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) { 
-    $feedback_msg = '操作失败: ' . $e->getMessage(); 
-    $feedback_type = 'error'; 
+} catch (Exception $e) {
+    $feedback_msg = '操作失败: ' . $e->getMessage();
+    $feedback_type = 'error';
 }
 ?>
 
@@ -348,7 +348,7 @@ try {
     </style>
 </head>
 <body>
-<div class="container-fluid">        
+<div class="container-fluid">
     <div class="card">
         <header class="card-header">
             <div class="card-title"><?php echo $page_title; ?></div>

@@ -2,17 +2,17 @@
 @session_start();
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
-if (!isset($_SESSION['admin_id'])) { 
-    header('Location: login.php'); 
-    exit; 
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
 }
-if (file_exists('../config.php')) { 
-    require_once '../config.php'; 
-} else { 
-    die("出现错误！配置文件丢失。"); 
+if (file_exists('../config.php')) {
+    require_once '../config.php';
+} else {
+    die("出现错误！配置文件丢失。");
 }
 $username = htmlspecialchars($_SESSION['admin_username']);
-$feedback_msg = ''; 
+$feedback_msg = '';
 $feedback_type = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
@@ -20,13 +20,13 @@ try {
     if (isset($_GET['action'])) {
         if ($_GET['action'] === 'delete' && isset($_GET['id'])) {
             $id_to_delete = intval($_GET['id']);
-            $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM sl_apis WHERE category_id = ?");
+            $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM huli_apis WHERE category_id = ?");
             $stmt_check->execute([$id_to_delete]);
             $api_count = $stmt_check->fetchColumn();
             if ($api_count > 0) {
                 throw new Exception('无法删除此分类，因为有 '.$api_count.' 个API正在使用它。请先修改这些API的分类。');
             }
-            $stmt_delete = $pdo->prepare("DELETE FROM sl_api_categories WHERE id = ?");
+            $stmt_delete = $pdo->prepare("DELETE FROM huli_api_categories WHERE id = ?");
             $stmt_delete->execute([$id_to_delete]);
             $_SESSION['feedback_msg'] = '分类已成功删除。';
             $_SESSION['feedback_type'] = 'success';
@@ -39,10 +39,10 @@ try {
         $feedback_type = $_SESSION['feedback_type'];
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
-    $stmt_list = $pdo->query("SELECT c.*, COUNT(a.id) as api_count 
-                             FROM sl_api_categories c 
-                             LEFT JOIN sl_apis a ON a.category_id = c.id 
-                             GROUP BY c.id 
+    $stmt_list = $pdo->query("SELECT c.*, COUNT(a.id) as api_count
+                             FROM huli_api_categories c
+                             LEFT JOIN huli_apis a ON a.category_id = c.id
+                             GROUP BY c.id
                              ORDER BY c.id DESC");
     $categories = $stmt_list->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
@@ -110,9 +110,9 @@ try {
                                         <a href="category_edit.php?id=<?php echo $cat['id']; ?>" class="btn btn-default" data-bs-toggle="tooltip" title="编辑">
                                             <i class="mdi mdi-pencil"></i>
                                         </a>
-                                        <a href="category_list.php?action=delete&id=<?php echo $cat['id']; ?>" 
-                                           class="btn btn-default" 
-                                           data-bs-toggle="tooltip" 
+                                        <a href="category_list.php?action=delete&id=<?php echo $cat['id']; ?>"
+                                           class="btn btn-default"
+                                           data-bs-toggle="tooltip"
                                            title="删除"
                                            onclick="return confirm('确定要删除这个分类吗？');">
                                             <i class="mdi mdi-delete"></i>
@@ -137,7 +137,7 @@ $(document).ready(function() {
     <?php if ($feedback_msg): ?>
     setTimeout(function() {
         $('.alert').fadeTo(500, 0).slideUp(500, function(){
-            $(this).remove(); 
+            $(this).remove();
         });
     }, 3000);
     <?php endif; ?>

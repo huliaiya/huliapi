@@ -15,14 +15,14 @@ try {
         $call_limit = trim($_POST['call_limit']);
         $expires_at = trim($_POST['expires_at']);
         if (!is_numeric($call_limit)) { throw new Exception('调用次数必须是数字。'); }
-        $sql = "UPDATE sl_users SET call_limit = ?, expires_at = ? WHERE id = ? AND username LIKE 'temp_%'";
+        $sql = "UPDATE huli_users SET call_limit = ?, expires_at = ? WHERE id = ? AND username LIKE 'temp_%'";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$call_limit, $expires_at, $key_id]);
         $_SESSION['feedback_msg'] = '临时密钥信息已成功更新。';
         $_SESSION['feedback_type'] = 'success';
         header('Location: temp_keys.php'); exit;
     }
-    $stmt_get = $pdo->prepare("SELECT * FROM sl_users WHERE id = ? AND username LIKE 'temp_%'");
+    $stmt_get = $pdo->prepare("SELECT * FROM huli_users WHERE id = ? AND username LIKE 'temp_%'");
     $stmt_get->execute([$key_id]);
     $key_data = $stmt_get->fetch(PDO::FETCH_ASSOC);
     if (!$key_data) { header('Location: temp_keys.php'); exit; }

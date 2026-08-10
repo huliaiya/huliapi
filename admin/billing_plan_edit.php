@@ -24,7 +24,7 @@ try {
     $pdo = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=utf8mb4", DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if ($edit_mode) {
-        $stmt = $pdo->prepare("SELECT * FROM sl_billing_plans WHERE id=?");
+        $stmt = $pdo->prepare("SELECT * FROM huli_billing_plans WHERE id=?");
         $stmt->execute([$_GET['id']]);
         $plan = $stmt->fetch(PDO::FETCH_ASSOC) ?: $plan;
     }
@@ -51,12 +51,12 @@ try {
             $membership_days = (int)$_POST['membership_days'] ?? 0;
         }
         if ($id) {
-            $stmt = $pdo->prepare("UPDATE sl_billing_plans SET 
+            $stmt = $pdo->prepare("UPDATE huli_billing_plans SET
                 name=?, description=?, price=?, billing_type=?, balance_to_add=?, points_to_add=?, membership_days=?, is_active=?, is_card=? WHERE id=?");
             $stmt->execute([$name, $description, $price, $billing_type, $balance_to_add, $points_to_add, $membership_days, $is_active, $is_card, $id]);
         } else {
-            $stmt = $pdo->prepare("INSERT INTO sl_billing_plans 
-                (name, description, price, billing_type, balance_to_add, points_to_add, membership_days, is_active, is_card) 
+            $stmt = $pdo->prepare("INSERT INTO huli_billing_plans
+                (name, description, price, billing_type, balance_to_add, points_to_add, membership_days, is_active, is_card)
                 VALUES (?,?,?,?,?,?,?,?,?)");
             $stmt->execute([$name, $description, $price, $billing_type, $balance_to_add, $points_to_add, $membership_days, $is_active, $is_card]);
         }

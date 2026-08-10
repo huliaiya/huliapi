@@ -2,14 +2,14 @@
 session_start();
 error_reporting(0);
 ini_set('display_errors', 'Off');
-if (!isset($_SESSION['user_id'])) { 
-    header('Location: login.php'); 
-    exit; 
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
 }
 $rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+if (!file_exists(ROOT_PATH . 'config.php')) {
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
@@ -17,28 +17,28 @@ $template = TemplateManager::getActiveUserTemplate();
 $template_base_url = "/template/user/{$template}/";
 $user_id = $_SESSION['user_id'];
 $user_data = ['balance' => '0.00'];
-$billing_plans = []; 
+$billing_plans = [];
 $payment_methods = [];
 try {
     $pdo = new PDO(
-        "mysql:host=" . DB_HOST . 
-        ";dbname=" . DB_NAME . 
-        ";charset=" . DB_CHARSET, 
-        DB_USER, 
+        "mysql:host=" . DB_HOST .
+        ";dbname=" . DB_NAME .
+        ";charset=" . DB_CHARSET,
+        DB_USER,
         DB_PASS
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_get_user = $pdo->prepare("SELECT balance FROM sl_users WHERE id = ?");
+    $stmt_get_user = $pdo->prepare("SELECT balance FROM huli_users WHERE id = ?");
     $stmt_get_user->execute([$user_id]);
     if ($row = $stmt_get_user->fetch(PDO::FETCH_ASSOC)) {
         $user_data = $row;
     }
     $billing_plans = $pdo->query("
-        SELECT * FROM sl_billing_plans 
-        WHERE is_active = 1 
+        SELECT * FROM huli_billing_plans
+        WHERE is_active = 1
         ORDER BY price ASC
     ")->fetchAll(PDO::FETCH_ASSOC);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $site_name = $settings['site_name'] ?? 'huliapi';
     $payment_map = [
@@ -55,7 +55,7 @@ try {
     if(!empty($settings['payment_qqpay_enabled'])) {
         $payment_methods['qqpay'] = $payment_map['qqpay'];
     }
-} catch (PDOException $e) { 
+} catch (PDOException $e) {
     die('数据库连接错误：' . $e->getMessage());
 }
 ?>

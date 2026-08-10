@@ -2,18 +2,18 @@
 session_start();
 error_reporting(0);
 ini_set('display_errors', 'Off');
-if (!isset($_SESSION['user_id'])) { 
-    header('Location: login.php'); 
-    exit; 
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
 }
-if (!isset($_POST['plan_id']) || !isset($_POST['payment_method'])) { 
-    header('Location: index.php'); 
-    exit; 
+if (!isset($_POST['plan_id']) || !isset($_POST['payment_method'])) {
+    header('Location: index.php');
+    exit;
 }
 $rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+if (!file_exists(ROOT_PATH . 'config.php')) {
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
 $plan_id = intval($_POST['plan_id']);
@@ -21,26 +21,26 @@ $payment_method = trim($_POST['payment_method']);
 $user_id = $_SESSION['user_id'];
 try {
     $pdo = new PDO(
-        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, 
-        DB_USER, 
+        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET,
+        DB_USER,
         DB_PASS
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings WHERE setting_key IN ('epay_pid', 'epay_key', 'epay_url')");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('epay_pid', 'epay_key', 'epay_url')");
     $epay_config = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     if (empty($epay_config['epay_pid']) || empty($epay_config['epay_key']) || empty($epay_config['epay_url'])) {
         throw new Exception("支付网关未配置，请联系管理员。");
     }
-    $stmt_plan = $pdo->prepare("SELECT * FROM sl_billing_plans WHERE id = ? AND is_active = 1");
+    $stmt_plan = $pdo->prepare("SELECT * FROM huli_billing_plans WHERE id = ? AND is_active = 1");
     $stmt_plan->execute([$plan_id]);
     $plan = $stmt_plan->fetch(PDO::FETCH_ASSOC);
 
-    if (!$plan) { 
-        throw new Exception("所选计费方案无效或已下架。"); 
+    if (!$plan) {
+        throw new Exception("所选计费方案无效或已下架。");
     }
     $order_id = date('YmdHis') . mt_rand(10000, 99999);
     $amount = $plan['price'];
-    $sql = "INSERT INTO sl_orders (order_id, user_id, plan_id, amount, status) VALUES (?, ?, ?, ?, 'pending')";
+    $sql = "INSERT INTO huli_orders (order_id, user_id, plan_id, amount, status) VALUES (?, ?, ?, ?, 'pending')";
     $stmt_insert = $pdo->prepare($sql);
     $stmt_insert->execute([$order_id, $user_id, $plan_id, $amount]);
     $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]";

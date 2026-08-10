@@ -15,32 +15,32 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false,
     ];
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
-    $columns = $pdo->query("SHOW COLUMNS FROM `sl_cdkeys`")->fetchAll(PDO::FETCH_COLUMN);
+    $columns = $pdo->query("SHOW COLUMNS FROM `huli_cdkeys`")->fetchAll(PDO::FETCH_COLUMN);
     $pdo->beginTransaction();
     if (!in_array('type', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_cdkeys` ADD COLUMN `type` ENUM('balance', 'points', 'membership') NOT NULL DEFAULT 'balance' AFTER `cdkey`");
+        $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `type` ENUM('balance', 'points', 'membership') NOT NULL DEFAULT 'balance' AFTER `cdkey`");
     } else {
-        $pdo->exec("ALTER TABLE `sl_cdkeys` CHANGE COLUMN `type` `type` ENUM('balance', 'points', 'membership') NOT NULL DEFAULT 'balance'");
+        $pdo->exec("ALTER TABLE `huli_cdkeys` CHANGE COLUMN `type` `type` ENUM('balance', 'points', 'membership') NOT NULL DEFAULT 'balance'");
     }
     if (!in_array('points', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_cdkeys` ADD COLUMN `points` INT NOT NULL DEFAULT 0 AFTER `balance`");
+        $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `points` INT NOT NULL DEFAULT 0 AFTER `balance`");
     }
     if (!in_array('membership_days', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_cdkeys` ADD COLUMN `membership_days` INT NOT NULL DEFAULT 0 AFTER `points`");
+        $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `membership_days` INT NOT NULL DEFAULT 0 AFTER `points`");
     }
     if (in_array('status', $columns)) {
-        $statusColumn = $pdo->query("SELECT DATA_TYPE, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'sl_cdkeys' AND COLUMN_NAME = 'status'")->fetch();
+        $statusColumn = $pdo->query("SELECT DATA_TYPE, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'huli_cdkeys' AND COLUMN_NAME = 'status'")->fetch();
         if (strpos($statusColumn['COLUMN_TYPE'], 'unused') === false || strpos($statusColumn['COLUMN_TYPE'], 'used') === false) {
-            $pdo->exec("ALTER TABLE `sl_cdkeys` CHANGE COLUMN `status` `status` ENUM('unused', 'used') NOT NULL DEFAULT 'unused'");
+            $pdo->exec("ALTER TABLE `huli_cdkeys` CHANGE COLUMN `status` `status` ENUM('unused', 'used') NOT NULL DEFAULT 'unused'");
         }
     } else {
-        $pdo->exec("ALTER TABLE `sl_cdkeys` ADD COLUMN `status` ENUM('unused', 'used') NOT NULL DEFAULT 'unused' AFTER `membership_days`");
+        $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `status` ENUM('unused', 'used') NOT NULL DEFAULT 'unused' AFTER `membership_days`");
     }
     if (!in_array('used_by_user_id', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_cdkeys` ADD COLUMN `used_by_user_id` INT NULL AFTER `status`");
+        $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `used_by_user_id` INT NULL AFTER `status`");
     }
     if (!in_array('used_at', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_cdkeys` ADD COLUMN `used_at` DATETIME NULL AFTER `used_by_user_id`");
+        $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `used_at` DATETIME NULL AFTER `used_by_user_id`");
     }
     $pdo->commit();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -88,7 +88,7 @@ try {
                 $values[] = $membership_days;
                 $placeholders[] = '(?, ?, ?, ?, ?)';
             }
-            $stmt = $pdo->prepare("INSERT INTO sl_cdkeys (cdkey, type, balance, points, membership_days) VALUES " . implode(', ', $placeholders));
+            $stmt = $pdo->prepare("INSERT INTO huli_cdkeys (cdkey, type, balance, points, membership_days) VALUES " . implode(', ', $placeholders));
             $stmt->execute($values);
             $pdo->commit();
             $unit = $type === 'balance' ? '元' : ($type === 'points' ? '点' : '天');
@@ -102,7 +102,7 @@ try {
                 $where = "WHERE status = ?";
                 $params[] = $exportType;
             }
-            $stmt = $pdo->prepare("SELECT cdkey, type, balance, points FROM sl_cdkeys {$where} ORDER BY id DESC");
+            $stmt = $pdo->prepare("SELECT cdkey, type, balance, points FROM huli_cdkeys {$where} ORDER BY id DESC");
             $stmt->execute($params);
             $keys = $stmt->fetchAll();
             header('Content-Type: text/csv; charset=utf-8');
@@ -111,8 +111,8 @@ try {
             fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
             fputcsv($output, ['卡密', '类型', '价值']);
             foreach ($keys as $key) {
-                $value = $key['type'] === 'balance' ? 
-                    '¥' . number_format($key['balance'], 2) : 
+                $value = $key['type'] === 'balance' ?
+                    '¥' . number_format($key['balance'], 2) :
                     $key['points'] . '点';
                 fputcsv($output, [
                     $key['cdkey'],
@@ -129,12 +129,12 @@ try {
             if ($id === false) {
                 throw new Exception('无效的卡密ID。');
             }
-            $stmt = $pdo->prepare("DELETE FROM sl_cdkeys WHERE id = ?"); 
+            $stmt = $pdo->prepare("DELETE FROM huli_cdkeys WHERE id = ?");
             $stmt->execute([$id]);
             $_SESSION['feedback_msg'] = '卡密已成功删除。';
             $_SESSION['feedback_type'] = 'success';
         } elseif ($_GET['action'] === 'cleanup') {
-            $stmt = $pdo->prepare("DELETE FROM sl_cdkeys WHERE status = 'unused'");
+            $stmt = $pdo->prepare("DELETE FROM huli_cdkeys WHERE status = 'unused'");
             $stmt->execute();
             $deleted_count = $stmt->rowCount();
             $_SESSION['feedback_msg'] = "成功清理了 {$deleted_count} 个未使用的卡密。";
@@ -142,34 +142,34 @@ try {
         } else {
             throw new Exception('无效的操作。');
         }
-        header('Location: cdkeys.php'); 
+        header('Location: cdkeys.php');
         exit;
     }
     if (isset($_SESSION['feedback_msg'])) {
-        $feedback_msg = $_SESSION['feedback_msg']; 
+        $feedback_msg = $_SESSION['feedback_msg'];
         $feedback_type = $_SESSION['feedback_type'];
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
     $page = isset($_GET['page']) ? max(1, filter_var($_GET['page'], FILTER_VALIDATE_INT)) : 1;
     $limit = 20;
     $offset = ($page - 1) * $limit;
-    $totalStmt = $pdo->query("SELECT COUNT(*) as total FROM sl_cdkeys");
+    $totalStmt = $pdo->query("SELECT COUNT(*) as total FROM huli_cdkeys");
     $total = $totalStmt->fetchColumn();
     $totalPages = max(1, ceil($total / $limit));
     $stmt = $pdo->prepare("
-        SELECT c.*, u.username 
-        FROM sl_cdkeys c 
-        LEFT JOIN sl_users u ON c.used_by_user_id = u.id 
-        ORDER BY c.id DESC 
+        SELECT c.*, u.username
+        FROM huli_cdkeys c
+        LEFT JOIN huli_users u ON c.used_by_user_id = u.id
+        ORDER BY c.id DESC
         LIMIT :limit OFFSET :offset
     ");
     $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     $keys = $stmt->fetchAll();
-} catch (Exception $e) { 
-    $feedback_msg = '操作失败: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'); 
-    $feedback_type = 'error'; 
+} catch (Exception $e) {
+    $feedback_msg = '操作失败: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+    $feedback_type = 'error';
     $keys = [];
     $total = 0;
     $totalPages = 1;
@@ -193,18 +193,18 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <style>
     .copyable { cursor: pointer; position: relative; transition: background-color 0.2s; }
     .copyable:hover { background-color: #f8f9fa; }
-    .copy-tooltip { 
-        position: absolute; 
-        top: -30px; 
-        left: 50%; 
-        transform: translateX(-50%); 
-        background-color: #333; 
-        color: #fff; 
-        padding: 4px 8px; 
-        border-radius: 4px; 
-        font-size: 12px; 
-        opacity: 0; 
-        transition: opacity 0.3s; 
+    .copy-tooltip {
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: #fff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.3s;
         z-index: 100;
         white-space: nowrap;
     }
@@ -270,7 +270,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <div class="row">
                                         <label for="count" class="col-sm-4 col-form-label">生成数量</label>
                                         <div class="col-sm-8">
-                                            <input type="number" class="form-control" name="count" id="count" value="10" 
+                                            <input type="number" class="form-control" name="count" id="count" value="10"
                                                 placeholder="生成数量" required min="1" max="1000">
                                         </div>
                                     </div>
@@ -279,11 +279,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <div class="row">
                                         <label for="balance" class="col-sm-4 col-form-label" id="value-label">面额 (元)</label>
                                         <div class="col-sm-8">
-                                            <input type="number" step="0.01" class="form-control" name="balance" id="balance" 
+                                            <input type="number" step="0.01" class="form-control" name="balance" id="balance"
                                                 value="10.00" placeholder="面额" required min="0.01">
-                                            <input type="number" step="1" class="form-control d-none" name="points" id="points" 
+                                            <input type="number" step="1" class="form-control d-none" name="points" id="points"
                                                 value="100" placeholder="点数" required min="1">
-                                            <input type="number" step="1" class="form-control d-none" name="membership_days" id="membership_days" 
+                                            <input type="number" step="1" class="form-control d-none" name="membership_days" id="membership_days"
                                                 value="30" placeholder="会员天数" required min="1">
                                         </div>
                                     </div>
@@ -292,7 +292,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <button type="submit" class="btn btn-primary me-1">
                                         <i class="mdi mdi-plus-circle-outline me-1"></i>生成卡密
                                     </button>
-                                    <a href="?action=cleanup" onclick="return confirm('确定要清理所有未使用的卡密吗？此操作不可恢复！');" 
+                                    <a href="?action=cleanup" onclick="return confirm('确定要清理所有未使用的卡密吗？此操作不可恢复！');"
                                        class="btn btn-danger">
                                         <i class="mdi mdi-delete-outline me-1"></i>清理未使用
                                     </a>
@@ -356,8 +356,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                         <td><?php echo $key['used_at'] ? date('Y-m-d H:i:s', strtotime($key['used_at'])) : 'N/A'; ?></td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <a href="?action=delete&id=<?php echo $key['id']; ?>" 
-                                                   onclick="return confirm('确定要删除这个卡密吗？此操作不可恢复！');" 
+                                                <a href="?action=delete&id=<?php echo $key['id']; ?>"
+                                                   onclick="return confirm('确定要删除这个卡密吗？此操作不可恢复！');"
                                                    class="btn btn-outline-danger" data-bs-toggle="tooltip" title="删除">
                                                     <i class="mdi mdi-delete"></i>
                                                 </a>
@@ -377,7 +377,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <span aria-hidden="true">&laquo;</span>
                                 </a>
                             </li>
-                            <?php 
+                            <?php
                             $startPage = max(1, $page - 2);
                             $endPage = min($totalPages, $page + 2);
                             if ($startPage > 1) {

@@ -49,19 +49,19 @@ if (isset($_SESSION['last_temp_key_sent']) && time() - $_SESSION['last_temp_key_
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->exec("CREATE TABLE IF NOT EXISTS sl_temp_key_logs (
+    $pdo->exec("CREATE TABLE IF NOT EXISTS huli_temp_key_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
         ip_address VARCHAR(45) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $columns = $pdo->query("SHOW COLUMNS FROM `sl_users`")->fetchAll(PDO::FETCH_COLUMN);
+    $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
     if (!in_array('call_limit', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_users` ADD `call_limit` INT NOT NULL DEFAULT 0");
+        $pdo->exec("ALTER TABLE `huli_users` ADD `call_limit` INT NOT NULL DEFAULT 0");
     }
     if (!in_array('expires_at', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_users` ADD `expires_at` DATETIME NULL DEFAULT NULL");
+        $pdo->exec("ALTER TABLE `huli_users` ADD `expires_at` DATETIME NULL DEFAULT NULL");
     }
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     if (empty($settings['allow_temp_key'])) {
         json_response(false, '此功能已暂时关闭。');
@@ -69,13 +69,13 @@ try {
     if (empty($settings['mail_smtp_host']) || empty($settings['mail_smtp_user']) || empty($settings['mail_smtp_pass'])) {
         json_response(false, '系统邮件服务未配置，无法发送密钥，请联系管理员。');
     }
-    $stmt_check_email = $pdo->prepare("SELECT id FROM sl_users WHERE email = ?");
+    $stmt_check_email = $pdo->prepare("SELECT id FROM huli_users WHERE email = ?");
     $stmt_check_email->execute([$email]);
     if ($stmt_check_email->fetch()) {
         json_response(false, '该邮箱已被注册，请直接登录或找回密码。');
     }
     $ip_address = getUserIP();
-    $stmt_ip_check = $pdo->prepare("SELECT COUNT(*) FROM sl_temp_key_logs WHERE ip_address = ? AND created_at >= CURDATE()");
+    $stmt_ip_check = $pdo->prepare("SELECT COUNT(*) FROM huli_temp_key_logs WHERE ip_address = ? AND created_at >= CURDATE()");
     $stmt_ip_check->execute([$ip_address]);
     if ($stmt_ip_check->fetchColumn() > 0) {
         json_response(false, '每个IP地址每天只能申请一次。');
@@ -97,7 +97,7 @@ try {
     $temp_password = bin2hex(random_bytes(16));
     $hashed_password = password_hash($temp_password, PASSWORD_DEFAULT);
     $api_key = bin2hex(random_bytes(32));
-    $sql = "INSERT INTO sl_users (username, email, password, api_key, status, call_limit, expires_at) VALUES (?, ?, ?, ?, 'active', ?, ?)";
+    $sql = "INSERT INTO huli_users (username, email, password, api_key, status, call_limit, expires_at) VALUES (?, ?, ?, ?, 'active', ?, ?)";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$temp_username, $email, $hashed_password, $api_key, $limit_calls, $expires_at]);
     $last_user_id = $pdo->lastInsertId();
@@ -175,7 +175,7 @@ try {
         error_log('邮件发送失败: ' . $e->getMessage() . ' ErrorInfo: ' . $mail->ErrorInfo);
         json_response(false, $error_message);
     }
-    $stmt_log_ip = $pdo->prepare("INSERT INTO sl_temp_key_logs (ip_address) VALUES (?)");
+    $stmt_log_ip = $pdo->prepare("INSERT INTO huli_temp_key_logs (ip_address) VALUES (?)");
     $stmt_log_ip->execute([$ip_address]);
     $pdo->commit();
     $_SESSION['last_temp_key_sent'] = time();

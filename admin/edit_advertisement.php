@@ -2,14 +2,14 @@
 @session_start();
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
-if (!isset($_SESSION['admin_id'])) { 
-    header('Location: login.php'); 
-    exit; 
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
 }
-if (file_exists('../config.php')) { 
-    require_once '../config.php'; 
-} else { 
-    die("出现错误！配置文件丢失。"); 
+if (file_exists('../config.php')) {
+    require_once '../config.php';
+} else {
+    die("出现错误！配置文件丢失。");
 }
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
@@ -22,7 +22,7 @@ if ($id <= 0) {
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt = $pdo->prepare("SELECT * FROM sl_advertisements WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM huli_advertisements WHERE id = ?");
     $stmt->execute([$id]);
     $advertisement = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$advertisement) {
@@ -45,10 +45,10 @@ try {
         if (empty($data['link_url']) || !filter_var($data['link_url'], FILTER_VALIDATE_URL)) {
             throw new Exception("请输入有效的链接URL（以http://或https://开头）");
         }
-        $updateStmt = $pdo->prepare("UPDATE sl_advertisements SET title = ?, link_url = ?, contact = ?, status = ?, sort_order = ? WHERE id = ?");
+        $updateStmt = $pdo->prepare("UPDATE huli_advertisements SET title = ?, link_url = ?, contact = ?, status = ?, sort_order = ? WHERE id = ?");
         $updateStmt->execute([$data['title'], $data['link_url'], $data['contact'], $data['status'], $data['sort_order'], $id]);
         if ($updateStmt->rowCount() > 0) {
-            $selectStmt = $pdo->prepare("SELECT * FROM sl_advertisements WHERE id = ?");
+            $selectStmt = $pdo->prepare("SELECT * FROM huli_advertisements WHERE id = ?");
             $selectStmt->execute([$id]);
             $advertisement = $selectStmt->fetch(PDO::FETCH_ASSOC);
             $feedback_msg = "广告位更新成功！";

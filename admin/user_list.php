@@ -18,33 +18,33 @@ $level_map = [
 ];
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);   
-    $columns = $pdo->query("SHOW COLUMNS FROM `sl_users`")->fetchAll(PDO::FETCH_COLUMN);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
     if (!in_array('points', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`;");
+        $pdo->exec("ALTER TABLE `huli_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`;");
     }
     if (!in_array('membership_level', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_users` ADD `membership_level` VARCHAR(20) NOT NULL DEFAULT 'normal' AFTER `points`;");
+        $pdo->exec("ALTER TABLE `huli_users` ADD `membership_level` VARCHAR(20) NOT NULL DEFAULT 'normal' AFTER `points`;");
     }
     if (!in_array('membership_expire', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_users` ADD `membership_expire` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `membership_level`;");
+        $pdo->exec("ALTER TABLE `huli_users` ADD `membership_expire` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `membership_level`;");
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['ids'])) {
         $ids = array_map('intval', $_POST['ids']);
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         switch ($_POST['action']) {
             case 'enable':
-                $stmt = $pdo->prepare("UPDATE sl_users SET status = 'active' WHERE id IN ($placeholders)");
+                $stmt = $pdo->prepare("UPDATE huli_users SET status = 'active' WHERE id IN ($placeholders)");
                 $stmt->execute($ids);
                 $_SESSION['feedback_msg'] = '已成功启用选中的用户。';
                 break;
             case 'disable':
-                $stmt = $pdo->prepare("UPDATE sl_users SET status = 'banned' WHERE id IN ($placeholders)");
+                $stmt = $pdo->prepare("UPDATE huli_users SET status = 'banned' WHERE id IN ($placeholders)");
                 $stmt->execute($ids);
                 $_SESSION['feedback_msg'] = '已成功禁用选中的用户。';
                 break;
             case 'delete':
-                $stmt = $pdo->prepare("DELETE FROM sl_users WHERE id IN ($placeholders)");
+                $stmt = $pdo->prepare("DELETE FROM huli_users WHERE id IN ($placeholders)");
                 $stmt->execute($ids);
                 $_SESSION['feedback_msg'] = '已成功删除选中的用户。';
                 break;
@@ -57,27 +57,27 @@ try {
         $id = intval($_GET['id']);
         switch ($_GET['action']) {
             case 'delete':
-                $stmt = $pdo->prepare("DELETE FROM sl_users WHERE id = ?"); 
+                $stmt = $pdo->prepare("DELETE FROM huli_users WHERE id = ?");
                 $stmt->execute([$id]);
-                $_SESSION['feedback_msg'] = '用户已成功删除。'; 
+                $_SESSION['feedback_msg'] = '用户已成功删除。';
                 break;
             case 'ban':
-                $stmt = $pdo->prepare("UPDATE sl_users SET status = 'banned' WHERE id = ?"); 
+                $stmt = $pdo->prepare("UPDATE huli_users SET status = 'banned' WHERE id = ?");
                 $stmt->execute([$id]);
-                $_SESSION['feedback_msg'] = '用户已成功封禁。'; 
+                $_SESSION['feedback_msg'] = '用户已成功封禁。';
                 break;
             case 'unban':
-                $stmt = $pdo->prepare("UPDATE sl_users SET status = 'active' WHERE id = ?"); 
+                $stmt = $pdo->prepare("UPDATE huli_users SET status = 'active' WHERE id = ?");
                 $stmt->execute([$id]);
-                $_SESSION['feedback_msg'] = '用户已成功解封。'; 
+                $_SESSION['feedback_msg'] = '用户已成功解封。';
                 break;
         }
         $_SESSION['feedback_type'] = 'success';
-        header('Location: user_list.php'); 
+        header('Location: user_list.php');
         exit;
     }
     if(isset($_SESSION['feedback_msg'])){
-        $feedback_msg = $_SESSION['feedback_msg']; 
+        $feedback_msg = $_SESSION['feedback_msg'];
         $feedback_type = $_SESSION['feedback_type'];
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
@@ -97,12 +97,12 @@ try {
     }
     $where_sql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
     $results_per_page = 15;
-    $total_results = $pdo->query("SELECT count(*) FROM sl_users $where_sql")->fetchColumn();
+    $total_results = $pdo->query("SELECT count(*) FROM huli_users $where_sql")->fetchColumn();
     $total_pages = ceil($total_results / $results_per_page);
     $page = isset($_GET['page']) && is_numeric($_GET['page']) ? intval($_GET['page']) : 1;
     $page = max(1, min($page, $total_pages));
     $offset = ($page - 1) * $results_per_page;
-    $stmt_list = $pdo->prepare("SELECT * FROM sl_users $where_sql ORDER BY id DESC LIMIT :limit OFFSET :offset");
+    $stmt_list = $pdo->prepare("SELECT * FROM huli_users $where_sql ORDER BY id DESC LIMIT :limit OFFSET :offset");
     if ($where_sql) {
         foreach ($params as $key => $value) {
             $stmt_list->bindValue($key + 1, $value);
@@ -112,10 +112,10 @@ try {
     $stmt_list->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt_list->execute();
     $users = $stmt_list->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) { 
-    $feedback_msg = '数据库操作失败: ' . $e->getMessage(); 
-    $feedback_type = 'error'; 
-    $users = []; 
+} catch (PDOException $e) {
+    $feedback_msg = '数据库操作失败: ' . $e->getMessage();
+    $feedback_type = 'error';
+    $users = [];
 }
 $current_page_script = basename($_SERVER['PHP_SELF']);
 ?>
@@ -250,7 +250,7 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
                     <td>¥ <?php echo number_format($user['balance'], 3); ?></td>
                     <td><span class="points-highlight"><?php echo number_format($user['points']); ?></span></td>
                     <td>
-                      <?php 
+                      <?php
                         $level = $user['membership_level'] ?? 'normal';
                         $level_text = $level_map[$level] ?? $level;
                         $badge_class = '';
@@ -263,7 +263,7 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
                       <span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($level_text); ?></span>
                     </td>
                     <td>
-                      <?php 
+                      <?php
                         $expire = $user['membership_expire'] ?? 0;
                         if ($expire == 0) {
                             echo '<span class="expire-permanent">永久</span>';
@@ -276,10 +276,10 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
                       ?>
                     </td>
                     <td>
-                      <span class="badge <?php 
-                        echo $user['status'] === 'active' ? 'badge-active' : 
-                             ($user['status'] === 'banned' ? 'badge-banned' : 
-                             ($user['status'] === 'pending' ? 'badge-pending' : 'badge-inactive')); 
+                      <span class="badge <?php
+                        echo $user['status'] === 'active' ? 'badge-active' :
+                             ($user['status'] === 'banned' ? 'badge-banned' :
+                             ($user['status'] === 'pending' ? 'badge-pending' : 'badge-inactive'));
                       ?>">
                         <?php echo $status_map[$user['status']] ?? $user['status']; ?>
                       </span>

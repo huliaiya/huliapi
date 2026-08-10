@@ -29,7 +29,7 @@ try {
         if (!isset($_SESSION['reset_code']) || strtolower($code) != strtolower($_SESSION['reset_code']) || strtolower($email) != strtolower($_SESSION['reset_email'])) {
             throw new Exception('邮箱验证码不正确或已过期。');
         }
-        $stmt = $pdo->prepare("UPDATE sl_users SET password = ? WHERE email = ?");
+        $stmt = $pdo->prepare("UPDATE huli_users SET password = ? WHERE email = ?");
         $stmt->execute([$password, $email]);
         unset($_SESSION['reset_code'], $_SESSION['reset_email']);
         $success_msg = '密码重置成功！请使用新密码登录。';

@@ -2,14 +2,14 @@
 @session_start();
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
-if (!isset($_SESSION['admin_id'])) { 
-    header('Location: login.php'); 
-    exit; 
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
 }
-if (file_exists('../config.php')) { 
-    require_once '../config.php'; 
-} else { 
-    die("出现错误！配置文件丢失。"); 
+if (file_exists('../config.php')) {
+    require_once '../config.php';
+} else {
+    die("出现错误！配置文件丢失。");
 }
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
@@ -22,14 +22,14 @@ if ($id <= 0) {
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt = $pdo->prepare("SELECT * FROM sl_advertisements WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM huli_advertisements WHERE id = ?");
     $stmt->execute([$id]);
     $advertisement = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$advertisement) {
         die("未找到该广告信息");
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_delete'])) {
-        $deleteStmt = $pdo->prepare("DELETE FROM sl_advertisements WHERE id = ?");
+        $deleteStmt = $pdo->prepare("DELETE FROM huli_advertisements WHERE id = ?");
         $deleteStmt->execute([$id]);
         if ($deleteStmt->rowCount() > 0) {
             $feedback_msg = "广告删除成功！";
@@ -107,9 +107,9 @@ try {
                         <h4 class="text-danger mb-4">确认删除广告？</h4>
                         <div class="mb-4">
                             <?php if (!empty($advertisement['image_url'])): ?>
-                                <img src="<?= htmlspecialchars($advertisement['image_url']) ?>" 
-                                     class="ad-preview" 
-                                     alt="广告预览" 
+                                <img src="<?= htmlspecialchars($advertisement['image_url']) ?>"
+                                     class="ad-preview"
+                                     alt="广告预览"
                                      onError="this.style.display='none'">
                             <?php endif; ?>
                             <h5 class="mt-3"><?= htmlspecialchars($advertisement['title']) ?></h5>

@@ -16,10 +16,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $stmt = $pdo->prepare("SELECT password FROM sl_admins WHERE id = ?"); $stmt->execute([$admin_id]);
+            $stmt = $pdo->prepare("SELECT password FROM huli_admins WHERE id = ?"); $stmt->execute([$admin_id]);
             $admin = $stmt->fetch();
             if ($admin && $current_password === $admin['password']) {
-                $update_stmt = $pdo->prepare("UPDATE sl_admins SET password = ? WHERE id = ?");
+                $update_stmt = $pdo->prepare("UPDATE huli_admins SET password = ? WHERE id = ?");
                 $update_stmt->execute([$new_password, $admin_id]);
                 $feedback_msg = '密码已成功更新。'; $feedback_type = 'success';
             } else { $feedback_msg = '当前密码不正确。'; $feedback_type = 'error'; }

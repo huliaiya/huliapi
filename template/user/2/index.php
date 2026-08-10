@@ -2,7 +2,7 @@
 session_start();
 error_reporting(0);
 ini_set('display_errors', 'Off');
-if (!isset($_SESSION['user_id'])) { 
+if (!isset($_SESSION['user_id'])) {
 header('Location: /template/user/2/login.php');
 exit;
 }
@@ -18,7 +18,7 @@ function checkUserLoginStatus() {
     try {
         $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $stmt = $pdo->prepare("SELECT username, email, membership_level, membership_expire FROM sl_users WHERE id = ? AND status = 1");
+        $stmt = $pdo->prepare("SELECT username, email, membership_level, membership_expire FROM huli_users WHERE id = ? AND status = 1");
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($user) {
@@ -36,7 +36,7 @@ function checkUserLoginStatus() {
 }
 $is_logged_in = checkUserLoginStatus();
 $user_info = $is_logged_in ? [
-    'username' => $_SESSION['user_username'], 
+    'username' => $_SESSION['user_username'],
     'email' => $_SESSION['user_email'],
     'membership_level' => $_SESSION['user_membership_level'],
     'membership_expire' => $_SESSION['user_membership_expire']
@@ -59,13 +59,13 @@ if ($currentTemplate !== $activeTemplate) {
             body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
             .container { max-width: 600px; margin: 0 auto; }
             h1 { color: #d9534f; }
-            .btn { 
-                display: inline-block; 
-                padding: 10px 20px; 
-                background: #337ab7; 
-                color: white; 
-                text-decoration: none; 
-                border-radius: 4px; 
+            .btn {
+                display: inline-block;
+                padding: 10px 20px;
+                background: #337ab7;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
                 margin-top: 20px;
             }
             .btn:hover { background: #286090; }
@@ -129,11 +129,11 @@ if ($currentTemplate !== $activeTemplate) {
                     游客, 您好！
                 </div>
                 <div class="sidebar-auth-actions d-flex gap-3 px-3">
-                    <a href="<?= $userTemplateBaseUrl ?>login.php" 
+                    <a href="<?= $userTemplateBaseUrl ?>login.php"
                        class="btn btn-outline-primary flex-grow-1">
                         登录
                     </a>
-                    <a href="<?= $userTemplateBaseUrl ?>register.php" 
+                    <a href="<?= $userTemplateBaseUrl ?>register.php"
                        class="btn btn-primary flex-grow-1">
                         注册
                     </a>
@@ -394,12 +394,12 @@ $(document).ready(function() {
 </script>
 <script type="text/javascript">
 $(document).ready(function() {
-    if (performance.navigation.type === 1 && 
-        (document.referrer.indexOf('login.php') !== -1 || 
+    if (performance.navigation.type === 1 &&
+        (document.referrer.indexOf('login.php') !== -1 ||
          document.referrer.indexOf('logout.php') !== -1)) {
         location.reload(true);
     }
-    
+
     setInterval(function() {
         $.ajax({
             url: '<?= $userTemplateBaseUrl ?>check_session.php',

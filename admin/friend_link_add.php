@@ -2,14 +2,14 @@
 @session_start();
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
-if (!isset($_SESSION['admin_id'])) { 
-    header('Location: login.php'); 
-    exit; 
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
 }
-if (file_exists('../config.php')) { 
-    require_once '../config.php'; 
-} else { 
-    die("出现错误！配置文件丢失。"); 
+if (file_exists('../config.php')) {
+    require_once '../config.php';
+} else {
+    die("出现错误！配置文件丢失。");
 }
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
@@ -47,8 +47,8 @@ if (!empty($data['logo'])) {
         if (mb_strlen($data['description']) > 200) {
             throw new Exception("网站描述不能超过200个字符");
         }
-        $stmt = $pdo->prepare("INSERT INTO sl_friend_links (
-            site_name, url, description, logo, status, is_hidden, 
+        $stmt = $pdo->prepare("INSERT INTO huli_friend_links (
+            site_name, url, description, logo, status, is_hidden,
             sort_order, user_id, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
@@ -113,42 +113,42 @@ if (!empty($data['logo'])) {
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">网站名称 <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="site_name" 
-                                       value="<?= htmlspecialchars($_POST['site_name'] ?? '') ?>" 
+                                <input type="text" class="form-control" name="site_name"
+                                       value="<?= htmlspecialchars($_POST['site_name'] ?? '') ?>"
                                        placeholder="请输入网站名称" required maxlength="50">
                                 <div class="invalid-feedback">请输入有效的网站名称（不超过50字符）</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">网站URL <span class="text-danger">*</span></label>
-                                <input type="url" class="form-control" name="url" 
-                                       value="<?= htmlspecialchars($_POST['url'] ?? '') ?>" 
+                                <input type="url" class="form-control" name="url"
+                                       value="<?= htmlspecialchars($_POST['url'] ?? '') ?>"
                                        placeholder="请输入http://或https://开头的网址" required>
                                 <div class="invalid-feedback">请输入有效的URL（以http://或https://开头）</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">LOGO链接</label>
-                                <input type="url" class="form-control" name="logo" 
-                                       value="<?= htmlspecialchars($_POST['logo'] ?? '') ?>" 
+                                <input type="url" class="form-control" name="logo"
+                                       value="<?= htmlspecialchars($_POST['logo'] ?? '') ?>"
                                        placeholder="请输入LOGO图片的网络链接（选填）"
                                        oninput="previewLogo(this.value)">
                                 <div class="invalid-feedback">请输入有效的LOGO链接</div>
                                 <div id="logo-preview" class="mt-2">
                                     <?php if (!empty($_POST['logo'])): ?>
-                                        <img src="<?= htmlspecialchars($_POST['logo']) ?>" class="logo-thumbnail" 
+                                        <img src="<?= htmlspecialchars($_POST['logo']) ?>" class="logo-thumbnail"
                                              alt="LOGO预览" onError="this.src='../assets/images/default-logo.png'">
                                     <?php endif; ?>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">排序值</label>
-                                <input type="number" class="form-control" name="sort_order" 
-                                       value="<?= htmlspecialchars($_POST['sort_order'] ?? 0) ?>" 
+                                <input type="number" class="form-control" name="sort_order"
+                                       value="<?= htmlspecialchars($_POST['sort_order'] ?? 0) ?>"
                                        placeholder="数字越大越靠前，默认0" min="0" max="999">
                                 <small class="text-muted">范围：0-999，数字越大排序越靠前</small>
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label">网站描述</label>
-                                <textarea class="form-control" name="description" rows="3" 
+                                <textarea class="form-control" name="description" rows="3"
                                           placeholder="请简要描述网站内容" maxlength="200"><?= htmlspecialchars($_POST['description'] ?? '') ?></textarea>
                                 <small class="text-muted">最多200个字符</small>
                             </div>
@@ -163,7 +163,7 @@ if (!empty($data['logo'])) {
                             <div class="col-md-6">
                                 <label class="form-label">是否隐藏</label>
                                 <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" name="is_hidden" 
+                                    <input class="form-check-input" type="checkbox" name="is_hidden"
                                            id="is_hidden" <?= isset($_POST['is_hidden']) ? 'checked' : '' ?>>
                                     <label class="form-check-label" for="is_hidden">勾选后前台不显示此友链</label>
                                 </div>

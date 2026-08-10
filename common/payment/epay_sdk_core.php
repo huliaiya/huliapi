@@ -77,7 +77,7 @@ class EpayNotify {
     }
 }
 function get_epay_config($pdo) {
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings WHERE setting_key IN ('epay_pid', 'epay_key', 'epay_url')");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('epay_pid', 'epay_key', 'epay_url')");
     $db_settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     if (empty($db_settings['epay_pid']) || empty($db_settings['epay_key']) || empty($db_settings['epay_url'])) {
         throw new Exception("支付网关未在后台配置完整。");

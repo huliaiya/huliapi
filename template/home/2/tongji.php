@@ -11,7 +11,7 @@ $page_total = isset($_GET['page_total']) ? max(1, intval($_GET['page_total'])) :
 $limit = 20;
 $offset_today = ($page_today - 1) * $limit;
 $offset_total = ($page_total - 1) * $limit;
-$stmt = $pdo->prepare("SELECT call_count FROM sl_daily_stats WHERE stat_date = ?");
+$stmt = $pdo->prepare("SELECT call_count FROM huli_daily_stats WHERE stat_date = ?");
 $stmt->execute([$today]);
 $total_today = $stmt->fetchColumn() ?: 0;
 $stmt->execute([$yesterday]);
@@ -35,20 +35,20 @@ $today_start = $today . ' 00:00:00';
 $today_end = date('Y-m-d', strtotime('+1 day', strtotime($today))) . ' 00:00:00';
 $yesterday_start = $yesterday . ' 00:00:00';
 $yesterday_end = date('Y-m-d', strtotime('+1 day', strtotime($yesterday))) . ' 00:00:00';
-$stmt = $pdo->prepare("SELECT api_id, COUNT(*) AS cnt FROM sl_api_logs WHERE request_time >= ? AND request_time < ? GROUP BY api_id");
+$stmt = $pdo->prepare("SELECT api_id, COUNT(*) AS cnt FROM huli_api_logs WHERE request_time >= ? AND request_time < ? GROUP BY api_id");
 $stmt->execute([$yesterday_start, $yesterday_end]);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 foreach ($rows as $r) {
     $y_map[$r['api_id']] = $r['cnt'];
 }
-$sql_today = "SELECT t.api_id, a.name, t.cnt AS today_calls 
-              FROM (SELECT api_id, COUNT(*) AS cnt 
-                    FROM sl_api_logs 
-                    WHERE request_time >= ? AND request_time < ? 
-                    GROUP BY api_id 
-                    HAVING cnt >= 10) t 
-              JOIN sl_apis a ON a.id = t.api_id 
-              ORDER BY t.cnt DESC 
+$sql_today = "SELECT t.api_id, a.name, t.cnt AS today_calls
+              FROM (SELECT api_id, COUNT(*) AS cnt
+                    FROM huli_api_logs
+                    WHERE request_time >= ? AND request_time < ?
+                    GROUP BY api_id
+                    HAVING cnt >= 10) t
+              JOIN huli_apis a ON a.id = t.api_id
+              ORDER BY t.cnt DESC
               LIMIT ?, ?";
 $stmt = $pdo->prepare($sql_today);
 $stmt->bindValue(1, $today_start);
@@ -57,18 +57,18 @@ $stmt->bindValue(3, $offset_today, PDO::PARAM_INT);
 $stmt->bindValue(4, $limit, PDO::PARAM_INT);
 $stmt->execute();
 $today_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$sql_count_today = "SELECT COUNT(*) FROM (SELECT api_id FROM sl_api_logs WHERE request_time >= ? AND request_time < ? GROUP BY api_id HAVING COUNT(*) >= 10) AS sub";
+$sql_count_today = "SELECT COUNT(*) FROM (SELECT api_id FROM huli_api_logs WHERE request_time >= ? AND request_time < ? GROUP BY api_id HAVING COUNT(*) >= 10) AS sub";
 $stmt = $pdo->prepare($sql_count_today);
 $stmt->execute([$today_start, $today_end]);
 $count_today = $stmt->fetchColumn();
 $total_pages_today = ceil($count_today / $limit);
-$sql_total = "SELECT id, name, total_calls FROM sl_apis WHERE total_calls >= 10 ORDER BY total_calls DESC LIMIT ?, ?";
+$sql_total = "SELECT id, name, total_calls FROM huli_apis WHERE total_calls >= 10 ORDER BY total_calls DESC LIMIT ?, ?";
 $stmt = $pdo->prepare($sql_total);
 $stmt->bindValue(1, $offset_total, PDO::PARAM_INT);
 $stmt->bindValue(2, $limit, PDO::PARAM_INT);
 $stmt->execute();
 $total_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$count_total = $pdo->query("SELECT COUNT(*) FROM sl_apis WHERE total_calls >= 10")->fetchColumn();
+$count_total = $pdo->query("SELECT COUNT(*) FROM huli_apis WHERE total_calls >= 10")->fetchColumn();
 $total_pages_total = ceil($count_total / $limit);
 ?>
 

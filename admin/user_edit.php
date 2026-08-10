@@ -11,19 +11,19 @@ $edit_mode = isset($_GET['id']);
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $columns = $pdo->query("SHOW COLUMNS FROM `sl_users`")->fetchAll(PDO::FETCH_COLUMN);
+    $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
     if (!in_array('points', $columns)) {
-        $pdo->exec("ALTER TABLE `sl_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`;");
+        $pdo->exec("ALTER TABLE `huli_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`;");
     }
     $settings = [];
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     while ($row = $stmt_settings->fetch(PDO::FETCH_ASSOC)) {
         $settings[$row['setting_key']] = $row['setting_value'];
     }
     if ($edit_mode) {
         $page_title = '编辑用户';
         $id_to_edit = intval($_GET['id']);
-        $stmt_get = $pdo->prepare("SELECT * FROM sl_users WHERE id = ?"); 
+        $stmt_get = $pdo->prepare("SELECT * FROM huli_users WHERE id = ?");
         $stmt_get->execute([$id_to_edit]);
         $user = $stmt_get->fetch(PDO::FETCH_ASSOC);
         if (!$user) { header('Location: user_list.php'); exit; }
@@ -33,101 +33,101 @@ try {
         $pdo->beginTransaction();
         try {
             if (isset($_POST['update_profile'])) {
-                $new_username = trim($_POST['username']); 
-                $new_email = trim($_POST['email']); 
-                $new_password = $_POST['password']; 
+                $new_username = trim($_POST['username']);
+                $new_email = trim($_POST['email']);
+                $new_password = $_POST['password'];
                 $new_status = $_POST['status'];
-                if (empty($new_username) || empty($new_email)) 
+                if (empty($new_username) || empty($new_email))
                     throw new Exception('用户名和邮箱不能为空。');
-                if (!filter_var($new_email, FILTER_VALIDATE_EMAIL)) 
+                if (!filter_var($new_email, FILTER_VALIDATE_EMAIL))
                     throw new Exception('邮箱格式不正确。');
-                $stmt_check_user = $pdo->prepare("SELECT id FROM sl_users WHERE username = ? AND id != ?"); 
+                $stmt_check_user = $pdo->prepare("SELECT id FROM huli_users WHERE username = ? AND id != ?");
                 $stmt_check_user->execute([$new_username, $user_id ?: 0]);
-                if ($stmt_check_user->fetch()) 
+                if ($stmt_check_user->fetch())
                     throw new Exception('该用户名已被使用。');
-                $stmt_check_email = $pdo->prepare("SELECT id FROM sl_users WHERE email = ? AND id != ?"); 
+                $stmt_check_email = $pdo->prepare("SELECT id FROM huli_users WHERE email = ? AND id != ?");
                 $stmt_check_email->execute([$new_email, $user_id ?: 0]);
-                if ($stmt_check_email->fetch()) 
+                if ($stmt_check_email->fetch())
                     throw new Exception('该邮箱已被使用。');
                 if ($user_id) {
                     $new_membership_level = isset($_POST['membership_level']) && in_array($_POST['membership_level'], ['normal', 'super']) ? $_POST['membership_level'] : 'normal';
                     $membership_days = intval($_POST['membership_days']);
                     $membership_expire = $membership_days > 0 ? "DATE_ADD(NOW(), INTERVAL $membership_days DAY)" : 'NULL';
-                    $sql = "UPDATE sl_users SET username = ?, email = ?, status = ?, membership_level = ?, membership_expire = $membership_expire";
+                    $sql = "UPDATE huli_users SET username = ?, email = ?, status = ?, membership_level = ?, membership_expire = $membership_expire";
                     $params = [$new_username, $new_email, $new_status, $new_membership_level];
-                    if (!empty($new_password)) { 
-                        $sql .= ", password = ?"; 
-                        $params[] = $new_password; 
+                    if (!empty($new_password)) {
+                        $sql .= ", password = ?";
+                        $params[] = $new_password;
                     }
-                    $sql .= " WHERE id = ?"; 
+                    $sql .= " WHERE id = ?";
                     $params[] = $user_id;
-                    $stmt = $pdo->prepare($sql); 
+                    $stmt = $pdo->prepare($sql);
                     $stmt->execute($params);
                     $_SESSION['feedback_msg'] = '用户资料已成功更新。';
                 } else {
-                    if (empty($new_password)) 
+                    if (empty($new_password))
                         throw new Exception('添加新用户时必须设置密码。');
                     $api_key = bin2hex(random_bytes(32));
                     $new_membership_level = isset($_POST['membership_level']) && in_array($_POST['membership_level'], ['normal', 'super']) ? $_POST['membership_level'] : 'normal';
                     $membership_days = intval($_POST['membership_days']);
                     $membership_expire = $membership_days > 0 ? date('Y-m-d H:i:s', strtotime("+$membership_days days")) : null;
-                    $sql = "INSERT INTO sl_users (username, email, password, api_key, status, points, membership_level, membership_expire) 
+                    $sql = "INSERT INTO huli_users (username, email, password, api_key, status, points, membership_level, membership_expire)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
                     $stmt = $pdo->prepare($sql);
                     $stmt->execute([$new_username, $new_email, $new_password, $api_key, $new_status, 0, $new_membership_level, $membership_expire]);
                     $_SESSION['feedback_msg'] = '新用户已成功添加。';
                 }
-            } 
+            }
             elseif (isset($_POST['adjust_balance'])) {
                 if(!$user_id) throw new Exception('无法为新用户调整余额。');
-                $adjustment_type = $_POST['adjustment_type']; 
+                $adjustment_type = $_POST['adjustment_type'];
                 $amount = floatval($_POST['adjustment_amount']);
                 if ($amount <= 0) throw new Exception('调整金额必须大于0。');
                 if ($adjustment_type === 'deduct') {
-                    $stmt_balance = $pdo->prepare("SELECT balance FROM sl_users WHERE id = ?"); 
+                    $stmt_balance = $pdo->prepare("SELECT balance FROM huli_users WHERE id = ?");
                     $stmt_balance->execute([$user_id]);
                     $current_balance = $stmt_balance->fetchColumn();
-                    if ($current_balance < $amount) 
+                    if ($current_balance < $amount)
                         throw new Exception('用户余额不足，无法完成扣款。');
-                    $sql = "UPDATE sl_users SET balance = balance - ? WHERE id = ?";
-                } else { 
-                    $sql = "UPDATE sl_users SET balance = balance + ? WHERE id = ?"; 
+                    $sql = "UPDATE huli_users SET balance = balance - ? WHERE id = ?";
+                } else {
+                    $sql = "UPDATE huli_users SET balance = balance + ? WHERE id = ?";
                 }
-                $stmt = $pdo->prepare($sql); 
+                $stmt = $pdo->prepare($sql);
                 $stmt->execute([$amount, $user_id]);
                 $_SESSION['feedback_msg'] = '用户余额已成功调整。';
             }
             elseif (isset($_POST['adjust_points'])) {
                 if(!$user_id) throw new Exception('无法为新用户调整点数。');
-                $adjustment_type = $_POST['points_adjustment_type']; 
+                $adjustment_type = $_POST['points_adjustment_type'];
                 $points = intval($_POST['adjustment_points']);
                 if ($points <= 0) throw new Exception('调整点数必须大于0。');
                 if ($adjustment_type === 'deduct') {
-                    $stmt_points = $pdo->prepare("SELECT points FROM sl_users WHERE id = ?"); 
+                    $stmt_points = $pdo->prepare("SELECT points FROM huli_users WHERE id = ?");
                     $stmt_points->execute([$user_id]);
                     $current_points = $stmt_points->fetchColumn();
-                    if ($current_points < $points) 
+                    if ($current_points < $points)
                         throw new Exception('用户点数不足，无法完成扣减。');
-                    $sql = "UPDATE sl_users SET points = points - ? WHERE id = ?";
-                } else { 
-                    $sql = "UPDATE sl_users SET points = points + ? WHERE id = ?"; 
+                    $sql = "UPDATE huli_users SET points = points - ? WHERE id = ?";
+                } else {
+                    $sql = "UPDATE huli_users SET points = points + ? WHERE id = ?";
                 }
-                $stmt = $pdo->prepare($sql); 
+                $stmt = $pdo->prepare($sql);
                 $stmt->execute([$points, $user_id]);
                 $_SESSION['feedback_msg'] = '用户点数已成功调整。';
             }
             $pdo->commit();
             $_SESSION['feedback_type'] = 'success';
-            header('Location: user_list.php'); 
+            header('Location: user_list.php');
             exit;
-        } catch (Exception $e) { 
-            $pdo->rollBack(); 
-            throw $e; 
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            throw $e;
         }
     }
-} catch (Exception $e) { 
-    $feedback_msg = '操作失败: ' . $e->getMessage(); 
-    $feedback_type = 'error'; 
+} catch (Exception $e) {
+    $feedback_msg = '操作失败: ' . $e->getMessage();
+    $feedback_type = 'error';
 }
 $current_page_script = basename($_SERVER['PHP_SELF']);
 ?>

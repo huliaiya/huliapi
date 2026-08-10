@@ -16,22 +16,22 @@ try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->beginTransaction();
-    $stmt_user = $pdo->prepare("SELECT balance FROM sl_users WHERE id = ? FOR UPDATE");
+    $stmt_user = $pdo->prepare("SELECT balance FROM huli_users WHERE id = ? FOR UPDATE");
     $stmt_user->execute([$user_id]);
     $user = $stmt_user->fetch();
-    $stmt_item = $pdo->prepare("SELECT mi.*, a.name, a.description, a.endpoint as original_endpoint, a.method, a.type, a.file_path as original_file_path, a.parameters, a.remote_url, a.response_format, a.response_example FROM sl_market_items mi JOIN sl_apis a ON mi.api_id = a.id WHERE mi.id = ? AND mi.status = 1 FOR UPDATE");
+    $stmt_item = $pdo->prepare("SELECT mi.*, a.name, a.description, a.endpoint as original_endpoint, a.method, a.type, a.file_path as original_file_path, a.parameters, a.remote_url, a.response_format, a.response_example FROM huli_market_items mi JOIN huli_apis a ON mi.api_id = a.id WHERE mi.id = ? AND mi.status = 1 FOR UPDATE");
     $stmt_item->execute([$item_id]);
     $item = $stmt_item->fetch(PDO::FETCH_ASSOC);
     if (!$user || !$item) { throw new Exception("用户或商品信息无效。"); }
     if ($user['balance'] < $item['price']) { throw new Exception("您的账户余额不足。"); }
-    $stmt_check = $pdo->prepare("SELECT id FROM sl_market_purchases WHERE item_id = ? AND user_id = ?");
+    $stmt_check = $pdo->prepare("SELECT id FROM huli_market_purchases WHERE item_id = ? AND user_id = ?");
     $stmt_check->execute([$item_id, $user_id]);
     if ($stmt_check->fetch()) { throw new Exception("您已经购买过此接口。"); }
-    $stmt_deduct = $pdo->prepare("UPDATE sl_users SET balance = balance - ? WHERE id = ?");
+    $stmt_deduct = $pdo->prepare("UPDATE huli_users SET balance = balance - ? WHERE id = ?");
     $stmt_deduct->execute([$item['price'], $user_id]);
-    $stmt_inc_downloads = $pdo->prepare("UPDATE sl_market_items SET downloads = downloads + 1 WHERE id = ?");
+    $stmt_inc_downloads = $pdo->prepare("UPDATE huli_market_items SET downloads = downloads + 1 WHERE id = ?");
     $stmt_inc_downloads->execute([$item_id]);
-    $stmt_purchase = $pdo->prepare("INSERT INTO sl_market_purchases (item_id, user_id, price) VALUES (?, ?, ?)");
+    $stmt_purchase = $pdo->prepare("INSERT INTO huli_market_purchases (item_id, user_id, price) VALUES (?, ?, ?)");
     $stmt_purchase->execute([$item_id, $user_id, $item['price']]);
     $new_endpoint = 'u' . $user_id . '_' . rawurldecode($item['original_endpoint']) . '_' . substr(md5(uniqid()), 0, 4);
     $new_file_path = 'API/' . $new_endpoint . '.php';
@@ -39,7 +39,7 @@ try {
     if(file_put_contents('../../' . $new_file_path, $original_content) === false){
         throw new Exception("自动安装接口文件失败，请检查/API/目录权限。");
     }
-    $sql_clone = "INSERT INTO sl_apis (name, description, endpoint, method, type, file_path, parameters, remote_url, response_format, response_example, visibility, is_billable) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'private', 0)";
+    $sql_clone = "INSERT INTO huli_apis (name, description, endpoint, method, type, file_path, parameters, remote_url, response_format, response_example, visibility, is_billable) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'private', 0)";
     $stmt_clone = $pdo->prepare($sql_clone);
     $stmt_clone->execute([
         $item['name'] . ' (已购)', $item['description'], $new_endpoint, $item['method'], $item['type'],

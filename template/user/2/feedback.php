@@ -4,8 +4,8 @@ error_reporting(0);
 ini_set('display_errors', 'Off');
 $rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
-if (!file_exists(ROOT_PATH . 'config.php')) { 
-    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php'); 
+if (!file_exists(ROOT_PATH . 'config.php')) {
+    die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
 $apis = [];
@@ -15,9 +15,9 @@ $user_info = $is_logged_in ? ['username' => $_SESSION['user_username'], 'email' 
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_apis = $pdo->query("SELECT id, name FROM sl_apis ORDER BY name ASC");
+    $stmt_apis = $pdo->query("SELECT id, name FROM huli_apis ORDER BY name ASC");
     $apis = $stmt_apis->fetchAll(PDO::FETCH_ASSOC);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
 } catch (PDOException $e) { /* silent fail */ }
     $site_name = $settings['site_name'] ?? 'huliapi';

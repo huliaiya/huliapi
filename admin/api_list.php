@@ -22,7 +22,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
         }
         $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $stmt = $pdo->prepare("SELECT file_path FROM sl_apis WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT file_path FROM huli_apis WHERE id = ?");
         $stmt->execute([$id]);
         $api = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$api) {
@@ -37,7 +37,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
                 }
             }
         }
-        $stmt = $pdo->prepare("DELETE FROM sl_apis WHERE id = ?");
+        $stmt = $pdo->prepare("DELETE FROM huli_apis WHERE id = ?");
         $result = $stmt->execute([$id]);
         if (!$result || $stmt->rowCount() === 0) {
             throw new Exception('数据库记录删除失败');
@@ -75,17 +75,17 @@ try {
         }
         switch ($_POST['batch_action']) {
             case 'activate':
-                $stmt = $pdo->prepare("UPDATE sl_apis SET status = 'normal' WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
+                $stmt = $pdo->prepare("UPDATE huli_apis SET status = 'normal' WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
                 $stmt->execute($ids);
                 $_SESSION['feedback_msg'] = '已启用选中的 ' . $stmt->rowCount() . ' 个接口';
                 break;
             case 'deactivate':
-                $stmt = $pdo->prepare("UPDATE sl_apis SET status = 'error' WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
+                $stmt = $pdo->prepare("UPDATE huli_apis SET status = 'error' WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
                 $stmt->execute($ids);
                 $_SESSION['feedback_msg'] = '已禁用选中的 ' . $stmt->rowCount() . ' 个接口';
                 break;
             case 'delete':
-                $stmt = $pdo->prepare("SELECT id, file_path FROM sl_apis WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
+                $stmt = $pdo->prepare("SELECT id, file_path FROM huli_apis WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
                 $stmt->execute($ids);
                 $apisToDelete = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 $fileErrors = [];
@@ -101,7 +101,7 @@ try {
                     }
                 }
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
-                $stmt = $pdo->prepare("DELETE FROM sl_apis WHERE id IN ($placeholders)");
+                $stmt = $pdo->prepare("DELETE FROM huli_apis WHERE id IN ($placeholders)");
                 $stmt->execute($ids);
                 $deletedCount = $stmt->rowCount();
                 $msg = "已删除选中的 $deletedCount 个接口";
@@ -163,7 +163,7 @@ try {
     $currentPage = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
     $offset = ($currentPage - 1) * $recordsPerPage;
     $whereString = !empty($whereClause) ? "WHERE " . implode(" AND ", $whereClause) : "";
-    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM sl_apis $whereString");
+    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM huli_apis $whereString");
     $countStmt->execute($searchParams);
     $totalRecords = $countStmt->fetchColumn();
     $totalPages = max(1, ceil($totalRecords / $recordsPerPage));
@@ -171,7 +171,7 @@ try {
         $currentPage = $totalPages;
         $offset = ($currentPage - 1) * $recordsPerPage;
     }
-    $stmt_list = $pdo->prepare("SELECT * FROM sl_apis $whereString ORDER BY id DESC LIMIT :offset, :limit");
+    $stmt_list = $pdo->prepare("SELECT * FROM huli_apis $whereString ORDER BY id DESC LIMIT :offset, :limit");
     $stmt_list->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt_list->bindValue(':limit', $recordsPerPage, PDO::PARAM_INT);
     foreach ($searchParams as $key => $value) {
@@ -252,7 +252,7 @@ function getCategoryName($pdo, $categoryId)
         return '<span class="text-muted">无分类</span>';
     }
     try {
-        $stmt_cat = $pdo->prepare("SELECT name FROM sl_api_categories WHERE id = ?");
+        $stmt_cat = $pdo->prepare("SELECT name FROM huli_api_categories WHERE id = ?");
         $stmt_cat->execute([$categoryId]);
         $category_name = $stmt_cat->fetchColumn();
         return htmlspecialchars($category_name ?: '未知分类');
@@ -424,7 +424,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <?php
                         if ($pdo) {
                             try {
-                                $stmt_cats = $pdo->query("SELECT * FROM sl_api_categories ORDER BY name");
+                                $stmt_cats = $pdo->query("SELECT * FROM huli_api_categories ORDER BY name");
                                 while ($cat = $stmt_cats->fetch(PDO::FETCH_ASSOC)): ?>
                                 <option value="<?php echo $cat['id']; ?>" <?php echo isset($_GET['category']) && $_GET['category'] == $cat['id'] ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($cat['name']); ?>

@@ -37,13 +37,13 @@ try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if ($type === 'register' || $type === 'reset') {
-        $stmt_check = $pdo->prepare("SELECT id FROM sl_users WHERE email = ?");
+        $stmt_check = $pdo->prepare("SELECT id FROM huli_users WHERE email = ?");
         $stmt_check->execute([$email]);
         $user_exists = $stmt_check->fetch();
         if ($type === 'register' && $user_exists) { json_response(false, '该邮箱已被注册。'); }
         if ($type === 'reset' && !$user_exists) { json_response(false, '该邮箱未注册。'); }
     }
-    $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
     if (empty($settings['mail_smtp_host']) || empty($settings['mail_smtp_user']) || empty($settings['mail_smtp_pass'])) {
         json_response(false, '系统邮件服务未配置，请联系管理员。');

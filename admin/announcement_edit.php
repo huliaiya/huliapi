@@ -14,7 +14,7 @@ try {
     if ($edit_mode) {
         $page_title = '编辑公告';
         $id_to_edit = intval($_GET['id']);
-        $stmt_get = $pdo->prepare("SELECT * FROM sl_announcements WHERE id = ?"); $stmt_get->execute([$id_to_edit]);
+        $stmt_get = $pdo->prepare("SELECT * FROM huli_announcements WHERE id = ?"); $stmt_get->execute([$id_to_edit]);
         $announcement = $stmt_get->fetch(PDO::FETCH_ASSOC);
         if (!$announcement) { header('Location: announcement_list.php'); exit; }
     }
@@ -25,11 +25,11 @@ try {
         $is_active = intval($_POST['is_active']);
         if (empty($title)) throw new Exception('公告标题不能为空。');
         if ($id) {
-            $sql = "UPDATE sl_announcements SET title = ?, content = ?, is_active = ? WHERE id = ?";
+            $sql = "UPDATE huli_announcements SET title = ?, content = ?, is_active = ? WHERE id = ?";
             $stmt = $pdo->prepare($sql); $stmt->execute([$title, $content, $is_active, $id]);
             $_SESSION['feedback_msg'] = '公告已成功更新。';
         } else {
-            $sql = "INSERT INTO sl_announcements (title, content, is_active) VALUES (?, ?, ?)";
+            $sql = "INSERT INTO huli_announcements (title, content, is_active) VALUES (?, ?, ?)";
             $stmt = $pdo->prepare($sql); $stmt->execute([$title, $content, $is_active]);
             $_SESSION['feedback_msg'] = '新公告已成功添加。';
         }

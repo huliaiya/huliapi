@@ -21,7 +21,7 @@ try {
         $id = intval($_GET['id']);
         switch ($_GET['action']) {
             case 'delete':
-                $stmt = $pdo->prepare("DELETE FROM sl_feedback WHERE id = ?");
+                $stmt = $pdo->prepare("DELETE FROM huli_feedback WHERE id = ?");
                 $stmt->execute([$id]);
                 $_SESSION['feedback_msg'] = '反馈已成功删除。';
                 break;
@@ -30,21 +30,21 @@ try {
                 if (!in_array($status, ['viewed', 'resolved'])) {
                     $status = 'viewed';
                 }
-                $stmt = $pdo->prepare("UPDATE sl_feedback SET status = ? WHERE id = ?");
+                $stmt = $pdo->prepare("UPDATE huli_feedback SET status = ? WHERE id = ?");
                 $stmt->execute([$status, $id]);
                 $_SESSION['feedback_msg'] = '反馈状态已更新。';
                 break;
             case 'reply':
                 if (isset($_POST['response'])) {
                     $response = $_POST['response'];
-                    $stmt = $pdo->prepare("UPDATE sl_feedback SET response = ?, status = 'resolved', responded_at = CURRENT_TIMESTAMP WHERE id = ?");
+                    $stmt = $pdo->prepare("UPDATE huli_feedback SET response = ?, status = 'resolved', responded_at = CURRENT_TIMESTAMP WHERE id = ?");
                     $stmt->execute([$response, $id]);
-                    $stmt_feedback = $pdo->prepare("SELECT f.*, u.email FROM sl_feedback f LEFT JOIN sl_users u ON f.user_id = u.id WHERE f.id = ?");
+                    $stmt_feedback = $pdo->prepare("SELECT f.*, u.email FROM huli_feedback f LEFT JOIN huli_users u ON f.user_id = u.id WHERE f.id = ?");
                     $stmt_feedback->execute([$id]);
                     $feedback = $stmt_feedback->fetch(PDO::FETCH_ASSOC);
                     if ($feedback && !empty($feedback['email'])) {
                         require_once '../common/mail.php';
-                        $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+                        $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
                         $settings = [];
                         while ($row = $stmt_settings->fetch(PDO::FETCH_ASSOC)) {
                             $settings[$row['setting_key']] = $row['setting_value'];
@@ -100,12 +100,12 @@ try {
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
     $results_per_page = 15;
-    $total_results = $pdo->query("SELECT count(*) FROM sl_feedback")->fetchColumn();
+    $total_results = $pdo->query("SELECT count(*) FROM huli_feedback")->fetchColumn();
     $total_pages = ceil($total_results / $results_per_page);
     $page = isset($_GET['page']) && is_numeric($_GET['page']) ? intval($_GET['page']) : 1;
     $page = max(1, min($page, $total_pages));
     $offset = ($page - 1) * $results_per_page;
-    $stmt_list = $pdo->prepare("SELECT f.*, u.username, a.name as api_name FROM sl_feedback f LEFT JOIN sl_users u ON f.user_id = u.id LEFT JOIN sl_apis a ON f.api_id = a.id ORDER BY f.created_at DESC LIMIT :limit OFFSET :offset");
+    $stmt_list = $pdo->prepare("SELECT f.*, u.username, a.name as api_name FROM huli_feedback f LEFT JOIN huli_users u ON f.user_id = u.id LEFT JOIN huli_apis a ON f.api_id = a.id ORDER BY f.created_at DESC LIMIT :limit OFFSET :offset");
     $stmt_list->bindValue(':limit', $results_per_page, PDO::PARAM_INT);
     $stmt_list->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt_list->execute();

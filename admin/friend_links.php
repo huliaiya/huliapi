@@ -2,17 +2,17 @@
 @session_start();
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
-if (!isset($_SESSION['admin_id'])) { 
-    header('Location: login.php'); 
-    exit; 
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
 }
-if (file_exists('../config.php')) { 
-    require_once '../config.php'; 
-} else { 
-    die("出现错误！配置文件丢失。"); 
+if (file_exists('../config.php')) {
+    require_once '../config.php';
+} else {
+    die("出现错误！配置文件丢失。");
 }
 $username = htmlspecialchars($_SESSION['admin_username']);
-$feedback_msg = ''; 
+$feedback_msg = '';
 $feedback_type = '';
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $limit = 18;
@@ -21,8 +21,8 @@ $totalRecords = 0;
 $totalPages = 0;
 try {
     $pdo = new PDO(
-        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET . ";connect_timeout=10", 
-        DB_USER, 
+        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET . ";connect_timeout=10",
+        DB_USER,
         DB_PASS,
         [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -30,7 +30,7 @@ try {
             PDO::ATTR_EMULATE_PREPARES => false,
         ]
     );
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = [];
     while ($row = $stmt_settings->fetch(PDO::FETCH_ASSOC)) {
         $settings[$row['setting_key']] = $row['setting_value'];
@@ -43,18 +43,18 @@ try {
         $id = intval($_GET['id']);
         switch ($_GET['action']) {
             case 'delete':
-                $stmt = $pdo->prepare("DELETE FROM sl_friend_links WHERE id = ?");
+                $stmt = $pdo->prepare("DELETE FROM huli_friend_links WHERE id = ?");
                 $stmt->execute([$id]);
                 $_SESSION['feedback_msg'] = '友链已删除';
                 break;
             case 'approve':
-                $stmt = $pdo->prepare("UPDATE sl_friend_links SET status='approved', reviewed_at=NOW() WHERE id = ?");
+                $stmt = $pdo->prepare("UPDATE huli_friend_links SET status='approved', reviewed_at=NOW() WHERE id = ?");
                 $stmt->execute([$id]);
-                $stmt_link = $pdo->prepare("SELECT site_name, url, user_id FROM sl_friend_links WHERE id = ?");
+                $stmt_link = $pdo->prepare("SELECT site_name, url, user_id FROM huli_friend_links WHERE id = ?");
                 $stmt_link->execute([$id]);
                 $link = $stmt_link->fetch(PDO::FETCH_ASSOC);
                 if ($link && $link['user_id']) {
-                    $stmt_user = $pdo->prepare("SELECT email FROM sl_users WHERE id = ?");
+                    $stmt_user = $pdo->prepare("SELECT email FROM huli_users WHERE id = ?");
                     $stmt_user->execute([$link['user_id']]);
                     $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
                     if ($user && $user['email']) {
@@ -98,13 +98,13 @@ try {
                 break;
             case 'reject':
                 $note = isset($_POST['reject_note']) ? trim($_POST['reject_note']) : '未提供原因';
-                $stmt = $pdo->prepare("UPDATE sl_friend_links SET status='rejected', review_note=?, reviewed_at=NOW() WHERE id = ?");
+                $stmt = $pdo->prepare("UPDATE huli_friend_links SET status='rejected', review_note=?, reviewed_at=NOW() WHERE id = ?");
                 $stmt->execute([$note, $id]);
-                $stmt_link = $pdo->prepare("SELECT site_name, url, user_id FROM sl_friend_links WHERE id = ?");
+                $stmt_link = $pdo->prepare("SELECT site_name, url, user_id FROM huli_friend_links WHERE id = ?");
                 $stmt_link->execute([$id]);
                 $link = $stmt_link->fetch(PDO::FETCH_ASSOC);
                 if ($link && $link['user_id']) {
-                    $stmt_user = $pdo->prepare("SELECT email FROM sl_users WHERE id = ?");
+                    $stmt_user = $pdo->prepare("SELECT email FROM huli_users WHERE id = ?");
                     $stmt_user->execute([$link['user_id']]);
                     $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
                     if ($user && $user['email']) {
@@ -148,11 +148,11 @@ try {
                 $_SESSION['feedback_msg'] = '友链已拒绝';
                 break;
             case 'toggle':
-                $stmt = $pdo->prepare("SELECT is_hidden FROM sl_friend_links WHERE id = ?");
+                $stmt = $pdo->prepare("SELECT is_hidden FROM huli_friend_links WHERE id = ?");
                 $stmt->execute([$id]);
                 $link = $stmt->fetch();
                 $newStatus = $link['is_hidden'] ? 0 : 1;
-                $stmt = $pdo->prepare("UPDATE sl_friend_links SET is_hidden=? WHERE id = ?");
+                $stmt = $pdo->prepare("UPDATE huli_friend_links SET is_hidden=? WHERE id = ?");
                 $stmt->execute([$newStatus, $id]);
                 $_SESSION['feedback_msg'] = '友链' . ($newStatus ? '已隐藏' : '已显示');
                 break;
@@ -167,19 +167,19 @@ try {
     }
     if (isset($_POST['batch_action']) && isset($_POST['ids'])) {
         $ids = array_map('intval', $_POST['ids']);
-        $placeholders = implode(',', array_fill(0, count($ids), '?'));        
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $pdo->beginTransaction();
         try {
             switch ($_POST['batch_action']) {
                 case 'approve':
-                    $stmt = $pdo->prepare("UPDATE sl_friend_links SET status='approved', reviewed_at=NOW() WHERE id IN ($placeholders)");
+                    $stmt = $pdo->prepare("UPDATE huli_friend_links SET status='approved', reviewed_at=NOW() WHERE id IN ($placeholders)");
                     $stmt->execute($ids);
-                    $stmt_links = $pdo->prepare("SELECT site_name, url, user_id FROM sl_friend_links WHERE id IN ($placeholders)");
+                    $stmt_links = $pdo->prepare("SELECT site_name, url, user_id FROM huli_friend_links WHERE id IN ($placeholders)");
                     $stmt_links->execute($ids);
                     $links = $stmt_links->fetchAll(PDO::FETCH_ASSOC);
                     foreach ($links as $link) {
                         if ($link && $link['user_id']) {
-                            $stmt_user = $pdo->prepare("SELECT email FROM sl_users WHERE id = ?");
+                            $stmt_user = $pdo->prepare("SELECT email FROM huli_users WHERE id = ?");
                             $stmt_user->execute([$link['user_id']]);
                             $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
                             if ($user && $user['email']) {
@@ -224,14 +224,14 @@ try {
                     break;
                 case 'reject':
                     $note = $_POST['reject_note'] ?? '批量拒绝';
-                    $stmt = $pdo->prepare("UPDATE sl_friend_links SET status='rejected', review_note=?, reviewed_at=NOW() WHERE id IN ($placeholders)");
+                    $stmt = $pdo->prepare("UPDATE huli_friend_links SET status='rejected', review_note=?, reviewed_at=NOW() WHERE id IN ($placeholders)");
                     $stmt->execute(array_merge([$note], $ids));
-                    $stmt_links = $pdo->prepare("SELECT site_name, url, user_id FROM sl_friend_links WHERE id IN ($placeholders)");
+                    $stmt_links = $pdo->prepare("SELECT site_name, url, user_id FROM huli_friend_links WHERE id IN ($placeholders)");
                     $stmt_links->execute($ids);
                     $links = $stmt_links->fetchAll(PDO::FETCH_ASSOC);
                     foreach ($links as $link) {
                         if ($link && $link['user_id']) {
-                            $stmt_user = $pdo->prepare("SELECT email FROM sl_users WHERE id = ?");
+                            $stmt_user = $pdo->prepare("SELECT email FROM huli_users WHERE id = ?");
                             $stmt_user->execute([$link['user_id']]);
                             $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
                             if ($user && $user['email']) {
@@ -276,12 +276,12 @@ try {
                     $_SESSION['feedback_msg'] = '已批量拒绝' . count($ids) . '条友链';
                     break;
                 case 'delete':
-                    $stmt = $pdo->prepare("DELETE FROM sl_friend_links WHERE id IN ($placeholders)");
+                    $stmt = $pdo->prepare("DELETE FROM huli_friend_links WHERE id IN ($placeholders)");
                     $stmt->execute($ids);
                     $_SESSION['feedback_msg'] = '已批量删除' . count($ids) . '条友链';
                     break;
                 case 'toggle':
-                    $stmt = $pdo->prepare("UPDATE sl_friend_links SET is_hidden = 1 - is_hidden WHERE id IN ($placeholders)");
+                    $stmt = $pdo->prepare("UPDATE huli_friend_links SET is_hidden = 1 - is_hidden WHERE id IN ($placeholders)");
                     $stmt->execute($ids);
                     $_SESSION['feedback_msg'] = '已批量切换' . count($ids) . '条友链显示状态';
                     break;
@@ -291,7 +291,7 @@ try {
         } catch (Exception $e) {
             $pdo->rollBack();
             throw $e;
-        }        
+        }
         $redirectParams = [];
         if (isset($_GET['page'])) $redirectParams[] = "page={$_GET['page']}";
         if (isset($_GET['status'])) $redirectParams[] = "status={$_GET['status']}";
@@ -314,14 +314,14 @@ try {
         $params[] = intval($_GET['is_hidden']);
     }
     $whereStr = $where ? "WHERE " . implode(' AND ', $where) : '';
-    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM sl_friend_links {$whereStr}");
+    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM huli_friend_links {$whereStr}");
     $countStmt->execute($params);
     $totalRecords = $countStmt->fetchColumn();
     $totalPages = max(1, ceil($totalRecords / $limit));
-    $stmt = $pdo->prepare("SELECT id, site_name, url, logo, user_id, sort_order, created_at, status, is_hidden, review_note FROM sl_friend_links {$whereStr} ORDER BY sort_order DESC, created_at DESC LIMIT ?, ?");    
+    $stmt = $pdo->prepare("SELECT id, site_name, url, logo, user_id, sort_order, created_at, status, is_hidden, review_note FROM huli_friend_links {$whereStr} ORDER BY sort_order DESC, created_at DESC LIMIT ?, ?");
     foreach ($params as $key => $value) {
         $stmt->bindValue($key + 1, $value);
-    }    
+    }
     $stmt->bindValue(count($params) + 1, $offset, PDO::PARAM_INT);
     $stmt->bindValue(count($params) + 2, $limit, PDO::PARAM_INT);
     $stmt->execute();
@@ -440,7 +440,7 @@ function getStatusBadge($status) {
         </h1>
         <p class="text-gray-500 mt-1">管理和审核网站友情链接</p>
       </div>
-    </div>    
+    </div>
     <?php if ($feedback_msg): ?>
     <div class="mb-6 fade-in" id="feedback-alert">
       <div class="p-4 rounded-lg bg-<?= $feedback_type === 'success' ? 'green-50' : 'red-50' ?> border-l-4 border-<?= $feedback_type === 'success' ? 'green-400' : 'red-400' ?> shadow-sm">
@@ -463,7 +463,7 @@ function getStatusBadge($status) {
         </div>
       </div>
     </div>
-    <?php endif; ?>    
+    <?php endif; ?>
     <div class="bg-white rounded-xl shadow-sm p-6 mb-6 card-shadow fade-in" style="animation-delay: 0.1s">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold text-gray-800">
@@ -480,10 +480,10 @@ function getStatusBadge($status) {
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <i class="fa fa-search text-gray-400"></i>
               </div>
-              <input type="text" name="name" id="name" value="<?= htmlspecialchars($_GET['name'] ?? '') ?>" 
+              <input type="text" name="name" id="name" value="<?= htmlspecialchars($_GET['name'] ?? '') ?>"
                      placeholder="请输入网站名称" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200" />
             </div>
-          </div>          
+          </div>
           <div>
             <label for="status" class="block text-sm font-medium text-gray-700 mb-1">
               <i class="fa fa-check-square-o mr-1"></i>审核状态
@@ -499,7 +499,7 @@ function getStatusBadge($status) {
                 <i class="fa fa-chevron-down text-xs"></i>
               </div>
             </div>
-          </div>          
+          </div>
           <div>
             <label for="is_hidden" class="block text-sm font-medium text-gray-700 mb-1">
               <i class="fa fa-eye mr-1"></i>显示状态
@@ -515,7 +515,7 @@ function getStatusBadge($status) {
               </div>
             </div>
           </div>
-        </div>        
+        </div>
         <div class="flex flex-wrap gap-3 pt-2">
           <button type="submit" class="btn-effect inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
             <i class="fa fa-search mr-2"></i>搜索
@@ -525,7 +525,7 @@ function getStatusBadge($status) {
           </a>
         </div>
       </form>
-    </div>    
+    </div>
     <div class="bg-white rounded-xl shadow-sm p-4 mb-6 card-shadow fade-in" style="animation-delay: 0.2s">
       <div class="flex flex-wrap gap-2 justify-between">
         <div class="flex flex-wrap gap-2">
@@ -535,7 +535,7 @@ function getStatusBadge($status) {
           <button type="button" id="batch-uncheck-all" class="btn-effect inline-flex items-center px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none">
             <i class="fa fa-square-o mr-1"></i>取消全选
           </button>
-        </div>        
+        </div>
         <div class="flex flex-wrap gap-2 mt-2 sm:mt-0">
           <button type="button" class="batch-action btn-effect inline-flex items-center px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 focus:outline-none" data-action="approve">
             <i class="fa fa-check mr-1"></i>批量通过
@@ -546,26 +546,26 @@ function getStatusBadge($status) {
           <button type="button" class="batch-action btn-effect inline-flex items-center px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 focus:outline-none" data-action="delete">
             <i class="fa fa-trash mr-1"></i>批量删除
           </button>
-        </div>        
+        </div>
         <div class="flex flex-wrap gap-2 mt-2 sm:mt-0">
           <button type="button" class="batch-action btn-effect inline-flex items-center px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none" data-action="toggle">
             <i class="fa fa-eye mr-1"></i>批量切换显示
           </button>
-        </div>        
+        </div>
         <div class="mt-2 sm:mt-0 flex items-center">
           <span class="text-sm text-gray-500">
             <i class="fa fa-database mr-1"></i>共 <span class="font-medium text-primary"><?= $totalRecords ?></span> 条数据
           </span>
         </div>
       </div>
-    </div>    
+    </div>
     <div class="bg-white rounded-xl shadow-sm p-6 mb-6 card-shadow fade-in" style="animation-delay: 0.3s">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold text-gray-800">
           <i class="fa fa-list-alt text-primary mr-2"></i>友链列表
         </h2>
-      </div>      
-      <div id="skeleton-loader" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 hidden"></div>      
+      </div>
+      <div id="skeleton-loader" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 hidden"></div>
       <div id="content-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <?php if (empty($links)): ?>
           <div class="col-span-full bg-gray-50 rounded-lg p-8 text-center slide-up">
@@ -586,13 +586,13 @@ function getStatusBadge($status) {
               <div class="p-4 border-b border-gray-100">
                 <div class="flex items-start">
                   <div class="flex-shrink-0 mr-3 mt-0.5">
-                    <input type="checkbox" class="ids h-4 w-4 text-primary rounded border-gray-300 focus:ring-primary" name="ids[]" 
+                    <input type="checkbox" class="ids h-4 w-4 text-primary rounded border-gray-300 focus:ring-primary" name="ids[]"
                            value="<?= $link['id'] ?>" id="ids-<?= $link['id'] ?>">
-                  </div>                  
+                  </div>
                   <div class="flex-shrink-0">
                     <div class="h-12 w-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                       <?php if (!empty($link['logo'])): ?>
-                        <img src="<?= htmlspecialchars($link['logo']) ?>" 
+                        <img src="<?= htmlspecialchars($link['logo']) ?>"
                              alt="<?= htmlspecialchars($link['site_name']) ?>"
                              class="h-full w-full object-cover"
                              onError="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSIjRjBGMEYwIi8+CjxwYXRoIGQ9Ik04IDNDNi4zNDM3NSAzIDUgNC4zNDM3NSA1IDZDNSA3LjY1NjI1IDYuMzQzNzUgOSA4IDlDOS42NTYyNSA5IDExIDcuNjU2MjUgMTEgNkMxMSA0LjM0Mzc1IDkuNjU2MjUgMyA4IDNaTTMgMTNIMTRWOUg4LjVMMTAgNy41SDUuNUw3IDlIN0wzIDEzWiIgZmlsbD0iIzlFOUY5RSIvPgo8L3N2Zz4='">
@@ -604,7 +604,7 @@ function getStatusBadge($status) {
                         </svg>
                       <?php endif; ?>
                     </div>
-                  </div>                  
+                  </div>
                   <div class="ml-3 flex-1">
                     <h3 class="text-sm font-semibold text-gray-900">
                       <a href="<?= htmlspecialchars($link['url']) ?>" target="_blank" class="hover:text-primary transition-colors">
@@ -618,7 +618,7 @@ function getStatusBadge($status) {
                     </p>
                   </div>
                 </div>
-              </div>              
+              </div>
               <div class="p-4">
                 <div class="space-y-2">
                   <div class="flex items-center text-sm">
@@ -639,7 +639,7 @@ function getStatusBadge($status) {
                     </span>
                     <span class="text-gray-900"><?= $link['created_at'] ?></span>
                   </div>
-                </div>                
+                </div>
                 <div class="mt-3 flex flex-wrap gap-2">
                   <?= getStatusBadge($link['status']) ?>
                   <?php if ($link['is_hidden']): ?>
@@ -647,38 +647,38 @@ function getStatusBadge($status) {
                       <i class="fa fa-eye-slash mr-1"></i>隐藏
                     </span>
                   <?php endif; ?>
-                </div>                
+                </div>
                 <?php if ($link['status'] === 'rejected' && !empty($link['review_note'])): ?>
                   <div class="mt-3 p-2 bg-red-50 rounded text-sm text-red-700">
                     <i class="fa fa-info-circle mr-1"></i>
                     <strong>拒绝原因:</strong> <?= htmlspecialchars($link['review_note']) ?>
                   </div>
                 <?php endif; ?>
-              </div>              
+              </div>
               <div class="p-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
                 <div class="flex space-x-2">
                   <a href="friend_link_edit.php?id=<?= $link['id'] ?>" class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 focus:outline-none">
                     <i class="fa fa-pencil mr-1"></i>编辑
-                  </a>                  
+                  </a>
                   <?php if ($link['status'] === 'pending'): ?>
-                    <a href="friend_links.php?action=approve&id=<?= $link['id'] ?><?= isset($_GET['page']) ? "&page={$_GET['page']}" : '' ?>" 
+                    <a href="friend_links.php?action=approve&id=<?= $link['id'] ?><?= isset($_GET['page']) ? "&page={$_GET['page']}" : '' ?>"
                        class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 focus:outline-none"
                        onclick="return confirm('确定通过此友链？')">
                       <i class="fa fa-check mr-1"></i>通过
                     </a>
-                    <button type="button" class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 focus:outline-none reject-btn" 
+                    <button type="button" class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 focus:outline-none reject-btn"
                             data-id="<?= $link['id'] ?>">
                       <i class="fa fa-times mr-1"></i>拒绝
                     </button>
                   <?php else: ?>
-                    <a href="friend_links.php?action=toggle&id=<?= $link['id'] ?><?= isset($_GET['page']) ? "&page={$_GET['page']}" : '' ?>" 
+                    <a href="friend_links.php?action=toggle&id=<?= $link['id'] ?><?= isset($_GET['page']) ? "&page={$_GET['page']}" : '' ?>"
                        class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 focus:outline-none"
                        title="<?= $link['is_hidden'] ? '显示' : '隐藏' ?>">
                       <i class="fa fa-<?= $link['is_hidden'] ? 'eye' : 'eye-slash' ?> mr-1"></i><?= $link['is_hidden'] ? '显示' : '隐藏' ?>
                     </a>
                   <?php endif; ?>
-                </div>                
-                <a href="friend_links.php?action=delete&id=<?= $link['id'] ?><?= isset($_GET['page']) ? "&page={$_GET['page']}" : '' ?>" 
+                </div>
+                <a href="friend_links.php?action=delete&id=<?= $link['id'] ?><?= isset($_GET['page']) ? "&page={$_GET['page']}" : '' ?>"
                    class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 focus:outline-none"
                    onclick="return confirm('确定删除此友链？删除后不可恢复！')">
                   <i class="fa fa-trash mr-1"></i>删除
@@ -688,18 +688,18 @@ function getStatusBadge($status) {
           <?php endforeach; ?>
         <?php endif; ?>
       </div>
-    </div>    
+    </div>
     <?php if ($totalPages > 1): ?>
     <div class="bg-white rounded-xl shadow-sm p-4 card-shadow fade-in" style="animation-delay: 0.4s">
       <div class="flex flex-col sm:flex-row justify-between items-center">
         <div class="mb-4 sm:mb-0 text-sm text-gray-500">
-          显示第 <span class="font-medium text-primary"><?= ($page - 1) * $limit + 1 ?></span> 至 
+          显示第 <span class="font-medium text-primary"><?= ($page - 1) * $limit + 1 ?></span> 至
           <span class="font-medium text-primary"><?= min($page * $limit, $totalRecords) ?></span> 条，
           共 <span class="font-medium text-primary"><?= $totalRecords ?></span> 条数据
-        </div>        
+        </div>
         <div class="flex items-center space-x-1">
           <?php if ($page > 1): ?>
-            <a href="?page=1<?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>" 
+            <a href="?page=1<?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>"
                class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
               <i class="fa fa-angle-double-left"></i>
             </a>
@@ -707,9 +707,9 @@ function getStatusBadge($status) {
             <span class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-gray-50 text-sm font-medium text-gray-400">
               <i class="fa fa-angle-double-left"></i>
             </span>
-          <?php endif; ?>          
+          <?php endif; ?>
           <?php if ($page > 1): ?>
-            <a href="?page=<?= $page - 1 ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>" 
+            <a href="?page=<?= $page - 1 ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>"
                class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
               <i class="fa fa-angle-left"></i>
             </a>
@@ -717,10 +717,10 @@ function getStatusBadge($status) {
             <span class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-gray-50 text-sm font-medium text-gray-400">
               <i class="fa fa-angle-left"></i>
             </span>
-          <?php endif; ?>          
+          <?php endif; ?>
           <?php
           $startPage = max(1, $page - 2);
-          $endPage = min($totalPages, $page + 2);          
+          $endPage = min($totalPages, $page + 2);
           if ($endPage - $startPage < 4) {
               if ($startPage == 1) {
                   $endPage = min(5, $totalPages);
@@ -737,7 +737,7 @@ function getStatusBadge($status) {
               }
           }
           for ($i = $startPage; $i <= $endPage; $i++): ?>
-            <a href="?page=<?= $i ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>" 
+            <a href="?page=<?= $i ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>"
                class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 <?= $page == $i ? 'bg-primary text-white border-primary' : '' ?>">
               <?= $i ?>
             </a>
@@ -746,13 +746,13 @@ function getStatusBadge($status) {
               <?php if ($endPage < $totalPages - 1): ?>
                   <span class="inline-flex items-center justify-center w-8 h-8 text-gray-400">...</span>
               <?php endif; ?>
-              <a href="?page=<?= $totalPages ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>" 
+              <a href="?page=<?= $totalPages ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>"
                  class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                 <?= $totalPages ?>
               </a>
           <?php endif; ?>
           <?php if ($page < $totalPages): ?>
-            <a href="?page=<?= $page + 1 ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>" 
+            <a href="?page=<?= $page + 1 ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>"
                class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
               <i class="fa fa-angle-right"></i>
             </a>
@@ -762,7 +762,7 @@ function getStatusBadge($status) {
             </span>
           <?php endif; ?>
           <?php if ($page < $totalPages): ?>
-            <a href="?page=<?= $totalPages ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>" 
+            <a href="?page=<?= $totalPages ?><?= !empty($_GET['name']) ? "&name=" . urlencode($_GET['name']) : '' ?><?= !empty($_GET['status']) ? "&status={$_GET['status']}" : '' ?><?= isset($_GET['is_hidden']) ? "&is_hidden={$_GET['is_hidden']}" : '' ?>"
                class="btn-effect inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
               <i class="fa fa-angle-double-right"></i>
             </a>
@@ -837,11 +837,11 @@ function getStatusBadge($status) {
     document.querySelectorAll('.batch-action').forEach(function(button) {
       button.addEventListener('click', function() {
         var action = this.getAttribute('data-action');
-        var checkedIds = Array.from(document.querySelectorAll('.ids:checked')).map(cb => cb.value);        
+        var checkedIds = Array.from(document.querySelectorAll('.ids:checked')).map(cb => cb.value);
         if (checkedIds.length === 0) {
           showNotification('请至少选择一条友链', 'warning');
           return;
-        }        
+        }
         var confirmMsg = {
           'approve': '确定通过选中的' + checkedIds.length + '条友链？',
           'delete': '确定删除选中的' + checkedIds.length + '条友链？此操作不可恢复！',
@@ -989,8 +989,8 @@ function getStatusBadge($status) {
       }, 3000);
     }
     document.querySelectorAll('button, a').forEach(el => {
-      if (el.classList.contains('btn-effect')) return;  
-      el.classList.add('transition-all', 'duration-200');  
+      if (el.classList.contains('btn-effect')) return;
+      el.classList.add('transition-all', 'duration-200');
       el.addEventListener('mouseenter', function() {
         this.classList.add('scale-105');
       });
