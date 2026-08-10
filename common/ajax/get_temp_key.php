@@ -34,14 +34,13 @@ if (!file_exists('../../config.php')) {
     json_response(false, '系统错误: 配置文件丢失。');
 }
 require_once '../../config.php';
+require_once __DIR__ . '/../turnstile.php';
 $email = filter_var(trim($_POST['email']), FILTER_VALIDATE_EMAIL);
-$captcha = strtolower(trim($_POST['captcha'] ?? ''));
 if (!$email) {
     json_response(false, '请输入有效的邮箱地址。');
 }
-if (empty($captcha) || !isset($_SESSION['captcha_code']) || $captcha !== $_SESSION['captcha_code']) {
-    unset($_SESSION['captcha_code']);
-    json_response(false, '人机验证码不正确。');
+if (!huli_turnstile_verify()) {
+    json_response(false, '人机验证失败，请完成 Cloudflare 验证后重试。');
 }
 if (isset($_SESSION['last_temp_key_sent']) && time() - $_SESSION['last_temp_key_sent'] < 60) {
     json_response(false, '请求过于频繁，请稍后再试。');

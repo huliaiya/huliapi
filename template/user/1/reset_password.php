@@ -9,6 +9,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
     die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
+require_once ROOT_PATH . 'common/turnstile.php';
 $email_from_get = isset($_GET['email']) ? trim($_GET['email']) : '';
 $error_msg = '';
 $success_msg = '';
@@ -20,6 +21,9 @@ try {
         $code = trim($_POST['code']);
         $password = $_POST['password'];
         $confirm_password = $_POST['confirm_password'];
+        if (!huli_turnstile_verify()) {
+            throw new Exception('人机验证失败，请完成 Cloudflare 验证后重试。');
+        }
         if (empty($email) || empty($code) || empty($password)) {
             throw new Exception('所有字段均为必填项。');
         }
@@ -84,6 +88,7 @@ try {
                 <div class="form-group"><label for="code" class="form-label">邮箱验证码</label><div class="input-group"><input type="text" id="code" name="code" class="form-control" required><button type="button" id="send-code-btn" class="btn-send-code">获取验证码</button></div></div>
                 <div class="form-group"><label for="password" class="form-label">新密码</label><input type="password" id="password" name="password" class="form-control" required></div>
                 <div class="form-group"><label for="confirm_password" class="form-label">确认新密码</label><input type="password" id="confirm_password" name="confirm_password" class="form-control" required></div>
+                <?php echo huli_turnstile_widget_html(); ?>
                 <button type="submit" class="btn-submit">确认重置</button>
             </form>
             <?php else: ?>

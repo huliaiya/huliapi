@@ -12,6 +12,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
     die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
+require_once ROOT_PATH . 'common/turnstile.php';
 $error_msg = '';
 try {
     $pdo_check = new PDO(
@@ -29,7 +30,9 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
-    if (empty($username) || empty($password)) {
+    if (!huli_turnstile_verify()) {
+        $error_msg = '人机验证失败，请完成 Cloudflare 验证后重试。';
+    } elseif (empty($username) || empty($password)) {
         $error_msg = '用户名或密码不能为空。';
     } else {
         try {
@@ -104,6 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" action="login.php" novalidate>
                 <div class="form-group"><label for="username" class="form-label">用户名</label><input type="text" id="username" name="username" class="form-control" placeholder="请输入您的用户名" required></div>
                 <div class="form-group"><div class="form-label-group"><label for="password" class="form-label">密码</label><?php if ($mail_forgot_enabled): ?><a href="forgot_password.php" class="form-link">忘记密码？</a><?php endif; ?></div><input type="password" id="password" name="password" class="form-control" placeholder="请输入您的密码" required></div>
+                <?php echo huli_turnstile_widget_html(); ?>
                 <button type="submit" class="btn-submit">登 录</button>
             </form>
         </div>

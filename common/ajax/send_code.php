@@ -10,6 +10,7 @@ function json_response($success, $message) {
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { json_response(false, '无效的请求方式。'); }
 if (!file_exists('../../config.php')) { json_response(false, '系统错误: 配置文件丢失。'); }
 require_once '../../config.php';
+require_once __DIR__ . '/../turnstile.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
@@ -19,15 +20,14 @@ require '../../common/PHPMailer/src/PHPMailer.php';
 require '../../common/PHPMailer/src/SMTP.php';
 $email = filter_var(trim($_POST['email']), FILTER_VALIDATE_EMAIL);
 $type = $_POST['type'] ?? '';
-$captcha = strtolower(trim($_POST['captcha'] ?? ''));
 if (!$email) { json_response(false, '请输入有效的邮箱地址。'); }
 if (!in_array($type, ['register', 'reset', 'friend_link', 'feedback'])) { json_response(false, '无效的操作类型。'); }
 if (isset($_SESSION['last_sent_time']) && time() - $_SESSION['last_sent_time'] < 60) {
     json_response(false, '请求过于频繁，请稍后再试。');
 }
 if ($type === 'friend_link' || $type === 'feedback') {
-    if (empty($captcha) || $captcha !== $_SESSION['captcha_code']) {
-        json_response(false, '图形验证码错误，请重新输入');
+    if (!huli_turnstile_verify()) {
+        json_response(false, '人机验证失败，请完成 Cloudflare 验证后重试');
     }
     if (!isset($_SESSION['user_email']) || $_SESSION['user_email'] !== $email) {
         json_response(false, '验证邮箱与登录账号不一致');

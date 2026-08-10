@@ -16,18 +16,9 @@ $error_msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
-    $captcha = isset($_POST['captcha']) ? strtolower(trim($_POST['captcha'])) : '';
     if (!huli_turnstile_verify()) {
         $error_msg = '人机验证失败，请完成 Cloudflare 验证后重试';
-    } elseif (empty($_SESSION['captcha_code'])) {
-        $error_msg = '验证码已过期，请刷新重试';
-    } elseif (empty($captcha)) {
-        $error_msg = '请输入验证码';
-    } elseif ($captcha !== $_SESSION['captcha_code']) {
-        $error_msg = '验证码不正确';
-        unset($_SESSION['captcha_code']);
-    }
-    elseif (empty($username) || empty($password)) {
+    } elseif (empty($username) || empty($password)) {
         $error_msg = '账号或密码不能为空';
     } else {
         try {
@@ -42,7 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['admin_username'] = defined('ADMIN_NICKNAME') ? ADMIN_NICKNAME : ($admin['nickname'] ?: $username);
                     $updateStmt = $pdo->prepare("UPDATE huli_admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?");
                     $updateStmt->execute([$admin['id']]);
-                    unset($_SESSION['captcha_code']);
                     header('Location: index.php');
                     exit;
                 } else {
@@ -114,12 +104,6 @@ body {
     padding: 10px 15px;
     border-radius: 4px;
 }
-.captcha-img {
-    cursor: pointer;
-    height: 38px;
-    border-radius: 4px;
-    border: 1px solid #dee2e6;
-}
 </style>
 </head>
 <body>
@@ -138,15 +122,6 @@ body {
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-lock" aria-hidden="true"></span>
       <input type="password" class="form-control" id="password" name="password" placeholder="密码" required>
-    </div>
-    <div class="mb-3 has-feedback row">
-      <div class="col-7">
-        <span class="mdi mdi-shield-check" aria-hidden="true"></span>
-        <input type="text" name="captcha" class="form-control" placeholder="验证码" required>
-      </div>
-      <div class="col-5 text-right">
-        <img src="captcha.php?r=<?php echo time(); ?>" class="captcha-img" id="captcha" title="点击刷新" alt="captcha">
-      </div>
     </div>
     <?php echo huli_turnstile_widget_html(); ?>
     <div class="mb-3">
@@ -173,12 +148,6 @@ $(document).ready(function() {
             return false;
         }
     });
-
-    function refreshCaptcha() {
-        $('#captcha').attr('src', '../../../common/ajax/captcha.php?r=' + Math.random());
-    }
-        refreshCaptcha();
-    $('#captcha').on('click', refreshCaptcha);
 });
 </script>
 </body>

@@ -9,6 +9,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
     die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
+require_once ROOT_PATH . 'common/turnstile.php';
 $error_msg = '';
 $success_msg = '';
 $settings = [];
@@ -26,6 +27,9 @@ try {
         $confirm_password = $_POST['confirm_password'];
         $code = trim($_POST['code']);
 
+        if (!huli_turnstile_verify()) {
+            throw new Exception('人机验证失败，请完成 Cloudflare 验证后重试。');
+        }
         if (empty($username) || empty($email) || empty($password)) {
             throw new Exception('所有字段均为必填项。');
         }
@@ -128,6 +132,7 @@ try {
                 <?php endif; ?>
                 <div class="form-group"><label for="password" class="form-label">密码</label><input type="password" id="password" name="password" class="form-control" placeholder="设置您的密码 (至少6位)" required></div>
                 <div class="form-group"><label for="confirm_password" class="form-label">确认密码</label><input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="请再次输入密码" required></div>
+                <?php echo huli_turnstile_widget_html(); ?>
                 <button type="submit" class="btn-submit">注 册</button>
             </form>
             <?php endif; ?>

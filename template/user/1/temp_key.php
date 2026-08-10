@@ -8,6 +8,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
     die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
+require_once ROOT_PATH . 'common/turnstile.php';
 $settings = [];
 $allow_temp_key = false;
 try {
@@ -40,9 +41,7 @@ try {
         p { color: var(--text-light); margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; text-align: left; }
         .form-label { display: block; margin-bottom: 8px; font-weight: 500; }
-        .captcha-group { display: flex; align-items: center; gap: 10px; }
         .form-control { width: 100%; height: 48px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--border-color); }
-        #captcha-image { height: 48px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border-color); }
         .btn-submit { width: 100%; padding: 14px; border: none; border-radius: 8px; background-color: var(--primary-color); color: #fff; font-size: 16px; cursor: pointer; }
         .btn-submit:disabled { background-color: #d1d5db; cursor: not-allowed; }
         .feedback { margin-top: 16px; font-weight: 500; padding: 12px; border-radius: 8px; }
@@ -63,13 +62,7 @@ try {
                 <div id="result-area"></div>
                 <form id="temp-key-form">
                     <div class="form-group"><label for="email" class="form-label">邮箱地址</label><input type="email" id="email" name="email" class="form-control" placeholder="用于接收临时密钥" required></div>
-                    <div class="form-group">
-                        <label for="captcha" class="form-label">人机验证</label>
-                        <div class="captcha-group">
-                            <input type="text" id="captcha" name="captcha" class="form-control" placeholder="输入右侧字符" required>
-                            <img id="captcha-image" src="../common/ajax/captcha.php" alt="Captcha">
-                        </div>
-                    </div>
+                    <?php echo huli_turnstile_widget_html(); ?>
                     <button type="submit" class="btn-submit">发送临时密钥到邮箱</button>
                 </form>
             <?php endif; ?>
@@ -78,22 +71,11 @@ try {
     </div>
    <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const captchaImage = document.getElementById('captcha-image');
         const tempKeyForm = document.getElementById('temp-key-form');
-        function refreshCaptcha() {
-            if(captchaImage) {
-                captchaImage.src = '../../../common/ajax/captcha.php?r=' + Date.now();
-            }
-        }
-        refreshCaptcha();
-        if(captchaImage) {
-            captchaImage.addEventListener('click', refreshCaptcha);
-        }
         if(tempKeyForm) {
             tempKeyForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const emailInput = document.getElementById('email');
-                const captchaInput = document.getElementById('captcha');
                 const resultArea = document.getElementById('result-area');
                 const submitBtn = this.querySelector('button');
                 if (!emailInput.value) {
@@ -103,10 +85,11 @@ try {
                 submitBtn.disabled = true;
                 submitBtn.textContent = '正在处理...';
                 resultArea.innerHTML = '';
+                const formData = new URLSearchParams(new FormData(tempKeyForm));
                 fetch('../../../common/ajax/get_temp_key.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'email=' + encodeURIComponent(emailInput.value) + '&captcha=' + encodeURIComponent(captchaInput.value)
+                    body: formData.toString()
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -115,7 +98,6 @@ try {
                     if (data.success) {
                         tempKeyForm.reset();
                     }
-                    refreshCaptcha();
                 })
                 .catch(error => {
                     resultArea.innerHTML = `<p class="feedback error">请求失败，请重试。</p>`;

@@ -40,9 +40,13 @@ function showInstallPage($step,$error=null){$steps=[STEP_CHECK_ENV=>['title'=>'�
   --card-bg: #ffffff;
   --text: #263238;
   --text-secondary: #607d8b;
+  --gradient-main: linear-gradient(135deg, #1976d2 0%, #26c6da 100%);
 }
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(circle at 15% 20%, rgba(25,118,210,0.08) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(38,198,218,0.10) 0%, transparent 40%),
+    linear-gradient(135deg, #eef4fb 0%, #f7f9fc 50%, #e9f5f8 100%);
   font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   color: var(--text);
   min-height: 100vh;
@@ -63,17 +67,38 @@ body {
 }
 .card {
   border: none;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0,40,100,0.12), 0 4px 12px rgba(0,0,0,0.06);
   overflow: hidden;
   background: var(--card-bg);
 }
 .card-header {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  background: var(--gradient-main);
   color: white;
-  padding: 25px;
+  padding: 30px 25px;
   text-align: center;
   border-bottom: none;
+  position: relative;
+  overflow: hidden;
+}
+.card-header::before,
+.card-header::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+}
+.card-header::before {
+  width: 180px;
+  height: 180px;
+  top: -70px;
+  right: -40px;
+}
+.card-header::after {
+  width: 120px;
+  height: 120px;
+  bottom: -60px;
+  left: -30px;
 }
 .card-title {
   font-size: 1.8rem;
@@ -82,9 +107,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 1;
 }
 .card-body {
-  padding: 30px;
+  padding: 34px 36px;
 }
 .step-indicator {
   display: flex;
@@ -104,7 +131,7 @@ body {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: #e0e0e0;
+  background: #e8edf3;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -119,11 +146,13 @@ body {
 .step.active .step-number {
   background: var(--primary);
   color: white;
-  transform: scale(1.1);
+  transform: scale(1.12);
+  box-shadow: 0 0 0 6px rgba(25,118,210,0.15), 0 6px 16px rgba(25,118,210,0.35);
 }
 .step.completed .step-number {
   background: var(--success);
   color: white;
+  box-shadow: 0 0 0 6px rgba(0,200,83,0.15);
 }
 .step-title {
   color: var(--text-secondary);
@@ -163,16 +192,26 @@ body {
 .env-check-item {
   display: flex;
   align-items: center;
-  padding: 12px 0;
+  padding: 12px 14px;
   border-bottom: 1px solid rgba(0,0,0,0.05);
+  border-radius: 8px;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.env-check-item:hover {
+  background: rgba(25,118,210,0.04);
 }
 .env-check-icon {
   margin-right: 15px;
   font-size: 1.5rem;
   min-width: 30px;
+  transition: transform 0.3s ease;
+}
+.env-check-item:hover .env-check-icon {
+  transform: scale(1.15);
 }
 .check-success { color: var(--success); }
 .check-danger { color: var(--error); }
+.env-check-box h5 { color: var(--primary-dark); font-weight: 600; }
 .terminal {
   background: #1a2639;
   color: #e0e0e0;
@@ -227,23 +266,31 @@ body {
   color: var(--text);
 }
 .btn-install {
-  background: var(--primary);
+  background: var(--gradient-main);
   border: none;
   padding: 10px 25px;
   font-weight: 500;
   min-width: 150px;
   transition: all 0.3s ease;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(25,118,210,0.25);
 }
 .btn-install:hover {
-  background: var(--primary-dark);
+  background: var(--gradient-main);
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(25,118,210,0.3);
+  box-shadow: 0 8px 20px rgba(25,118,210,0.35);
+  color: #fff;
+}
+.btn-install:disabled {
+  opacity: 0.7;
+  transform: none;
 }
 .success-icon {
   font-size: 6rem;
   color: var(--success);
   margin: 20px 0;
   animation: bounceIn 0.8s;
+  filter: drop-shadow(0 6px 16px rgba(0,200,83,0.35));
 }
 .security-alert {
   background: rgba(213,0,0,0.05);
@@ -270,6 +317,8 @@ body {
 .section-heading i { font-size:1.3rem; }
 .section-heading small { margin-left:auto; color:var(--text-secondary); font-weight:400; }
 .form-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.terminal-container h5 { color: var(--primary-dark); font-weight: 600; }
+.credentials-box h5 { color: var(--primary-dark); font-weight: 600; }
 @media (max-width: 768px) {
   .step {
     padding: 0 15px;
@@ -413,12 +462,12 @@ body {
           <div class="form-group mb-4"><label class="form-label">SMTP 用户名</label><input class="form-control" type="text" name="mail_smtp_user" value="<?= htmlspecialchars($_SESSION['install_config']['smtp_user'] ?? '') ?>"></div>
         </div>
         <div class="form-group mb-4"><label class="form-label">SMTP 密码</label><input class="form-control" type="password" name="mail_smtp_pass" value="<?= htmlspecialchars($_SESSION['install_config']['smtp_pass'] ?? '') ?>"></div>
-        <div class="section-heading"><i class="mdi mdi-shield-account-outline"></i><span>Cloudflare 人机验证</span><small>可留空，登录与注册页面将跳过验证</small></div>
+        <div class="section-heading"><i class="mdi mdi-shield-account-outline"></i><span>Cloudflare 人机验证</span><small>默认使用测试密钥，任何环境均可直接使用</small></div>
         <div class="form-row">
-          <div class="form-group mb-4"><label class="form-label">Turnstile Site Key</label><input class="form-control" type="text" name="turnstile_site_key" value="<?= htmlspecialchars($_SESSION['install_config']['turnstile_site_key'] ?? '') ?>" placeholder="0x4AAAAAA..."></div>
-          <div class="form-group mb-4"><label class="form-label">Turnstile Secret Key</label><input class="form-control" type="text" name="turnstile_secret_key" value="<?= htmlspecialchars($_SESSION['install_config']['turnstile_secret_key'] ?? '') ?>" placeholder="0x4AAAAAA..."></div>
+          <div class="form-group mb-4"><label class="form-label">Turnstile Site Key</label><input class="form-control" type="text" name="turnstile_site_key" value="<?= htmlspecialchars($_SESSION['install_config']['turnstile_site_key'] ?? '3x00000000000000000000FF') ?>"></div>
+          <div class="form-group mb-4"><label class="form-label">Turnstile Secret Key</label><input class="form-control" type="text" name="turnstile_secret_key" value="<?= htmlspecialchars($_SESSION['install_config']['turnstile_secret_key'] ?? '1x0000000000000000000000000000000AA') ?>"></div>
         </div>
-        <div class="text-muted small mb-3">在 https://dash.cloudflare.com 创建 Turnstile 站点后获取，后台登录、用户登录与注册均会启用人机验证</div>
+        <div class="text-muted small mb-3">当前默认使用 Cloudflare 官方测试密钥，任何环境均可通过验证。正式上线前请在 https://dash.cloudflare.com 创建 Turnstile 站点并替换为您自己的密钥</div>
         <?php elseif ($step == STEP_INSTALL_DB): ?>
         <div class="terminal-container">
           <h5 class="mb-3"><i class="mdi mdi-console-line mr-2"></i>安装终端</h5>

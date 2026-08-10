@@ -8,6 +8,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
     die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
+require_once ROOT_PATH . 'common/turnstile.php';
 $settings = [];
 $allow_temp_key = false;
 try {
@@ -88,17 +89,6 @@ $site_name = $settings['site_name'];
             border-radius: 8px;
             border: 1px solid var(--border-color);
         }
-        .captcha-group {
-            display: flex;
-            align-items: center;
-            gap: 0.625rem;
-        }
-        #captcha-image {
-            height: 3rem;
-            border-radius: 8px;
-            cursor: pointer;
-            border: 1px solid var(--border-color);
-        }
         .btn-submit {
             width: 100%;
             padding: 0.875rem;
@@ -168,15 +158,7 @@ $site_name = $settings['site_name'];
                     <input type="email" id="email" name="email" class="form-control" placeholder="用于接收临时密钥" required>
                 </div>
             </div>
-            <div class="mb-3">
-                <label for="captcha" class="form-label">                        <span class="mdi mdi-shield-key" aria-hidden="true"></span>人机验证</label>
-                <div class="captcha-group">
-                    <div class="has-feedback">
-                        <input type="text" id="captcha" name="captcha" class="form-control" placeholder="输入右侧字符" required>
-                    </div>
-                    <img id="captcha-image" src="../../../common/ajax/captcha.php" alt="验证码" class="img-fluid">
-                </div>
-            </div>
+            <?php echo huli_turnstile_widget_html(); ?>
             <div class="mb-3 d-grid">
                 <button type="submit" class="btn btn-primary" id="submit-btn">
                     <span class="mdi mdi-send"></span> 发送临时密钥到邮箱
@@ -192,15 +174,9 @@ $site_name = $settings['site_name'];
     <script src="../../../assets/js/bootstrap-notify.min.js"></script>
     <script>
     $(document).ready(function() {
-        function refreshCaptcha() {
-            $('#captcha-image').attr('src', '../../../common/ajax/captcha.php?r=' + Date.now());
-        }
-        refreshCaptcha();
-        $('#captcha-image').on('click', refreshCaptcha);
         $('#temp-key-form').on('submit', function(e) {
             e.preventDefault();
             const email = $('#email').val().trim();
-            const captcha = $('#captcha').val().trim();
             const $submitBtn = $('#submit-btn');
             if (!email) {
                 showError('请输入您的邮箱地址');
@@ -210,10 +186,7 @@ $site_name = $settings['site_name'];
             $.ajax({
                 url: '../../../common/ajax/get_temp_key.php',
                 type: 'POST',
-                data: {
-                    email: email,
-                    captcha: captcha
-                },
+                data: $('form').serialize(),
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
@@ -222,11 +195,9 @@ $site_name = $settings['site_name'];
                     } else {
                         showError(response.message);
                     }
-                    refreshCaptcha();
                 },
                 error: function(xhr) {
                     showError('请求失败: ' + getErrorMessage(xhr));
-                    refreshCaptcha();
                 },
                 complete: function() {
                     $submitBtn.html('<span class="mdi mdi-send"></span> 发送临时密钥到邮箱').prop('disabled', false);
