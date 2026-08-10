@@ -10,7 +10,10 @@ if (file_exists('../common/version.php')) {
     require_once '../common/version.php';
 }
 if (!defined('SENLIN_CLIENT_VERSION')) {
-    define('SENLIN_CLIENT_VERSION', '1.4.0');
+    define('SENLIN_CLIENT_VERSION', '1.5.0');
+}
+if (!defined('SENLIN_CLIENT_RELEASE_DATE')) {
+    define('SENLIN_CLIENT_RELEASE_DATE', '');
 }
 if (!isset($_SESSION['admin_id'])) {
     header('Location: login.php');
@@ -145,7 +148,7 @@ if (function_exists('sys_getloadavg')) {
     $server_info['load_avg'] = round($load[0], 2);
 }
 $sysInfo = [
-    '系统版本' => 'v' . SENLIN_CLIENT_VERSION,
+    '系统版本' => 'v' . SENLIN_CLIENT_VERSION . (SENLIN_CLIENT_RELEASE_DATE ? ' (' . SENLIN_CLIENT_RELEASE_DATE . ')' : ''),
     '服务器' => $_SERVER['SERVER_SOFTWARE'] ?? '未知',
     'PHP版本' => phpversion(),
     'MySQL版本' => $server_info['mysql_version'],
