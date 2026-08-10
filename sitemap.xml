@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+    xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+       http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd"
+>
+
+<url>
+ <loc>http://beian.miit.gov.cn/</loc>
+ <priority>0.3</priority>
+ <lastmod>2026-07-03</lastmod>
+ <changefreq>weekly</changefreq>
+</url>
+
+<url>
+ <loc>https://beian.mps.gov.cn/</loc>
+ <priority>0.3</priority>
+ <lastmod>2026-07-03</lastmod>
+ <changefreq>weekly</changefreq>
+</url>
+
+<url>
+ <loc>https://icp.gov.moe/?keyword=20260523</loc>
+ <priority>0.3</priority>
+ <lastmod>2026-07-03</lastmod>
+ <changefreq>weekly</changefreq>
+</url>
+
+<url>
+ <loc>https://icp.liseezn.top/id.php?keyword=20269999</loc>
+ <priority>0.3</priority>
+ <lastmod>2026-07-03</lastmod>
+ <changefreq>weekly</changefreq>
+</url>
+
+<url>
+ <loc>https://icp.redcha.cn/beian/ICP-266666666.html</loc>
+ <priority>0.3</priority>
+ <lastmod>2026-07-03</lastmod>
+ <changefreq>weekly</changefreq>
+</url>
+
+<url>
+ <loc>https://icp.n3v.cn/beian/ICP-2026029999.html</loc>
+ <priority>0.3</priority>
+ <lastmod>2026-07-03</lastmod>
+ <changefreq>weekly</changefreq>
+</url>
+
+<url>
+ <loc>https://icp.felicity.land/id.php?keyword=20260002</loc>
+ <priority>0.3</priority>
+ <lastmod>2026-07-03</lastmod>
+ <changefreq>weekly</changefreq>
+</url>
+
+<url>
+ <loc>https://icp.250gov.cn/2026/8888</loc>
+ <priority>0.3</priority>
+ <lastmod>2026-07-03</lastmod>
+ <changefreq>weekly</changefreq>
+</url>
+
+<url>
+ <loc>https://icp.yrain.top/</loc>
+ <priority>0.3</priority>
+ <lastmod>2026-07-03</lastmod>
+ <changefreq>weekly</changefreq>
+</url>
+
+</urlset>

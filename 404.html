@@ -1,0 +1,587 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>404 - 页面未找到</title>
+    <meta name="description" content="抱歉，您访问的页面不存在或已被移除。">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, follow">
+    <meta name="theme-color" content="#4285F4">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌈</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            -webkit-text-size-adjust: 100%;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            min-height: 100vh;
+            color: #1e293b;
+            background: linear-gradient(135deg, #f0f4ff 0%, #f5f3ff 25%, #fef9e7 50%, #fce4ec 75%, #e8f5e9 100%);
+            overflow-x: hidden;
+            line-height: 1.6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 1rem 0.75rem; }
+        }
+
+        .body-main {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .error-page {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            text-align: center;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(45px);
+            -webkit-backdrop-filter: blur(45px);
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08), 
+                        0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .error-page {
+                padding: 2.5rem 1.5rem;
+                border-radius: 32px;
+                backdrop-filter: blur(35px);
+                -webkit-backdrop-filter: blur(35px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .error-page {
+                padding: 2rem 1.2rem;
+                border-radius: 28px;
+                backdrop-filter: blur(25px);
+                -webkit-backdrop-filter: blur(25px);
+            }
+        }
+
+        .error-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .error-code {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            user-select: none;
+            flex-wrap: wrap;
+        }
+
+        .digit {
+            font-size: clamp(80px, 15vw, 150px);
+            font-weight: 800;
+            line-height: 1;
+            background: linear-gradient(270deg, #f06292, #ba68c8, #64b5f6, #4fc3f7, #4dd0e1, #81c784, #aed581, #ffb74d, #ff8a65, #e57373, #f06292);
+            background-size: 300% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: flowRightToLeft 8s linear infinite;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+            letter-spacing: -0.02em;
+            will-change: background-position;
+        }
+
+        @keyframes flowRightToLeft {
+            0% { background-position: 0% center; }
+            100% { background-position: -300% center; }
+        }
+
+        .digit.zero {
+            position: relative;
+            width: clamp(80px, 15vw, 150px);
+            height: clamp(80px, 15vw, 150px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: none;
+            -webkit-background-clip: unset;
+            -webkit-text-fill-color: unset;
+            filter: none;
+            animation: none;
+            will-change: auto;
+        }
+
+        .gear-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .gear {
+            position: absolute;
+            animation-duration: 8s;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            will-change: transform, color;
+        }
+
+        .gear-1 {
+            font-size: clamp(50px, 10vw, 90px);
+            animation-name: gearColorShift, rotate-cw;
+        }
+
+        .gear-2 {
+            font-size: clamp(30px, 6vw, 55px);
+            top: 60%;
+            left: 60%;
+            animation-name: gearColorShift, rotate-ccw;
+            animation-duration: 8s, 4s;
+        }
+
+        @keyframes gearColorShift {
+            0%  { color: #f06292; }
+            16% { color: #ba68c8; }
+            33% { color: #64b5f6; }
+            50% { color: #4dd0e1; }
+            66% { color: #81c784; }
+            83% { color: #ffb74d; }
+            100%{ color: #f06292; }
+        }
+
+        @keyframes rotate-cw {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes rotate-ccw {
+            0% { transform: rotate(360deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        .error-title {
+            font-size: clamp(24px, 5vw, 36px);
+            font-weight: 700;
+            background: linear-gradient(135deg, #2c3e50, #ba68c8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.8rem;
+        }
+
+        .error-description {
+            font-size: clamp(14px, 3vw, 16px);
+            color: #4a5568;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .error-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+            border: 2px solid transparent;
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.5;
+            white-space: nowrap;
+            outline: none;
+            font-weight: 700;
+            -webkit-tap-highlight-color: transparent;
+            will-change: transform, box-shadow;
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn:focus-visible {
+            outline: 3px solid rgba(186, 104, 200, 0.6);
+            outline-offset: 3px;
+        }
+
+        .btn-large {
+            padding: 0.9rem 2.2rem;
+            font-size: 1.1rem;
+            letter-spacing: 0.3px;
+            width: 270px;
+            max-width: 100%;
+        }
+
+        @media (max-width: 480px) {
+            .btn-large {
+                padding: 0.8rem 1.6rem;
+                font-size: 1rem;
+                width: 100%;
+            }
+        }
+
+        .btn-round {
+            border-radius: 60px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(270deg, #f06292, #ba68c8, #64b5f6, #4fc3f7, #4dd0e1, #81c784, #aed581, #ffb74d, #ff8a65, #e57373, #f06292);
+            background-size: 300% auto;
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.3) inset;
+            animation: flowRightToLeft 10s linear infinite;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+            will-change: background-position;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.04);
+            box-shadow: 0 14px 32px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.5) inset;
+            animation-play-state: paused;
+        }
+
+        .btn-primary:active {
+            transform: translateY(0) scale(0.98);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .btn-plain {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            color: #2d3748;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05), 0 0 0 1px rgba(255,255,255,0.3) inset;
+            transition: border-color 0.3s ease, color 0.3s ease, background 0.3s, transform 0.3s, box-shadow 0.3s;
+        }
+
+        .btn-plain:hover {
+            background: rgba(255, 255, 255, 0.5);
+            border-color: rgba(186, 104, 200, 0.5);
+            color: #ba68c8;
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.5) inset;
+        }
+
+        .btn-plain:active {
+            transform: translateY(0) scale(0.98);
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .quick-links {
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .quick-links-title {
+            font-size: 14px;
+            color: #5a6a7e;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .quick-links-list {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .quick-links-list li a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 14px;
+            color: #3a4a5c;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.6);
+            font-weight: 500;
+        }
+
+        .quick-links-list li a:focus-visible {
+            outline: 2px solid rgba(186, 104, 200, 0.5);
+            outline-offset: 2px;
+        }
+
+        .quick-links-list li a:hover {
+            color: #ba68c8;
+            background: rgba(255, 255, 255, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .error-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle at 30% 40%, rgba(240, 98, 146, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 60%, rgba(100, 181, 246, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 80%, rgba(129, 199, 132, 0.06) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255, 183, 77, 0.06) 0%, transparent 50%);
+            border-radius: 50%;
+            z-index: 0;
+            pointer-events: none;
+            filter: blur(45px);
+            will-change: transform;
+        }
+
+        @media (max-width: 768px) {
+            .error-bg {
+                width: 400px;
+                height: 400px;
+                filter: blur(35px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .error-bg {
+                width: 280px;
+                height: 280px;
+                filter: blur(25px);
+            }
+            .quick-links-list {
+                gap: 0.6rem;
+            }
+            .quick-links-list li a {
+                font-size: 13px;
+                padding: 0.4rem 0.8rem;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .digit {
+                font-size: clamp(60px, 18vw, 80px);
+            }
+            .digit.zero {
+                width: clamp(60px, 18vw, 80px);
+                height: clamp(60px, 18vw, 80px);
+            }
+            .gear-1 {
+                font-size: clamp(38px, 12vw, 50px);
+            }
+            .gear-2 {
+                font-size: clamp(22px, 7vw, 35px);
+            }
+        }
+
+        .sparkle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            animation: sparkleBurst 0.9s ease-out forwards;
+            will-change: transform, opacity;
+        }
+
+        @keyframes sparkleBurst {
+            0% {
+                transform: translate(0, 0) scale(0) rotate(0deg);
+                opacity: 0;
+            }
+            20% {
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--dx), var(--dy)) scale(1.2) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="body-main">
+        <div class="error-page">
+            <div class="error-content">
+                <div class="error-code">
+                    <span class="digit">4</span>
+                    <span class="digit zero">
+                        <div class="gear-container">
+                            <i class="fas fa-cog gear gear-1"></i>
+                            <i class="fas fa-cog gear gear-2"></i>
+                        </div>
+                    </span>
+                    <span class="digit">4</span>
+                </div>
+
+                <h1 class="error-title">哎呀！页面迷路了</h1>
+                <p class="error-description">
+                    您访问的页面不存在或已被移除。<br>
+                    请检查链接是否正确，或返回首页继续浏览。
+                </p>
+
+                <div class="error-actions">
+                    <a class="btn btn-large btn-primary btn-round" href="/">
+                        <i class="fas fa-home"></i>
+                        返回首页
+                    </a>
+                    <a class="btn btn-large btn-plain btn-round" href="javascript:history.back()" id="backBtn">
+                        <i class="fas fa-arrow-left"></i>
+                        返回上一页
+                    </a>
+                </div>
+
+                <div class="quick-links">
+                    <p class="quick-links-title">您可能想要访问：</p>
+                    <ul class="quick-links-list" id="quickLinks">
+                        <li><a href="/"><i class="fas fa-home"></i> 网站首页</a></li>
+                        <li><a href="#"><i class="fas fa-sitemap"></i> 网站地图</a></li>
+                        <li><a href="#"><i class="fas fa-question-circle"></i> 帮助中心</a></li>
+                        <li><a href="#"><i class="fas fa-envelope"></i> 联系我们</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="error-bg"></div>
+        </div>
+    </main>
+
+    <script>
+        (function() {
+            const colors = ['#f06292', '#ba68c8', '#64b5f6', '#4fc3f7', '#4dd0e1', '#81c784', '#aed581', '#ffb74d', '#ff8a65', '#e57373'];
+            const symbols = ['✦', '✧', '⋆', '✶', '·', '✷', '❋', '✿', '❄', '❅', '❆', '✻', '✼', '❉', '⭐', '✨'];
+
+            function createSparkle(x, y) {
+                const sparkle = document.createElement('span');
+                sparkle.className = 'sparkle';
+                const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                sparkle.textContent = symbol;
+                sparkle.style.left = x + 'px';
+                sparkle.style.top = y + 'px';
+                sparkle.style.color = color;
+                sparkle.style.fontSize = (10 + Math.random() * 18) + 'px';
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 40 + Math.random() * 80;
+                const dx = Math.cos(angle) * distance;
+                const dy = Math.sin(angle) * distance;
+                sparkle.style.setProperty('--dx', dx + 'px');
+                sparkle.style.setProperty('--dy', dy + 'px');
+                document.body.appendChild(sparkle);
+                sparkle.addEventListener('animationend', () => {
+                    sparkle.remove();
+                });
+            }
+
+            function burstSparkles(x, y, count) {
+                for (let i = 0; i < count; i++) {
+                    createSparkle(x, y);
+                }
+            }
+
+            window.addEventListener('click', function(e) {
+                burstSparkles(e.clientX, e.clientY, 24);
+            });
+
+            let isMouseDown = false;
+            let lastMoveTime = 0;
+            window.addEventListener('mousedown', () => { isMouseDown = true; });
+            window.addEventListener('mouseup', () => { isMouseDown = false; });
+            window.addEventListener('mouseleave', () => { isMouseDown = false; });
+            window.addEventListener('mousemove', function(e) {
+                if (!isMouseDown) return;
+                const now = Date.now();
+                if (now - lastMoveTime < 50) return;
+                lastMoveTime = now;
+                burstSparkles(e.clientX, e.clientY, 5);
+            });
+
+            window.addEventListener('touchmove', function(e) {
+                const now = Date.now();
+                if (now - lastMoveTime < 60) return;
+                lastMoveTime = now;
+                const touch = e.touches[0];
+                if (touch) {
+                    burstSparkles(touch.clientX, touch.clientY, 5);
+                }
+            }, { passive: true });
+
+            const backBtn = document.getElementById('backBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', function(e) {
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                    this.style.transition = 'border-color 0.2s ease, color 0.2s ease';
+                    this.style.borderColor = randomColor;
+                    this.style.color = randomColor;
+                    setTimeout(() => {
+                        this.style.borderColor = 'rgba(255, 255, 255, 0.6)';
+                        this.style.color = '#2d3748';
+                    }, 350);
+                });
+            }
+
+            const quickLinks = document.getElementById('quickLinks');
+            if (quickLinks) {
+                quickLinks.addEventListener('click', function(e) {
+                    const link = e.target.closest('a');
+                    if (!link) return;
+                    e.preventDefault();
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                    link.style.transition = 'border-color 0.2s ease, color 0.2s ease, background 0.2s';
+                    link.style.borderColor = randomColor;
+                    link.style.color = randomColor;
+                    link.style.background = 'rgba(255,255,255,0.8)';
+                    setTimeout(() => {
+                        link.style.borderColor = 'rgba(255,255,255,0.6)';
+                        link.style.color = '#3a4a5c';
+                        link.style.background = 'rgba(255,255,255,0.3)';
+                    }, 350);
+                    setTimeout(() => {
+                        window.location.href = link.getAttribute('href') || '#';
+                    }, 200);
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
