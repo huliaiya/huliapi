@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>huliapi - 赞助页面</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        tea: {
+                            dark: '#2C4A3F',
+                            main: '#4A7C6B',
+                            light: '#8FB8A8',
+                            bg: '#F5F9F7'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .card-shadow {
+                box-shadow: 0 8px 30px rgba(74, 124, 107, 0.12);
+            }
+            .text-gradient {
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+                background-image: linear-gradient(135deg, #2C4A3F, #8FB8A8);
+            }
+            .animate-float {
+                animation: float 3s ease-in-out infinite;
+            }
+            @keyframes float {
+                0%,100% {transform: translateY(0px);}
+                50% {transform: translateY(-8px);}
+            }
+        }
+    </style>
+</head>
+<body class="bg-tea-bg min-h-screen font-sans">
+    <!-- 顶部导航 -->
+    <header class="w-full bg-white/80 backdrop-blur-md sticky top-0 z-50 card-shadow">
+        <div class="container mx-auto px-4 py-4 flex justify-center items-center">
+            <h1 class="text-[clamp(1.8rem,4vw,2.8rem)] font-bold text-gradient">huliapi · 为爱发电赞助</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-10 max-w-5xl">
+        <!-- 板块1：赞助原因 -->
+        <section class="bg-white rounded-2xl p-6 md:p-10 card-shadow mb-10">
+            <h2 class="text-2xl md:text-3xl font-semibold text-tea-dark mb-6 flex items-center gap-2">
+                <i class="fa fa-heart text-red-500 animate-float"></i>为什么需要赞助
+            </h2>
+            <div class="space-y-4 text-gray-700 leading-relaxed">
+                <p>huliapi长期免费对外开放接口服务，所有服务器、域名、接口维护、流量开销均由开发者个人自费承担。</p>
+                <p>1. 服务器月租：国内/海外节点VPS、数据库服务器每月固定支出；</p>
+                <p>2. 域名与SSL证书：常年续费保障域名正常访问；</p>
+                <p>3. 接口维护成本：日常BUG修复、新功能开发、反爬适配消耗大量业余时间；</p>
+                <p>4. 带宽与流量费用：高频调用产生超额流量成本。</p>
+                <p class="text-tea-main font-medium">所有赞助资金将全部用于huliapi运营升级，为爱发电持续更新！</p>
+            </div>
+        </section>
+
+        <!-- 板块2：微信赞助二维码 -->
+        <section class="bg-white rounded-2xl p-6 md:p-10 card-shadow mb-10 flex flex-col items-center">
+            <h2 class="text-2xl md:text-3xl font-semibold text-tea-dark mb-6 flex items-center gap-2">
+                <i class="fa fa-qrcode text-tea-main"></i>微信扫码赞助
+            </h2>
+            <div class="border-4 border-tea-light rounded-xl p-3 bg-gray-50">
+                <img src="assets/images/zu/wx.png" alt="微信赞助码" class="w-56 h-56 object-contain rounded-lg">
+            </div>
+            <p class="mt-4 text-gray-500 text-sm">付款备注填写QQ号+昵称，感谢您的支持与信任</p>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="mt-12 py-6 text-center text-gray-500 text-sm">
+        <p>© 2026 huliapi | 为爱发电 · 感谢每一位赞助者</p>
+    </footer>
+</body>
+</html>
