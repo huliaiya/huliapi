@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>用户登录 - 白茶API</title>
+    <title>用户登录 - huliapi</title>
     <style>
         :root {
             --bg-color: #f8f9fa; --form-bg-color: #ffffff; --primary-color: #4a69bd;

@@ -50,7 +50,7 @@ try {
                 require '../../common/PHPMailer/src/PHPMailer.php';
                 require '../../common/PHPMailer/src/SMTP.php';
                 $logo_url = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/assets/images/logo-sidebar.png';
-                $site_name = $settings['site_name'] ?? '白茶API';
+                $site_name = $settings['site_name'] ?? 'huliapi';
                 $current_year = date('Y');
                 $type_text = $type === 'api' ? '接口问题' : '意见建议';
                 $mail = new PHPMailer(true);
@@ -99,7 +99,7 @@ try {
         <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 20px 0 0; font-weight: 600;">如有任何问题，请联系系统管理员。</p>
     </div>
     <div style="padding: 20px 15px; background-color: #f8f9fa; border-radius: 0 0 16px 16px; border-top: 1px solid #eef0f5;">
-        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' 白茶API 版权所有</p>
+        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' huliapi 版权所有</p>
     </div>
 </div>
 </body>

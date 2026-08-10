@@ -58,7 +58,7 @@ try {
     $mail->SMTPSecure = $settings['mail_smtp_secure'] === 'ssl' ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
     $mail->Port       = intval($settings['mail_smtp_port']);
     $mail->CharSet    = 'UTF-8';
-    $mail->setFrom($settings['mail_smtp_user'], $settings['site_name'] ?? '白茶API');
+    $mail->setFrom($settings['mail_smtp_user'], $settings['site_name'] ?? 'huliapi');
     $mail->addAddress($email);
     $mail->isHTML(true);
 if ($type === 'register') {

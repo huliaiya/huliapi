@@ -77,7 +77,7 @@ $total_pages_total = ceil($count_total / $limit);
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>API调用排行榜 - 白茶API</title>
+<title>API调用排行榜 - huliapi</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto}
 body{background:#f0f2f5;padding:15px;color:#333;font-size:14px}

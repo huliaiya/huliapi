@@ -187,7 +187,7 @@ try {
 
         // 配置邮件信息（移除硬编码邮箱，从配置读取）
         $admin_email    = $settings['admin_email'] ?? '326284281@qq.com';
-        $site_name_config = $settings['site_name'] ?? '白茶API';
+        $site_name_config = $settings['site_name'] ?? 'huliapi';
         $admin_url      = $settings['admin_url'] ?? '#';
         $current_year   = date('Y');
         $logo_url_config = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') 
@@ -201,7 +201,7 @@ try {
         $mailUid       = (int)$user_id;
         $mailTime      = date('Y-m-d H:i:s');
 
-        $subject = '【白茶API】友链申请通知';
+        $subject = '【huliapi】友链申请通知';
         $body = '
 <!DOCTYPE html>
 <html>
@@ -236,7 +236,7 @@ try {
         <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 20px 0 0; font-weight: 600;">如有任何问题，请联系系统管理员。</p>
     </div>
     <div style="padding: 20px 15px; background-color: #f8f9fa; border-radius: 0 0 16px 16px; border-top: 1px solid #eef0f5;">
-        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' 白茶API 版权所有</p>
+        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' huliapi 版权所有</p>
     </div>
 </div>
 </body>
@@ -266,7 +266,7 @@ $csrf_token = createCsrfToken();
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="author" content="yinq">
-<title>友情链接 - 白茶API</title>
+<title>友情链接 - huliapi</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -481,8 +481,8 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                                             <label class="form-label d-block fw-medium">申请须知</label>
                                             <div class="alert alert-info py-2 px-3 small mb-2">
                                                 <strong>申请前请先添加本站友链，信息如下：</strong><br>
-                                                网站名：白茶API<br>
-                                                介绍：白茶API致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口<br>
+                                                网站名：huliapi<br>
+                                                介绍：huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口<br>
                                                 LOGO：<a href="https://api.ipojie.com/favicon.ico" target="_blank">https://api.ipojie.com/favicon.ico</a><br>
                                                 链接：<a href="https://api.ipojie.com" target="_blank">https://api.ipojie.com</a>
                                             </div>

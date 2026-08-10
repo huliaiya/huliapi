@@ -22,7 +22,7 @@ if ($is_logged_in) {
     } catch (PDOException $e) {
     }
 }
-$api = null; $params = []; $site_name = '白茶API';
+    $api = null; $params = []; $site_name = 'huliapi';
 $is_logged_in = isset($_SESSION['user_id']);
 $user_info = $is_logged_in ? ['username' => $_SESSION['user_username'], 'email' => $_SESSION['user_email']] : null;
 $api_id = isset($_GET['id']) ? intval($_GET['id']) : 0;

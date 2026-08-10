@@ -24,9 +24,9 @@ $username = htmlspecialchars($_SESSION['admin_username']);
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-<meta name="description" content="<?php echo htmlspecialchars($settings['site_name'] ?? '白茶API'); ?> 仪表盘 - API管理系统">
+<meta name="description" content="<?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?> 仪表盘 - huliapi">
 <meta name="author" content="yinq">
-<title><?php echo htmlspecialchars($settings['site_name'] ?? '白茶API'); ?> - 仪表盘 - API管理系统</title>
+<title><?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?> - 仪表盘 - huliapi</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -64,7 +64,7 @@ $username = htmlspecialchars($_SESSION['admin_username']);
   <div class="lyear-layout-container">
     <aside class="lyear-layout-sidebar">
       <div id="logo" class="sidebar-header">
-        <a href="./"><img src="../assets/images/logo-sidebar.png" title="LightYear" alt="LightYear" /></a>
+        <a href="./"><img src="../assets/images/logo-sidebar.png" title="huliapi" alt="huliapi" /></a>
       </div>
       <div class="lyear-layout-sidebar-info lyear-scroll">
         <nav class="sidebar-main">
@@ -165,7 +165,7 @@ $username = htmlspecialchars($_SESSION['admin_username']);
         </nav>
         <div class="sidebar-footer">
           <p class="copyright">
-            <span>Copyright © 2025-<?php echo "".date("Y").""; ?> 白茶API 版权所有</span>
+            <span>Copyright © 2025-<?php echo "".date("Y").""; ?> huliapi 版权所有</span>
           </p>
         </div>
       </div>
@@ -329,8 +329,8 @@ $username = htmlspecialchars($_SESSION['admin_username']);
           </li>
           <li class="dropdown">
             <a href="javascript:void(0)" data-bs-toggle="dropdown" class="dropdown-toggle">
-              <img class="avatar-md rounded-circle" src="https://api.ipojie.com/favicon.ico" alt="白茶" />
-              <span style="margin-left: 10px;">白茶API</span>
+              <img class="avatar-md rounded-circle" src="https://api.ipojie.com/favicon.ico" alt="huliapi" />
+              <span style="margin-left: 10px;">huliapi</span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
               <li>

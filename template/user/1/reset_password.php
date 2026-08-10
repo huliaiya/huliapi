@@ -43,7 +43,7 @@ try {
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>重置密码 - 白茶API</title>
+    <title>重置密码 - huliapi</title>
     <style>
         :root {
             --bg-color: #f8f9fa; --form-bg-color: #ffffff; --primary-color: #4a69bd;

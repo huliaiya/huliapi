@@ -17,7 +17,7 @@ try {
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $allow_temp_key = $settings['allow_temp_key'] ?? 0;
 } catch (PDOException $e) { /* silent fail */ }
-$site_name = $settings['site_name'] ?? '白茶API';
+    $site_name = $settings['site_name'] ?? 'huliapi';
 ?>
 
 <!DOCTYPE html>

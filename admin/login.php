@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-<title>登录 - <?php echo htmlspecialchars($settings['site_name'] ?? '白茶API'); ?></title>
+<title>登录 - <?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?></title>
 <link rel="shortcut icon" type="image/x-icon" href="https://picui.ogmua.cn/s1/2026/05/26/6a156ea77f458.webp">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
@@ -155,7 +155,7 @@ body {
       <button class="btn btn-primary" type="submit">安全登录</button>
     </div>
   </form>
-  <p class="text-center text-muted mb-0 small">Copyright © 2025-2026 白茶API 版权所有</p>
+  <p class="text-center text-muted mb-0 small">Copyright © 2025-2026 huliapi 版权所有</p>
 </div>
 <script type="text/javascript" src="../assets/js/jquery.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.bundle.min.js"></script>

@@ -92,7 +92,7 @@ if ($currentTemplate !== $activeTemplate) {
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
 <meta name="author" content="yinq">
-<title>用户中心 - 白茶API</title>
+<title>用户中心 - huliapi</title>
 <link rel="shortcut icon" type="image/x-icon" href="https://api.ipojie.com/favicon.ico">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
@@ -108,7 +108,7 @@ if ($currentTemplate !== $activeTemplate) {
   <div class="lyear-layout-container">
     <aside class="lyear-layout-sidebar">
       <div id="logo" class="sidebar-header">
-        <a href="index.php"><img src="../../../assets/images/logo-sidebar.png" title="LightYear" alt="LightYear" /></a>
+        <a href="index.php"><img src="../../../assets/images/logo-sidebar.png" title="huliapi" alt="huliapi" /></a>
       </div>
       <div class="lyear-layout-sidebar-info lyear-scroll">
         <div class="user-info-panel text-center p-4 border-bottom">
@@ -168,7 +168,7 @@ if ($currentTemplate !== $activeTemplate) {
         </nav>
         <div class="sidebar-footer">
           <p class="copyright">
-            <span>Copyright © 2025-2026 白茶API 版权所有</span>
+            <span>Copyright © 2025-2026 huliapi 版权所有</span>
           </p>
         </div>
       </div>

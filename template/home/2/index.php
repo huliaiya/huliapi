@@ -144,15 +144,15 @@ try {
 } catch (PDOException $e) {
     error_log("数据库连接错误: " . $e->getMessage());
     $settings = [
-        'site_name' => '白茶API',
-        'site_description' => '白茶API致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口',
-        'copyright_info' => 'Copyright © 2025-2026 白茶API 版权所有',
+        'site_name' => 'huliapi',
+        'site_description' => 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口',
+        'copyright_info' => 'Copyright © 2025-2026 huliapi 版权所有',
         'allow_temp_key' => 1
     ];
 }
-$site_name = $settings['site_name'] ?? '白茶API';
-$site_description = $settings['site_description'] ?? '白茶API致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口';
-$copyright_info = $settings['copyright_info'] ?? 'Copyright © 2025-2026 白茶API 版权所有';
+$site_name = $settings['site_name'] ?? 'huliapi';
+$site_description = $settings['site_description'] ?? 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口';
+$copyright_info = $settings['copyright_info'] ?? 'Copyright © 2025-2026 huliapi 版权所有';
 $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_temp_key'] : 1;
 ?>
 
@@ -213,7 +213,7 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
   <div class="lyear-layout-container">
     <aside class="lyear-layout-sidebar">
       <div id="logo" class="sidebar-header">
-        <a href="./"><img src="../../../assets/images/logo-sidebar.png" title="LightYear" alt="LightYear" /></a>
+        <a href="./"><img src="../../../assets/images/logo-sidebar.png" title="huliapi" alt="huliapi" /></a>
       </div>
       <div class="lyear-layout-sidebar-info lyear-scroll">
         <div class="user-info-panel text-center p-4 border-bottom">

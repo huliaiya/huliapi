@@ -28,9 +28,9 @@ try {
     $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
 } catch (PDOException $e) { }
-$site_name = $settings['site_name'] ?? '白茶API';
-$site_description = $settings['site_description'] ?? '白茶API致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口';
-$copyright_info = $settings['copyright_info'] ?? 'Copyright © 2025-2026 白茶API 版权所有';
+    $site_name = $settings['site_name'] ?? 'huliapi';
+    $site_description = $settings['site_description'] ?? 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口';
+    $copyright_info = $settings['copyright_info'] ?? 'Copyright © 2025-2026 huliapi 版权所有';
 $allow_temp_key = $settings['allow_temp_key'] ?? 1;
 
 function getStatusBadge($status) {

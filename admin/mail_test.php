@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['recipient_email'])) {
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);  
         $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
         $settings = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
-        $site_name = $settings['site_name'] ?? '白茶API';
+        $site_name = $settings['site_name'] ?? 'huliapi';
         $recipient_email = trim($_POST['recipient_email']);
         if (empty($recipient_email)) {
             throw new Exception("收件人邮箱地址不能为空");

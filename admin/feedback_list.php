@@ -49,7 +49,7 @@ try {
                         while ($row = $stmt_settings->fetch(PDO::FETCH_ASSOC)) {
                             $settings[$row['setting_key']] = $row['setting_value'];
                         }
-                        $site_name = $settings['site_name'] ?? '白茶API';
+                        $site_name = $settings['site_name'] ?? 'huliapi';
                         $logo_url = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/assets/images/logo-sidebar.png';
                         $current_year = date('Y');
                         $subject = '【' . $site_name . '】您的反馈已收到回复';
@@ -79,7 +79,7 @@ try {
         <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 20px 0 0; font-weight: 600;">如有任何问题，请联系客服支持。</p>
     </div>
     <div style="padding: 20px 15px; background-color: #f8f9fa; border-radius: 0 0 16px 16px; border-top: 1px solid #eef0f5;">
-        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' 白茶API 版权所有</p>
+                        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' huliapi 版权所有</p>
     </div>
 </div>
 </body>
@@ -133,7 +133,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-    <title>用户反馈 - 白茶API</title>
+    <title>用户反馈 - huliapi</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">

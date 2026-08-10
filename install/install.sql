@@ -78,7 +78,7 @@ CREATE TABLE `sl_announcements` (
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统公告表';
 
 INSERT INTO `sl_announcements` (`id`,`title`,`content`,`created_at`,`is_active`) VALUES
-(1,'欢迎使用API管理系统 白茶二开版','如接口有失效，点击意见反馈，白茶API api.ipojie.com','2026-04-25 00:00:00',1);
+(1,'欢迎使用huliapi API管理系统','如接口有失效，点击意见反馈，huliapi api.ipojie.com','2026-04-25 00:00:00',1);
 
 DROP TABLE IF EXISTS `sl_api_categories`;
 CREATE TABLE `sl_api_categories` (
@@ -259,7 +259,7 @@ CREATE TABLE `sl_settings` (
 INSERT INTO `sl_settings` (`setting_key`,`setting_value`) VALUES
 ('allow_registration','1'),
 ('allow_temp_key','1'),
-('copyright_info','Copyright 2025-2026 刀客源码网'),
+('copyright_info','Copyright 2025-2026 huliapi'),
 ('epay_key','3n1d7ZaPH9hAPd7GUD8zd9Un8dWNhA38'),
 ('epay_pid','1714'),
 ('epay_url','https://pay.liohg.top/'),
@@ -273,8 +273,8 @@ INSERT INTO `sl_settings` (`setting_key`,`setting_value`) VALUES
 ('payment_alipay_enabled','1'),
 ('payment_qqpay_enabled','1'),
 ('payment_wxpay_enabled','1'),
-('site_description','白茶API致力于为用户提供稳定、高效的API接口服务'),
-('site_name','刀客源码API'),
+('site_description','huliapi致力于为用户提供稳定、高效的API接口服务'),
+('site_name','huliapi'),
 ('temp_key_duration','24'),
 ('temp_key_limit','100'),
 ('enable_free_qps_limit','1'),

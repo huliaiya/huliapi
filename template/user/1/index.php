@@ -47,7 +47,7 @@ try {
     $billing_plans = $pdo->query("SELECT * FROM sl_billing_plans WHERE is_active = 1 ORDER BY price ASC")->fetchAll(PDO::FETCH_ASSOC);
     $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
-    $site_name = $settings['site_name'] ?? '白茶API';
+    $site_name = $settings['site_name'] ?? 'huliapi';
     $payment_map = [
         'alipay' => ['name' => '支付宝', 'icon' => 'zfb.png'],
         'wxpay' => ['name' => '微信支付', 'icon' => 'wx.png'],

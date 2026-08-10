@@ -69,7 +69,7 @@ try {
         echo json_encode($formattedStats, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     } else {
         header('Content-Type: text/plain; charset=utf-8');
-        $output = " ╔白茶API╗\n\n";
+        $output = " ╔huliapi╗\n\n";
         $output .= "╟地址:api.ipojie.com\n\n";
         $output .= "╟总接口:".$formattedStats['API总数']."个\n\n";
         $output .= "╟反馈总数:".$formattedStats['待处理反馈']."个\n\n";

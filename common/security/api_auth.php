@@ -27,7 +27,7 @@ function api_error_exit($code, $message) {
     header('Content-Type: application/json; charset=utf-8');
     $response = ['code' => $code, 'msg' => $message];
     if (!$valid_apikey_provided) {
-        $response['api_source'] = '白茶API:' . ($_SERVER['HTTP_HOST'] ?? '');
+        $response['api_source'] = 'huliapi:' . ($_SERVER['HTTP_HOST'] ?? '');
     }
     echo json_encode($response, JSON_UNESCAPED_UNICODE);
     exit;
@@ -58,9 +58,9 @@ register_shutdown_function(function() use (&$valid_apikey_provided, &$response_p
         $data = json_decode($content, true);
         if (json_last_error() === JSON_ERROR_NONE) {
             if (isset($data[0]) && array_keys($data) === range(0, count($data)-1)) {
-                $new_data = ['data' => $data, 'api_source' => '白茶API:' . ($_SERVER['HTTP_HOST'] ?? '')];
+                $new_data = ['data' => $data, 'api_source' => 'huliapi:' . ($_SERVER['HTTP_HOST'] ?? '')];
             } else {
-                $data['api_source'] = '白茶API:' . ($_SERVER['HTTP_HOST'] ?? '');
+                $data['api_source'] = 'huliapi:' . ($_SERVER['HTTP_HOST'] ?? '');
                 $new_data = $data;
             }
             $new_content = json_encode($new_data, JSON_UNESCAPED_UNICODE);
@@ -68,10 +68,10 @@ register_shutdown_function(function() use (&$valid_apikey_provided, &$response_p
             header_remove('Content-Length');
             echo $new_content;
         } else {
-            echo $content . "\nTips：白茶API技术支持";
+            echo $content . "\nTips：huliapi技术支持";
         }
     } else {
-        echo $content . "\nTips：白茶API技术支持";
+        echo $content . "\nTips：huliapi技术支持";
     }
 });
 
@@ -292,7 +292,7 @@ if ($billing_type !== 'free' && $enable_warn_notification) {
     $user_info = $stmt_user_info->fetch(PDO::FETCH_ASSOC);
     if ($user_info && $user_info['email']) {
         $today = date('Y-m-d');
-        $site_name = $settings['site_name'] ?? '白茶API';
+        $site_name = $settings['site_name'] ?? 'huliapi';
         $logo_url = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/assets/images/logo-sidebar.png';
         $current_year = date('Y');
         $need_send = false;
@@ -330,7 +330,7 @@ if ($billing_type !== 'free' && $enable_warn_notification) {
         <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 20px 0 0; font-weight: 600;">如有任何问题，请联系客服支持。</p>
     </div>
     <div style="padding: 20px 15px; background-color: #f8f9fa; border-radius: 0 0 16px 16px; border-top: 1px solid #eef0f5;">
-        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' 白茶API 版权所有</p>
+        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' huliapi 版权所有</p>
     </div>
 </div>
 </body>
@@ -369,7 +369,7 @@ if ($billing_type !== 'free' && $enable_warn_notification) {
         <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 20px 0 0; font-weight: 600;">如有任何问题，请联系客服支持。</p>
     </div>
     <div style="padding: 20px 15px; background-color: #f8f9fa; border-radius: 0 0 16px 16px; border-top: 1px solid #eef0f5;">
-        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' 白茶API 版权所有</p>
+        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' huliapi 版权所有</p>
     </div>
 </div>
 </body>

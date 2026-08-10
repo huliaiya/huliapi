@@ -19,7 +19,7 @@ try {
     $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
 } catch (PDOException $e) { /* silent fail */ }
-$site_name = $settings['site_name'] ?? '白茶API';
+    $site_name = $settings['site_name'] ?? 'huliapi';
 $allow_temp_key = $settings['allow_temp_key'] ?? 1;
 ?>
 

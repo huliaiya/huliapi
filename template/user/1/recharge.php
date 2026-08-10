@@ -43,7 +43,7 @@ try {
         "return_url" => $return_url,
         "name" => $plan['name'],
         "money" => $amount,
-        "sitename" => "白茶API"
+        "sitename" => "huliapi"
     ];
     ksort($params);
     $string_to_sign = "";

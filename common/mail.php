@@ -9,7 +9,7 @@ function send_mail($to, $subject, $body, $pdo) {
     try {
         $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM sl_settings");
         $settings = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
-        $site_name = $settings['site_name'] ?? '白茶API';        
+        $site_name = $settings['site_name'] ?? 'huliapi';
         $mail = new PHPMailer(true);
         $mail->isSMTP();
         $mail->SMTPDebug = SMTP::DEBUG_OFF;
