@@ -11,12 +11,15 @@ if (file_exists('../config.php')) {
 } else {
     die("出现错误！配置文件丢失，请先完成安装。");
 }
+require_once __DIR__ . '/../common/turnstile.php';
 $error_msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
     $captcha = isset($_POST['captcha']) ? strtolower(trim($_POST['captcha'])) : '';
-    if (empty($_SESSION['captcha_code'])) {
+    if (!huli_turnstile_verify()) {
+        $error_msg = '人机验证失败，请完成 Cloudflare 验证后重试';
+    } elseif (empty($_SESSION['captcha_code'])) {
         $error_msg = '验证码已过期，请刷新重试';
     } elseif (empty($captcha)) {
         $error_msg = '请输入验证码';
@@ -145,6 +148,7 @@ body {
         <img src="captcha.php?r=<?php echo time(); ?>" class="captcha-img" id="captcha" title="点击刷新" alt="captcha">
       </div>
     </div>
+    <?php echo huli_turnstile_widget_html(); ?>
     <div class="mb-3">
       <div class="form-check">
         <input type="checkbox" class="form-check-input" id="remember" name="remember">

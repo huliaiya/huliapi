@@ -12,6 +12,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
     die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
+require_once ROOT_PATH . 'common/turnstile.php';
 $error_msg = '';
 try {
     $pdo_check = new PDO(
@@ -29,7 +30,9 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
-    if (empty($username) || empty($password)) {
+    if (!huli_turnstile_verify()) {
+        $error_msg = '人机验证失败，请完成验证后重试';
+    } elseif (empty($username) || empty($password)) {
         $error_msg = '用户名或密码不能为空。';
     } else {
         try {
@@ -134,6 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       <?php endif; ?>
     </div>
+    <?php echo huli_turnstile_widget_html(); ?>
     <div class="mb-3 d-grid">
       <button class="btn btn-primary" type="submit">登 录</button>
     </div>

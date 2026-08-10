@@ -305,6 +305,8 @@ INSERT INTO `huli_settings` (`setting_key`,`setting_value`) VALUES
 ('site_name','huliapi'),
 ('temp_key_duration','24'),
 ('temp_key_limit','100'),
+('turnstile_secret_key',''),
+('turnstile_site_key',''),
 ('enable_free_qps_limit','1'),
 ('qps_mode','database'),
 ('redis_host','127.0.0.1'),
