@@ -9,6 +9,7 @@ $feedback_msg = ''; $feedback_type = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $favicon_url = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:'';
     if (isset($_GET['delete'])) {
         $id = intval($_GET['delete']);
         $pdo->prepare("DELETE FROM huli_email_broadcasts WHERE id = ?")->execute([$id]);
@@ -62,9 +63,10 @@ try {
 }
 ?><!DOCTYPE html>
 <html lang="zh">
-<head>
+ <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<?php if($favicon_url):?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($favicon_url);?>"><?php endif;?>
 <link rel="stylesheet" href="../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" href="../assets/css/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/style.min.css">

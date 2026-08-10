@@ -66,7 +66,7 @@ function getCallCountStyle($count) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($site_name); ?> - <?php echo htmlspecialchars($site_description); ?></title>
-    <link rel="shortcut icon" type="image/x-icon" href="https://picui.ogmua.cn/s1/2026/05/26/6a156ea77f458.webp">
+    <?php if (!empty($settings['favicon_url'])): ?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($settings['favicon_url']); ?>"><?php endif; ?>
     <style>
         :root {
             --bg-color: #f7f8fc; --sidebar-bg: #ffffff; --card-bg: #ffffff;

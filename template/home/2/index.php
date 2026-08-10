@@ -175,7 +175,7 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
 <title>首页 - <?php echo htmlspecialchars($site_name); ?></title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
-<link rel="shortcut icon" type="image/x-icon" href="https://api.ipojie.com/favicon.ico">
+    <?php if (!empty($settings['favicon_url'])): ?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($settings['favicon_url']); ?>"><?php endif; ?>
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" type="text/css" href="../../../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" type="text/css" href="../../../assets/css/bootstrap.min.css">

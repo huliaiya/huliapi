@@ -18,7 +18,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 }
 $username = htmlspecialchars($_SESSION['admin_username']);
 $admin_qq = '';
-try { $pdo_a = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS); $stmt_a = $pdo_a->prepare("SELECT qq FROM huli_admins WHERE id = ?"); $stmt_a->execute([$_SESSION['admin_id']]); $admin_qq = $stmt_a->fetchColumn() ?: ''; } catch (Exception $e) {}
+try { $pdo_a = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS); $stmt_a = $pdo_a->prepare("SELECT qq FROM huli_admins WHERE id = ?"); $stmt_a->execute([$_SESSION['admin_id']]); $admin_qq = $stmt_a->fetchColumn() ?: ''; $favicon_url = $pdo_a->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; } catch (Exception $e) { $favicon_url = ''; }
 ?>
 
 <!DOCTYPE html>
@@ -33,7 +33,7 @@ try { $pdo_a = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charse
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="shortcut icon" type="image/x-icon" href="https://api.ipojie.com/favicon.ico">
+    <?php if (!empty($favicon_url)): ?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($favicon_url); ?>"><?php endif; ?>
 <link rel="stylesheet" type="text/css" href="../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/animate.min.css">

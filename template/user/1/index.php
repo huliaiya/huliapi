@@ -103,6 +103,7 @@ if ($currentTemplate !== $activeTemplate) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>用户中心 - <?php echo htmlspecialchars($site_name); ?></title>
+    <?php if (!empty($settings['favicon_url'])): ?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($settings['favicon_url']); ?>"><?php endif; ?>
     <style>
         :root {
             --bg-color: #f7f8fc; --sidebar-bg: #ffffff; --card-bg: #ffffff;
