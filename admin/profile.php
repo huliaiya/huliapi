@@ -10,11 +10,12 @@ $admin_qq = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt = $pdo->prepare("SELECT qq, nickname FROM huli_admins WHERE id = ?"); $stmt->execute([$admin_id]);
+    $stmt = $pdo->prepare("SELECT qq, nickname, email FROM huli_admins WHERE id = ?"); $stmt->execute([$admin_id]);
     $admin = $stmt->fetch(PDO::FETCH_ASSOC);
     $admin_qq = $admin['qq'] ?? '';
+    $admin_email = $admin['email'] ?? '';
     $nickname = htmlspecialchars($admin['nickname'] ?? $username);
-} catch (PDOException $e) { $nickname = $username; }
+} catch (PDOException $e) { $nickname = $username; $admin_email = ''; }
 $feedback_msg = ''; $feedback_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $type = $_POST['form_type'] ?? '';
@@ -45,6 +46,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $update_stmt->execute([$new_qq, $admin_id]);
                 $admin_qq = $new_qq;
                 $feedback_msg = 'QQ号已更新，头像已刷新。'; $feedback_type = 'success';
+            } catch (PDOException $e) { $feedback_msg = '出现错误！数据库操作失败。'; $feedback_type = 'error'; }
+        }
+    } elseif ($type === 'profile') {
+        $new_nickname = trim($_POST['nickname'] ?? '');
+        $new_email = trim($_POST['email'] ?? '');
+        if ($new_nickname === '') {
+            $feedback_msg = '管理员昵称不能为空。'; $feedback_type = 'error';
+        } elseif ($new_email !== '' && !filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
+            $feedback_msg = '请输入有效的邮箱地址。'; $feedback_type = 'error';
+        } else {
+            try {
+                $update_stmt = $pdo->prepare("UPDATE huli_admins SET nickname = ?, email = ? WHERE id = ?");
+                $update_stmt->execute([$new_nickname, $new_email, $admin_id]);
+                $nickname = htmlspecialchars($new_nickname);
+                $admin_email = $new_email;
+                $feedback_msg = '个人资料已更新。'; $feedback_type = 'success';
             } catch (PDOException $e) { $feedback_msg = '出现错误！数据库操作失败。'; $feedback_type = 'error'; }
         }
     }
@@ -81,6 +98,18 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
             <?php echo htmlspecialchars($feedback_msg); ?>
           </div>
           <?php endif; ?>
+          <form method="POST" action="profile.php" class="site-form mb-4">
+            <input type="hidden" name="form_type" value="profile">
+            <div class="mb-3">
+              <label for="nickname">管理员昵称</label>
+              <input type="text" class="form-control" name="nickname" id="nickname" value="<?php echo $nickname; ?>" required>
+            </div>
+            <div class="mb-3">
+              <label for="email">管理员邮箱</label>
+              <input type="email" class="form-control" name="email" id="email" value="<?php echo htmlspecialchars($admin_email); ?>" placeholder="用于找回密码等系统通知">
+            </div>
+            <button type="submit" class="btn btn-primary">保存</button>
+          </form>
           <form method="POST" action="profile.php" class="site-form mb-4">
             <input type="hidden" name="form_type" value="qq">
             <div class="mb-3">
