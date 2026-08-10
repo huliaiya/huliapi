@@ -79,7 +79,7 @@ CREATE TABLE `huli_announcements` (
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统公告表';
 
 INSERT INTO `huli_announcements` (`id`,`title`,`content`,`created_at`,`is_active`) VALUES
-(1,'欢迎使用huliapi API管理系统','如接口有失效，点击意见反馈，huliapi api.ipojie.com','2026-04-25 00:00:00',1);
+(1,'欢迎使用huliapi API管理系统','如接口有失效，点击意见反馈，huliapi','2026-04-25 00:00:00',1);
 
 DROP TABLE IF EXISTS `huli_api_categories`;
 CREATE TABLE `huli_api_categories` (

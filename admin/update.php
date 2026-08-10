@@ -103,6 +103,8 @@ function huli_api_apply() {
     $info = $_SESSION['huli_update_info'];
     $root = huli_find_root($extract);
     $target = dirname(__FILE__, 2);
+    $admin_path = defined('ADMIN_PATH') && ADMIN_PATH !== '' ? ADMIN_PATH : 'admin';
+    $admin_redirect = ($admin_path !== 'admin');
     $protected_files = ['config.php', 'install.lock', 'admin/fanghong_switch.txt'];
     try {
         $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
@@ -111,6 +113,9 @@ function huli_api_apply() {
             if ($relative === '') { continue; }
             if (in_array($relative, $protected_files, true)) { continue; }
             if (strpos($relative, 'install/') === 0) { continue; }
+            if ($admin_redirect && ($relative === 'admin' || strpos($relative, 'admin/') === 0)) {
+                $relative = $admin_path . substr($relative, 5);
+            }
             $dest = $target . '/' . $relative;
             if ($item->isDir()) {
                 if (!is_dir($dest)) { @mkdir($dest, 0755, true); }
@@ -138,11 +143,10 @@ function huli_api_apply() {
         huli_rrmdir($extract);
         unset($_SESSION['huli_update_zip'], $_SESSION['huli_update_extract'], $_SESSION['huli_update_info']);
     }
-    $admin_path = defined('ADMIN_PATH') ? ADMIN_PATH : 'admin';
-    $admin_path_changed = defined('ADMIN_PATH') && ADMIN_PATH !== 'admin';
+    $admin_path_changed = $admin_redirect;
     $admin_msg = '';
     if ($admin_path_changed) {
-        $admin_msg = '检测到您的后台目录已自定义为 /' . ADMIN_PATH . '/。本次更新已下载新的 admin/ 目录，为避免覆盖您的自定义后台入口，请手动将 admin/ 目录中的文件覆盖到 ' . ADMIN_PATH . '/ 目录，然后删除 admin/ 目录。';
+        $admin_msg = '检测到您的后台目录为 /' . $admin_path . '/，本次更新已自动将后台代码更新到该目录，无需手动处理。';
     }
     huli_api([
         'success' => true,
@@ -353,7 +357,7 @@ $('#update-btn').on('click', function() {
         progressModal.hide();
         var html = '<div class="alert alert-success mb-3">' + $('<div>').text(res2.message).html() + '</div>';
         if (res2.admin_path_changed && res2.admin_msg) {
-          html += '<div class="alert alert-warning mb-3"><i class="mdi mdi-alert-circle"></i> <strong>需要手动处理后台目录：</strong><br>' +
+          html += '<div class="alert alert-success mb-3"><i class="mdi mdi-check-circle"></i> <strong>后台目录已自动更新：</strong><br>' +
             $('<div>').text(res2.admin_msg).html() +
             '<div class="mt-2 small">当前后台地址：<a href="../' + res2.admin_path + '/" target="_blank">/' + res2.admin_path + '/</a></div></div>';
         }

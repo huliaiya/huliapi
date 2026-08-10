@@ -319,12 +319,6 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
     </li>
 <?php endif; ?>
 <li class="nav-item">
-  <a class="multitabs" href="zanzhu.html">
-    <i class="mdi mdi-information-outline"></i>
-    <span>赞助我们</span>
-  </a>
-</li>
-<li class="nav-item">
   <a class="multitabs" href="https://qun.qq.com/universal-share/share?ac=1&authKey=IaLMpUorvlzDycKxltUGb0vevCjUZ4yN4KopSigW4bayFcuXCdxJS4VahPR9uDQv&busi_data=eyJncm91cENvZGUiOiIxMDM4MTM2ODYyIiwidG9rZW4iOiJQR2lOMUJ1aWpvMVdtYWhmUy9TZmJsVGVDa2hUYUxMWW9uaWNDZFN4eWdqR3d1Zkc1ekhjUFdycmw2YlF1N3lDIiwidWluIjoiMzQ5NTE1Mjk0NyJ9&data=dRy8WhCDdQXnZAIp_-EGW4kJDmQBY0x1YjAFa8NnveEuNNE72tRkeXUAGraMEZ_SpCplS7S42Vp2_kUt6bTRIA&svctype=4&tempid=h5_group_info">
     <i class="mdi mdi-chart-bar"></i>
     <span>加入官方群</span>
