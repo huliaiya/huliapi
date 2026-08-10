@@ -19,6 +19,46 @@ function getUserIP() {
     return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 }
 
+function checkApiRateLimit($pdo, $settings, $scope, $identifier, $limit, $window) {
+    if ($limit <= 0 || $window <= 0) return false;
+    $mode = strtolower(trim($settings['qps_mode'] ?? 'database'));
+    if ($mode === 'redis' && class_exists('Redis')) {
+        try {
+            $redis = new Redis();
+            $redis->connect($settings['redis_host'] ?? '127.0.0.1', (int)($settings['redis_port'] ?? 6379), 0.2);
+            if (!empty($settings['redis_password'])) $redis->auth($settings['redis_password']);
+            if (isset($settings['redis_database']) && (int)$settings['redis_database'] > 0) {
+                $redis->select((int)$settings['redis_database']);
+            }
+            $key = 'huliapi:qps:' . $scope . ':' . hash('sha256', (string)$identifier);
+            $count = $redis->incr($key);
+            if ($count === 1) $redis->expire($key, $window);
+            $redis->close();
+            return $count > $limit;
+        } catch (Throwable $e) {
+            error_log('Redis限速不可用，已回退数据库限速: ' . $e->getMessage());
+        }
+    }
+    if ($scope === 'ip') {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM huli_api_logs WHERE ip_address = ? AND request_time >= FROM_UNIXTIME(?)");
+    } else {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM huli_api_logs WHERE user_id = ? AND request_time >= FROM_UNIXTIME(?)");
+    }
+    $stmt->execute([$identifier, time() - $window]);
+    return (int)$stmt->fetchColumn() >= $limit;
+}
+
+function sendDailyPointsNotification($pdo, $settings, $email, $points) {
+    if (empty($email) || empty($settings['mail_smtp_host']) || empty($settings['mail_smtp_user']) || empty($settings['mail_smtp_pass'])) return false;
+    require_once __DIR__ . '/../mail.php';
+    $site_name = htmlspecialchars($settings['site_name'] ?? 'huliapi', ENT_QUOTES, 'UTF-8');
+    $body = '<div style="font-family:Arial,sans-serif;line-height:1.8">'
+        . '<h2>' . $site_name . ' 每日点数到账通知</h2>'
+        . '<p>您的账户今日已自动赠送 <strong>' . (int)$points . '</strong> 点数。</p>'
+        . '<p>本邮件由系统自动发送，请勿直接回复。</p></div>';
+    return send_mail($email, '【' . $site_name . '】每日点数已到账', $body, $pdo);
+}
+
 function api_error_exit($code, $message) {
     global $response_processed, $valid_apikey_provided;
     $response_processed = true;
@@ -149,6 +189,11 @@ try {
     }
     $required_settings = [
         'enable_free_qps_limit'    => 1,
+        'qps_mode'                 => 'database',
+        'redis_host'               => '127.0.0.1',
+        'redis_port'               => 6379,
+        'redis_password'           => '',
+        'redis_database'           => 0,
         'free_qps_seconds'         => 1,
         'free_qps_limit'           => 10,
         'enable_member_qps_limit'  => 1,
@@ -158,7 +203,8 @@ try {
         'enable_daily_points'      => 1,
         'warn_points_threshold'    => 5,
         'warn_balance_threshold'   => 0.01,
-        'enable_warn_notification' => 1
+        'enable_warn_notification' => 1,
+        'enable_daily_points_notification' => 1
     ];
     $settings_check = $pdo->query("SELECT setting_key FROM huli_settings")->fetchAll(PDO::FETCH_COLUMN);
     foreach ($required_settings as $key => $value) {
@@ -183,6 +229,7 @@ try {
     $warn_points_threshold   = (int)($settings['warn_points_threshold'] ?? 5);
     $warn_balance_threshold  = (float)($settings['warn_balance_threshold'] ?? 0.01);
     $enable_warn_notification= (int)($settings['enable_warn_notification'] ?? 1);
+    $enable_daily_points_notification = (int)($settings['enable_daily_points_notification'] ?? 1);
     $api = null;
     $stmt = $pdo->prepare("SELECT * FROM huli_apis WHERE endpoint = ? LIMIT 1");
     $stmt->execute([$encoded_endpoint]);
@@ -220,7 +267,7 @@ try {
     $valid_user = null;
     $is_super_member = false;
     if ($api_key) {
-        $stmt_user = $pdo->prepare("SELECT id, username, status, balance, points, membership_level, membership_expire FROM huli_users WHERE api_key = ? LIMIT 1");
+        $stmt_user = $pdo->prepare("SELECT id, username, email, status, balance, points, membership_level, membership_expire FROM huli_users WHERE api_key = ? LIMIT 1");
         $stmt_user->execute([$api_key]);
         $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
         if ($user && $user['status'] === 'active') {
@@ -238,11 +285,7 @@ try {
         }
     }
     if (!$valid_apikey_provided && $enable_free_qps_limit && $free_qps_limit > 0 && $free_qps_seconds > 0) {
-        $now = time();
-        $window_start = $now - $free_qps_seconds;
-        $stmt_qps = $pdo->prepare("SELECT COUNT(*) FROM huli_api_logs WHERE ip_address = ? AND request_time >= FROM_UNIXTIME(?)");
-        $stmt_qps->execute([$log_ip_address, $window_start]);
-        if ($stmt_qps->fetchColumn() >= $free_qps_limit) {
+        if (checkApiRateLimit($pdo, $settings, 'ip', $log_ip_address, $free_qps_limit, $free_qps_seconds)) {
             api_error_exit(429, "提示：无apikey访问，{$free_qps_seconds}秒内最多{$free_qps_limit}次请求，请稍后再试或获取apikey");
         }
     }
@@ -260,11 +303,7 @@ try {
         }
         else {
             if ($enable_member_qps_limit && $member_qps_limit > 0 && $member_qps_seconds > 0) {
-                $now = time();
-                $window_start = $now - $member_qps_seconds;
-                $stmt_qps = $pdo->prepare("SELECT COUNT(*) FROM huli_api_logs WHERE user_id = ? AND request_time >= FROM_UNIXTIME(?)");
-                $stmt_qps->execute([$user['id'], $window_start]);
-                if ($stmt_qps->fetchColumn() >= $member_qps_limit) {
+                if (checkApiRateLimit($pdo, $settings, 'user', $user['id'], $member_qps_limit, $member_qps_seconds)) {
                     api_error_exit(429, "提示：普通会员{$member_qps_seconds}秒内最多{$member_qps_limit}次请求，超级会员无限制");
                 }
             }
@@ -281,12 +320,15 @@ try {
                         $pdo->commit();
                         $user['points'] += $daily_free_points;
                         $daily_points_granted = true;
+                        if ($enable_daily_points_notification) {
+                            sendDailyPointsNotification($pdo, $settings, $user['email'] ?? '', $daily_free_points);
+                        }
                     } catch (Exception $e) {
                         $pdo->rollBack();
                     }
                 }
             }
-if ($billing_type !== 'free' && $enable_warn_notification) {
+            if ($billing_type !== 'free' && $enable_warn_notification) {
     $stmt_user_info = $pdo->prepare("SELECT email, last_points_warn_date, last_balance_warn_date FROM huli_users WHERE id = ?");
     $stmt_user_info->execute([$user['id']]);
     $user_info = $stmt_user_info->fetch(PDO::FETCH_ASSOC);

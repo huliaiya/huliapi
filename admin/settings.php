@@ -10,26 +10,27 @@ $settings_keys = [
     'site_name', 'site_description', 'copyright_info', 'allow_registration', 'allow_temp_key',
     'temp_key_duration', 'temp_key_limit',
     'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_secure', 'mail_smtp_user', 'mail_smtp_pass',
-    'mail_reg_enabled', 'mail_forgot_enabled', 'enable_free_qps_limit', 'free_qps_seconds', 'free_qps_limit', 'enable_member_qps_limit', 'member_qps_seconds', 'member_qps_limit', 'warn_points_threshold', 'warn_balance_threshold', 'enable_warn_notification', 'enable_daily_points', 'daily_free_points'
+    'mail_reg_enabled', 'mail_forgot_enabled', 'qps_mode', 'redis_host', 'redis_port', 'redis_password', 'redis_database', 'enable_free_qps_limit', 'free_qps_seconds', 'free_qps_limit', 'enable_member_qps_limit', 'member_qps_seconds', 'member_qps_limit', 'warn_points_threshold', 'warn_balance_threshold', 'enable_warn_notification', 'enable_daily_points', 'daily_free_points', 'enable_daily_points_notification'
 ];
 $defaults = [
     'site_name' => 'huliapi', 'site_description' => 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口', 'copyright_info' => 'Copyright © 2025-2026 huliapi 版权所有',
     'allow_registration' => 1, 'allow_temp_key' => 1, 'temp_key_duration' => 24, 'temp_key_limit' => 100,
     'mail_smtp_host' => '', 'mail_smtp_port' => '465', 'mail_smtp_secure' => 'ssl', 'mail_smtp_user' => '', 'mail_smtp_pass' => '',
     'mail_reg_enabled' => 0, 'mail_forgot_enabled' => 0,
+    'qps_mode' => 'database', 'redis_host' => '127.0.0.1', 'redis_port' => 6379, 'redis_password' => '', 'redis_database' => 0,
     'enable_free_qps_limit' => 1, 'free_qps_seconds' => 1, 'free_qps_limit' => 10, 'enable_member_qps_limit' => 1, 'member_qps_seconds' => 1, 'member_qps_limit' => 20,
-    'warn_points_threshold' => 5, 'warn_balance_threshold' => 0.01, 'enable_warn_notification' => 1, 'enable_daily_points' => 0, 'daily_free_points' => 100
+    'warn_points_threshold' => 5, 'warn_balance_threshold' => 0.01, 'enable_warn_notification' => 1, 'enable_daily_points' => 0, 'daily_free_points' => 100, 'enable_daily_points_notification' => 1
 ];
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $init_sql = "INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100');";
+    $init_sql = "INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('qps_mode', 'database'), ('redis_host', '127.0.0.1'), ('redis_port', '6379'), ('redis_password', ''), ('redis_database', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100'), ('enable_daily_points_notification', '1');";
     $pdo->exec($init_sql);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
         $stmt = $pdo->prepare("UPDATE huli_settings SET setting_value = ? WHERE setting_key = ?");
         foreach ($settings_keys as $key) {
-            if(in_array($key, ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'enable_warn_notification', 'enable_daily_points'])) {
+            if(in_array($key, ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'enable_warn_notification', 'enable_daily_points', 'enable_daily_points_notification'])) {
                 $value = isset($_POST[$key]) ? '1' : '0';
             } else {
                 $value = isset($_POST[$key]) ? trim($_POST[$key]) : '';
@@ -150,8 +151,32 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <input type="checkbox" class="form-check-input" id="enable_member_qps_limit" name="enable_member_qps_limit" value="1" <?php echo $settings['enable_member_qps_limit'] ? 'checked' : ''; ?>>
         <label class="form-check-label" for="enable_member_qps_limit"></label>
     </div>
-    <small class="form-text">开启后，系统将对普通会员实施QPS限制</small>
+                 <small class="form-text">开启后，系统将对普通会员实施QPS限制</small>
 </div>
+                <div class="mb-3">
+                  <label for="qps_mode" class="form-label">接口限速模式</label>
+                  <select class="form-select" id="qps_mode" name="qps_mode">
+                    <option value="database" <?php echo ($settings['qps_mode'] ?? 'database') === 'database' ? 'selected' : ''; ?>>系统自带（数据库）</option>
+                    <option value="redis" <?php echo ($settings['qps_mode'] ?? 'database') === 'redis' ? 'selected' : ''; ?>>Redis</option>
+                  </select>
+                  <small class="form-text">Redis 模式需要 PHP Redis 扩展和可用的 Redis 服务，连接失败时自动回退到数据库模式。</small>
+                </div>
+                <div class="mb-3">
+                  <label for="redis_host" class="form-label">Redis 地址</label>
+                  <input class="form-control" type="text" id="redis_host" name="redis_host" value="<?php echo htmlspecialchars($settings['redis_host'] ?? '127.0.0.1'); ?>">
+                </div>
+                <div class="mb-3">
+                  <label for="redis_port" class="form-label">Redis 端口</label>
+                  <input class="form-control" type="number" id="redis_port" name="redis_port" value="<?php echo htmlspecialchars($settings['redis_port'] ?? 6379); ?>">
+                </div>
+                <div class="mb-3">
+                  <label for="redis_password" class="form-label">Redis 密码</label>
+                  <input class="form-control" type="password" id="redis_password" name="redis_password" value="<?php echo htmlspecialchars($settings['redis_password'] ?? ''); ?>">
+                </div>
+                <div class="mb-3">
+                  <label for="redis_database" class="form-label">Redis 数据库编号</label>
+                  <input class="form-control" type="number" min="0" id="redis_database" name="redis_database" value="<?php echo htmlspecialchars($settings['redis_database'] ?? 0); ?>">
+                </div>
                 <div class="mb-3">
                   <label for="member_qps_seconds" class="form-label">普通会员QPS限制秒数</label>
                   <input class="form-control" type="number" id="member_qps_seconds" name="member_qps_seconds" value="<?php echo htmlspecialchars($settings['member_qps_seconds']); ?>" placeholder="请输入普通会员QPS限制秒数">
@@ -195,7 +220,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <div class="mb-3">
                   <label for="daily_free_points" class="form-label">每日赠送点数数量</label>
                   <input class="form-control" type="number" id="daily_free_points" name="daily_free_points" value="<?php echo htmlspecialchars($settings['daily_free_points']); ?>" placeholder="请输入每日赠送点数数量">
-                  <small class="form-text">每天自动赠送给普通会员的点数数量</small>
+                 <small class="form-text">每天自动赠送给普通会员的点数数量</small>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">每日赠送点数邮件通知</label>
+                  <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="enable_daily_points_notification" name="enable_daily_points_notification" value="1" <?php echo ($settings['enable_daily_points_notification'] ?? 1) ? 'checked' : ''; ?>>
+                    <label class="form-check-label" for="enable_daily_points_notification"></label>
+                  </div>
+                  <small class="form-text">赠送成功后向用户邮箱发送到账通知，SMTP 配置有效时生效。</small>
                 </div>
                 <div>
                   <button type="submit" class="btn btn-primary me-1">保存设置</button>

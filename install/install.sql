@@ -305,6 +305,11 @@ INSERT INTO `huli_settings` (`setting_key`,`setting_value`) VALUES
 ('temp_key_duration','24'),
 ('temp_key_limit','100'),
 ('enable_free_qps_limit','1'),
+('qps_mode','database'),
+('redis_host','127.0.0.1'),
+('redis_port','6379'),
+('redis_password',''),
+('redis_database','0'),
 ('free_qps_seconds','1'),
 ('free_qps_limit','10'),
 ('enable_member_qps_limit','1'),
@@ -313,6 +318,7 @@ INSERT INTO `huli_settings` (`setting_key`,`setting_value`) VALUES
 ('warn_points_threshold','5'),
 ('warn_balance_threshold','0.01'),
 ('enable_warn_notification','1'),
+('enable_daily_points_notification','1'),
 ('enable_daily_points','0'),
 ('daily_free_points','100');
 
