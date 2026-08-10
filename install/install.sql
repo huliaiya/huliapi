@@ -324,7 +324,9 @@ INSERT INTO `huli_settings` (`setting_key`,`setting_value`) VALUES
 ('enable_warn_notification','1'),
 ('enable_daily_points_notification','1'),
 ('enable_daily_points','0'),
-('daily_free_points','100');
+('daily_free_points','100'),
+('icp_record_number',''),
+('police_record_number','');
 
 DROP TABLE IF EXISTS `huli_temp_key_logs`;
 CREATE TABLE `huli_temp_key_logs` (
@@ -396,5 +398,20 @@ CREATE TABLE `huli_daily_stats` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `stat_date` (`stat_date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='每日API调用统计表';
+
+DROP TABLE IF EXISTS `huli_email_broadcasts`;
+CREATE TABLE `huli_email_broadcasts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '群发ID',
+  `title` varchar(255) NOT NULL COMMENT '群发标题/邮件主题',
+  `content` longtext NOT NULL COMMENT '邮件HTML内容',
+  `status` enum('draft','scheduled','sending','sent') NOT NULL DEFAULT 'draft' COMMENT '状态',
+  `scheduled_at` datetime DEFAULT NULL COMMENT '计划发送时间',
+  `sent_count` int(11) NOT NULL DEFAULT 0 COMMENT '已发送数量',
+  `total_count` int(11) NOT NULL DEFAULT 0 COMMENT '总收件人数',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp() COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='邮件群发表';
 
 SET FOREIGN_KEY_CHECKS=1;

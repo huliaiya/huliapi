@@ -493,6 +493,18 @@ body {
               ?>
               <div class="<?= $class ?>"><?= htmlspecialchars($line) ?></div>
               <?php endforeach; ?>
+             <?php
+             function check_github_host($host){if(function_exists('curl_init')){$ch=curl_init('https://'.$host);curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);curl_setopt($ch,CURLOPT_TIMEOUT,5);curl_setopt($ch,CURLOPT_NOBODY,true);curl_exec($ch);$code=curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);return $code>0&&$code<500;}else{$ctx=stream_context_create(['http'=>['timeout'=>5,'header'=>"User-Agent: huliapi-installer\r\n"],'ssl'=>['verify_peer'=>false,'verify_peer_name'=>false]]);$r=@get_headers('https://'.$host,0,$ctx);return is_array($r)&&preg_match('/200|301|302|403/',$r[0]);}}
+             $gh_api=check_github_host('api.github.com');$gh_web=check_github_host('github.com');
+             ?>
+             <li class="env-check-item">
+               <i class="mdi mdi-<?= $gh_api?'check-circle':'close-circle' ?> env-check-icon <?= $gh_api?'check-success':'check-danger' ?>"></i>
+               <div><strong>GitHub API 连通性</strong><p class="text-muted">api.github.com (<?= $gh_api?'可连接':'无法连接' ?>) — 更新服务器</p></div>
+             </li>
+             <li class="env-check-item">
+               <i class="mdi mdi-<?= $gh_web?'check-circle':'close-circle' ?> env-check-icon <?= $gh_web?'check-success':'check-danger' ?>"></i>
+               <div><strong>GitHub 网站连通性</strong><p class="text-muted">github.com (<?= $gh_web?'可连接':'无法连接' ?>) — 源码仓库</p></div>
+             </li>
             <?php else: ?>
               <div class="terminal-line terminal-prompt">> 准备开始安装...</div>
               <div class="terminal-line terminal-prompt">> 点击"开始安装"按钮继续</div>

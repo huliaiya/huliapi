@@ -16,11 +16,21 @@ $error_msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
-    if (!huli_turnstile_verify()) {
-        $error_msg = '人机验证失败，请完成 Cloudflare 验证后重试';
-    } elseif (empty($username) || empty($password)) {
-        $error_msg = '账号或密码不能为空';
+    $has_turnstile = huli_turnstile_enabled();
+    if ($has_turnstile) {
+        if (!huli_turnstile_verify()) {
+            $error_msg = '人机验证失败，请完成 Cloudflare 验证后重试';
+        }
     } else {
+        $captcha = strtolower(trim($_POST['captcha'] ?? ''));
+        if (empty($_SESSION['captcha_code']) || $captcha !== strtolower($_SESSION['captcha_code'])) {
+            $error_msg = '验证码不正确，请重新输入';
+        }
+    }
+    if (!$error_msg && (empty($username) || empty($password))) {
+        $error_msg = '账号或密码不能为空';
+    }
+    if (!$error_msg) {
         try {
             $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -104,6 +114,12 @@ body {
     padding: 10px 15px;
     border-radius: 4px;
 }
+.captcha-img {
+    cursor: pointer;
+    height: 38px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
 </style>
 </head>
 <body>
@@ -123,7 +139,19 @@ body {
       <span class="mdi mdi-lock" aria-hidden="true"></span>
       <input type="password" class="form-control" id="password" name="password" placeholder="密码" required>
     </div>
+    <?php if (huli_turnstile_enabled()): ?>
     <?php echo huli_turnstile_widget_html(); ?>
+    <?php else: ?>
+    <div class="mb-3 has-feedback row">
+      <div class="col-7">
+        <span class="mdi mdi-shield-check" aria-hidden="true"></span>
+        <input type="text" name="captcha" class="form-control" placeholder="验证码" required>
+      </div>
+      <div class="col-5 text-right">
+        <img src="../common/ajax/captcha.php?r=<?php echo time(); ?>" class="captcha-img" id="captcha" title="点击刷新" alt="captcha">
+      </div>
+    </div>
+    <?php endif; ?>
     <div class="mb-3">
       <div class="form-check">
         <input type="checkbox" class="form-check-input" id="remember" name="remember">
@@ -147,7 +175,11 @@ $(document).ready(function() {
             $(this).addClass('was-validated');
             return false;
         }
-    });
+    function refreshCaptcha() {
+        $('#captcha').attr('src', '../common/ajax/captcha.php?r=' + Math.random());
+    }
+    $('#captcha').on('click', refreshCaptcha);
+});
 });
 </script>
 </body>

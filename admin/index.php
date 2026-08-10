@@ -122,6 +122,16 @@ try { $pdo_a = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charse
             </li>
             <li class="nav-item nav-item-has-subnav">
               <a href="javascript:void(0)">
+                <i class="mdi mdi-email-send"></i>
+                <span>邮件群发</span>
+              </a>
+              <ul class="nav nav-subnav">
+                <li> <a class="multitabs" href="email_broadcasts.php">群发列表</a> </li>
+                <li> <a class="multitabs" href="email_broadcast_create.php">新建群发</a> </li>
+              </ul>
+            </li>
+            <li class="nav-item nav-item-has-subnav">
+              <a href="javascript:void(0)">
                 <i class="mdi mdi-credit-card-outline"></i>
                 <span>计费管理</span>
               </a>

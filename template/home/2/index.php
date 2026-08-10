@@ -343,10 +343,19 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
             <span id="running-time">计算中...</span>
           </div>
           <div class="filing-info">
+            <?php if (!empty($settings['icp_record_number'])): ?>
             <div class="filing-item">
               <span>ICP备案号：</span>
-              <a href="http://beian.miit.gov.cn/" target="_blank">沪ICP备2023019171号-6</a>
+              <a href="http://beian.miit.gov.cn/" target="_blank"><?php echo htmlspecialchars($settings['icp_record_number']); ?></a>
             </div>
+            <?php endif; ?>
+            <?php if (!empty($settings['police_record_number'])): ?>
+            <div class="filing-item">
+              <span>公安备案号：</span>
+              <a href="https://beian.mps.gov.cn/" target="_blank"><?php echo htmlspecialchars($settings['police_record_number']); ?></a>
+            </div>
+            <?php endif; ?>
+          </div>
             <div class="filing-item">
               <img src="http://qy.xilemon.com/static/public/images/mps.png" alt="公安备案标识" class="police-badge">
               <span>公安备案号：</span>

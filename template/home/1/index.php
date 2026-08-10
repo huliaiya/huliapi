@@ -201,7 +201,10 @@ function getCallCountStyle($count) {
                     <?php endforeach; ?>
                 </div>
             </main>
-            <footer class="page-footer">© <?php echo htmlspecialchars($copyright_info); ?></footer>
+            <footer class="page-footer">© <?php echo htmlspecialchars($copyright_info); ?>
+                <?php if (!empty($settings['icp_record_number'])): ?><br><a href="http://beian.miit.gov.cn/" target="_blank" style="color:inherit;text-decoration:none;"><?php echo htmlspecialchars($settings['icp_record_number']); ?></a><?php endif; ?>
+                <?php if (!empty($settings['police_record_number'])): ?><br><a href="https://beian.mps.gov.cn/" target="_blank" style="color:inherit;text-decoration:none;"><?php echo htmlspecialchars($settings['police_record_number']); ?></a><?php endif; ?>
+            </footer>
         </div>
     </div>
     <script>
@@ -220,11 +223,8 @@ function getCallCountStyle($count) {
                     const name = card.dataset.name || '';
                     const desc = card.dataset.desc || '';
                     if (name.includes(searchTerm) || desc.includes(searchTerm)) { card.style.display = 'flex'; } else { card.style.display = 'none'; }
-                });
-            });
-        }
+        });
     });
-    <a href="https://icp.gov.moe/?keyword=20265230" target="_blank">萌ICP备20265230号</a>
     </script>
 </body>
 </html>

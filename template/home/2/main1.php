@@ -322,12 +322,12 @@ function getCallCountStyle($count) {
         <?php endforeach; ?>
     <?php else: ?>
         <li class="ad-item">
-            <a rel="nofollow" href="tencent://message/?uin=326284281&Site=qq&Menu=yes" class="ad-color-0 ad-placeholder">
+            <a rel="nofollow" href="https://qm.qq.com/q/kxPtqE3N72" class="ad-color-0 ad-placeholder">
                 🔥 文字广告位招租
             </a>
         </li>
         <li class="ad-item">
-            <a rel="nofollow" href="http://shanhe.kim/api/qq/qqmp.php?qq=3962364640" class="ad-color-1 ad-placeholder">
+            <a rel="nofollow" href="https://qm.qq.com/q/kxPtqE3N72" class="ad-color-1 ad-placeholder">
                 📢 5元/月 点击咨询
             </a>
         </li>
@@ -739,7 +739,6 @@ $(document).ready(function() {
     }
     loadSidebarCategories();
 });
-<a href="https://icp.gov.moe/?keyword=20265230" target="_blank">萌ICP备20265230号</a>
 </script>
 </body>
 </html>
