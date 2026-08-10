@@ -39,6 +39,7 @@ try {
         $email = trim($_POST['email'] ?? '');
         $password = trim($_POST['password'] ?? '');
         $confirm_password = trim($_POST['confirm_password'] ?? '');
+        $qq = trim($_POST['qq'] ?? '');
         $code = trim($_POST['code'] ?? '');
         if (!huli_turnstile_verify()) {
             throw new Exception('人机验证失败，请完成验证后重试');
@@ -71,9 +72,9 @@ try {
             throw new Exception('该邮箱已被注册');
         }
         $api_key = bin2hex(random_bytes(32));
-        $sql = "INSERT INTO huli_users (username, email, password, api_key, status, created_at) VALUES (?, ?, ?, ?, 'active', NOW())";
+        $sql = "INSERT INTO huli_users (username, email, qq, password, api_key, status, created_at) VALUES (?, ?, ?, ?, ?, 'active', NOW())";
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$username, $email, $password, $api_key]);
+        $stmt->execute([$username, $email, $qq, $password, $api_key]);
         if ($mail_reg_enabled) {
             unset($_SESSION['reg_code'], $_SESSION['reg_email']);
         }
@@ -178,6 +179,10 @@ try {
         <div class="mb-3 has-feedback">
             <span class="mdi mdi-email" aria-hidden="true"></span>
             <input type="email" id="email" name="email" class="form-control" placeholder="请输入您的邮箱" required value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+        </div>
+        <div class="mb-3 has-feedback">
+            <span class="mdi mdi-qqchat" aria-hidden="true"></span>
+            <input type="text" id="qq" name="qq" class="form-control" placeholder="QQ号（选填，用于头像）" value="<?php echo htmlspecialchars($_POST['qq'] ?? ''); ?>">
         </div>
         <?php if ($mail_reg_enabled): ?>
         <div class="mb-3 has-feedback form-code-group">

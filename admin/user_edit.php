@@ -35,6 +35,7 @@ try {
             if (isset($_POST['update_profile'])) {
                 $new_username = trim($_POST['username']);
                 $new_email = trim($_POST['email']);
+                $new_qq = trim($_POST['qq'] ?? '');
                 $new_password = $_POST['password'];
                 $new_status = $_POST['status'];
                 if (empty($new_username) || empty($new_email))
@@ -53,8 +54,8 @@ try {
                     $new_membership_level = isset($_POST['membership_level']) && in_array($_POST['membership_level'], ['normal', 'super']) ? $_POST['membership_level'] : 'normal';
                     $membership_days = intval($_POST['membership_days']);
                     $membership_expire = $membership_days > 0 ? "DATE_ADD(NOW(), INTERVAL $membership_days DAY)" : 'NULL';
-                    $sql = "UPDATE huli_users SET username = ?, email = ?, status = ?, membership_level = ?, membership_expire = $membership_expire";
-                    $params = [$new_username, $new_email, $new_status, $new_membership_level];
+                    $sql = "UPDATE huli_users SET username = ?, email = ?, qq = ?, status = ?, membership_level = ?, membership_expire = $membership_expire";
+                    $params = [$new_username, $new_email, $new_qq, $new_status, $new_membership_level];
                     if (!empty($new_password)) {
                         $sql .= ", password = ?";
                         $params[] = $new_password;
@@ -71,10 +72,10 @@ try {
                     $new_membership_level = isset($_POST['membership_level']) && in_array($_POST['membership_level'], ['normal', 'super']) ? $_POST['membership_level'] : 'normal';
                     $membership_days = intval($_POST['membership_days']);
                     $membership_expire = $membership_days > 0 ? date('Y-m-d H:i:s', strtotime("+$membership_days days")) : null;
-                    $sql = "INSERT INTO huli_users (username, email, password, api_key, status, points, membership_level, membership_expire)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                    $sql = "INSERT INTO huli_users (username, email, qq, password, api_key, status, points, membership_level, membership_expire)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     $stmt = $pdo->prepare($sql);
-                    $stmt->execute([$new_username, $new_email, $new_password, $api_key, $new_status, 0, $new_membership_level, $membership_expire]);
+                    $stmt->execute([$new_username, $new_email, $new_qq, $new_password, $api_key, $new_status, 0, $new_membership_level, $membership_expire]);
                     $_SESSION['feedback_msg'] = '新用户已成功添加。';
                 }
             }
@@ -201,6 +202,10 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
             <div class="mb-3 col-md-6">
               <label for="email" class="form-label">邮箱</label>
               <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" placeholder="请输入邮箱" required>
+            </div>
+            <div class="mb-3 col-md-6">
+              <label for="qq" class="form-label">QQ号</label>
+              <input type="text" class="form-control" id="qq" name="qq" value="<?php echo htmlspecialchars($user['qq'] ?? ''); ?>" placeholder="填写后显示QQ头像">
             </div>
             <div class="mb-3 col-md-6">
               <label for="password" class="form-label">密码</label>

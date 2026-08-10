@@ -4,26 +4,49 @@
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失。"); }
+require_once __DIR__ . '/../common/avatar.php';
 $username = htmlspecialchars($_SESSION['admin_username']); $admin_id = $_SESSION['admin_id'];
+$admin_qq = '';
+try {
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $stmt = $pdo->prepare("SELECT qq, nickname FROM huli_admins WHERE id = ?"); $stmt->execute([$admin_id]);
+    $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+    $admin_qq = $admin['qq'] ?? '';
+    $nickname = htmlspecialchars($admin['nickname'] ?? $username);
+} catch (PDOException $e) { $nickname = $username; }
 $feedback_msg = ''; $feedback_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $current_password = $_POST['current_password']; $new_password = $_POST['new_password']; $confirm_password = $_POST['confirm_password'];
-    if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
-        $feedback_msg = '所有字段均为必填项。'; $feedback_type = 'error';
-    } elseif ($new_password !== $confirm_password) {
-        $feedback_msg = '新密码和确认密码不匹配。'; $feedback_type = 'error';
-    } else {
-        try {
-            $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $stmt = $pdo->prepare("SELECT password FROM huli_admins WHERE id = ?"); $stmt->execute([$admin_id]);
-            $admin = $stmt->fetch();
-            if ($admin && (password_verify($current_password, $admin['password']) || hash_equals($admin['password'], $current_password))) {
-                $update_stmt = $pdo->prepare("UPDATE huli_admins SET password = ? WHERE id = ?");
-                $update_stmt->execute([password_hash($new_password, PASSWORD_DEFAULT), $admin_id]);
-                $feedback_msg = '密码已成功更新。'; $feedback_type = 'success';
-            } else { $feedback_msg = '当前密码不正确。'; $feedback_type = 'error'; }
-        } catch (PDOException $e) { $feedback_msg = '出现错误！数据库操作失败。'; $feedback_type = 'error'; }
+    $type = $_POST['form_type'] ?? '';
+    if ($type === 'password') {
+        $current_password = $_POST['current_password']; $new_password = $_POST['new_password']; $confirm_password = $_POST['confirm_password'];
+        if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
+            $feedback_msg = '所有字段均为必填项。'; $feedback_type = 'error';
+        } elseif ($new_password !== $confirm_password) {
+            $feedback_msg = '新密码和确认密码不匹配。'; $feedback_type = 'error';
+        } else {
+            try {
+                $stmt_pw = $pdo->prepare("SELECT password FROM huli_admins WHERE id = ?"); $stmt_pw->execute([$admin_id]);
+                $admin_data = $stmt_pw->fetch();
+                if ($admin_data && (password_verify($current_password, $admin_data['password']) || hash_equals($admin_data['password'], $current_password))) {
+                    $update_stmt = $pdo->prepare("UPDATE huli_admins SET password = ? WHERE id = ?");
+                    $update_stmt->execute([password_hash($new_password, PASSWORD_DEFAULT), $admin_id]);
+                    $feedback_msg = '密码已成功更新。'; $feedback_type = 'success';
+                } else { $feedback_msg = '当前密码不正确。'; $feedback_type = 'error'; }
+            } catch (PDOException $e) { $feedback_msg = '出现错误！数据库操作失败。'; $feedback_type = 'error'; }
+        }
+    } elseif ($type === 'qq') {
+        $new_qq = trim($_POST['qq'] ?? '');
+        if ($new_qq !== '' && !preg_match('/^\d{5,11}$/', $new_qq)) {
+            $feedback_msg = '请输入有效的QQ号（5-11位数字）。'; $feedback_type = 'error';
+        } else {
+            try {
+                $update_stmt = $pdo->prepare("UPDATE huli_admins SET qq = ? WHERE id = ?");
+                $update_stmt->execute([$new_qq, $admin_id]);
+                $admin_qq = $new_qq;
+                $feedback_msg = 'QQ号已更新，头像已刷新。'; $feedback_type = 'success';
+            } catch (PDOException $e) { $feedback_msg = '出现错误！数据库操作失败。'; $feedback_type = 'error'; }
+        }
     }
 }
 $current_page_script = basename($_SERVER['PHP_SELF']);
@@ -49,12 +72,26 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
       <div class="card">
         <header class="card-header"><div class="card-title">管理员个人资料</div></header>
         <div class="card-body">
+          <div class="text-center mb-4">
+            <img src="<?php echo htmlspecialchars(huli_avatar_url($admin_qq)); ?>" alt="头像" class="rounded-circle" style="width:96px;height:96px;object-fit:cover;">
+            <h5 class="mt-2"><?php echo $nickname; ?></h5>
+          </div>
           <?php if ($feedback_msg): ?>
           <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
             <?php echo htmlspecialchars($feedback_msg); ?>
           </div>
           <?php endif; ?>
+          <form method="POST" action="profile.php" class="site-form mb-4">
+            <input type="hidden" name="form_type" value="qq">
+            <div class="mb-3">
+              <label for="qq">QQ号</label>
+              <input type="text" class="form-control" name="qq" id="qq" value="<?php echo htmlspecialchars($admin_qq); ?>" placeholder="填写QQ号后自动加载头像">
+              <small class="text-muted">头像使用 QQ 官方 API 自动获取，不填则显示默认头像</small>
+            </div>
+            <button type="submit" class="btn btn-primary">保存</button>
+          </form>
           <form method="POST" action="profile.php" class="site-form">
+            <input type="hidden" name="form_type" value="password">
             <div class="mb-3">
               <label for="username">用户名</label>
               <input type="text" class="form-control" name="username" id="username" value="<?php echo $username; ?>" disabled>

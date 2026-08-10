@@ -12,6 +12,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
     die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once ROOT_PATH . 'config.php';
+require_once ROOT_PATH . 'common/avatar.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
 $template = TemplateManager::getActiveUserTemplate();
 $template_base_url = "/template/user/{$template}/";
@@ -41,6 +42,15 @@ try {
         DB_PASS
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_qq'])) {
+        $new_qq = trim($_POST['qq'] ?? '');
+        $stmt_qq = $pdo->prepare("UPDATE huli_users SET qq = ? WHERE id = ?");
+        $stmt_qq->execute([$new_qq, $user_id]);
+        $_SESSION['feedback_msg'] = 'QQ号已更新，头像已刷新。';
+        $_SESSION['feedback_type'] = 'success';
+        header('Location: index.php');
+        exit;
+    }
     if (isset($_GET['action']) && $_GET['action'] === 'regenerate_key') {
         $new_key = bin2hex(random_bytes(32));
         $stmt_update = $pdo->prepare("UPDATE huli_users SET api_key = ? WHERE id = ?");
@@ -114,12 +124,13 @@ try {
         $feedback_type = $_SESSION['feedback_type'];
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
-    $stmt_get_user = $pdo->prepare("SELECT api_key, call_count, balance, points, created_at, membership_level, membership_expire FROM huli_users WHERE id = ?");
+    $stmt_get_user = $pdo->prepare("SELECT api_key, call_count, balance, points, created_at, qq, membership_level, membership_expire FROM huli_users WHERE id = ?");
     $stmt_get_user->execute([$user_id]);
     $fetched_data = $stmt_get_user->fetch(PDO::FETCH_ASSOC);
     if ($fetched_data) {
         $user_data = $fetched_data;
         $user_data['balance'] = number_format($user_data['balance'], 3, '.', '');
+        $user_data['qq'] = $fetched_data['qq'] ?? '';
         $user_data['points'] = intval($user_data['points']);
         $user_data['membership_level'] = $fetched_data['membership_level'] ?? 'normal';
         $user_data['membership_expire'] = $fetched_data['membership_expire'] ?? null;
@@ -277,11 +288,9 @@ try {
                         <div class="tab-pane fade show active" id="profile">
                             <div class="row">
                                 <div class="col-md-4">
-                                    <div class="card">
+                                        <div class="card">
                                         <div class="card-body text-center">
-                                            <div class="avatar-lg rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center mb-3">
-                                                <i class="mdi mdi-account" style="font-size: 2rem;"></i>
-                                            </div>
+                                            <img src="<?php echo htmlspecialchars(huli_avatar_url($user_data['qq'] ?? '')); ?>" class="rounded-circle mb-3" style="width:96px;height:96px;object-fit:cover;" alt="">
                                             <h4><?php echo htmlspecialchars($user_info['username']); ?></h4>
                                             <p class="text-muted"><?php echo htmlspecialchars($user_info['email']); ?></p>
                                             <a href="logout.php" class="btn btn-danger btn-sm">安全退出</a>
@@ -291,6 +300,14 @@ try {
                                 <div class="col-md-8">
                                     <div class="card">
                                         <div class="card-body">
+                                            <form method="POST" action="index.php" class="mb-3">
+                                                <input type="hidden" name="update_qq" value="1">
+                                                <div class="mb-3">
+                                                    <label class="form-label">QQ号</label>
+                                                    <input type="text" class="form-control" name="qq" value="<?php echo htmlspecialchars($user_data['qq'] ?? ''); ?>" placeholder="填写QQ号后自动加载头像，留空则使用默认头像">
+                                                </div>
+                                                <button type="submit" class="btn btn-primary btn-sm">保存</button>
+                                            </form>
                                             <form>
                                                 <div class="mb-3">
                                                     <label class="form-label">用户名</label>

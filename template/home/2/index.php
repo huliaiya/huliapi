@@ -94,6 +94,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
     die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
 require_once 'config.php';
+require_once ROOT_PATH . 'common/avatar.php';
 require_once 'common/TemplateManager.php';
 
 function checkUserLoginStatus() {
@@ -103,12 +104,13 @@ function checkUserLoginStatus() {
     try {
         $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $stmt = $pdo->prepare("SELECT username, email FROM huli_users WHERE id = ? AND status = 1");
-        $stmt->execute([$_SESSION['user_id']]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($user) {
-            $_SESSION['user_username'] = $user['username'];
-            $_SESSION['user_email'] = $user['email'];
+         $stmt = $pdo->prepare("SELECT username, email, qq FROM huli_users WHERE id = ? AND status = 1");
+         $stmt->execute([$_SESSION['user_id']]);
+         $user = $stmt->fetch(PDO::FETCH_ASSOC);
+         if ($user) {
+             $_SESSION['user_username'] = $user['username'];
+             $_SESSION['user_email'] = $user['email'];
+             $_SESSION['user_qq'] = $user['qq'] ?? '';
             return true;
         }
     } catch (PDOException $e) {
@@ -511,14 +513,10 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
           <li class="dropdown">
             <a href="javascript:void(0)" data-bs-toggle="dropdown" class="dropdown-toggle d-flex align-items-center">
               <?php if ($is_logged_in): ?>
-                <div class="avatar-md rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px; background-color: #eef2ff; color: #4a69bd; font-weight: 600;">
-                  <i class="mdi mdi-account"></i>
-                </div>
+                <img class="avatar-md rounded-circle me-2" src="<?php echo htmlspecialchars(huli_avatar_url($_SESSION['user_qq'] ?? '')); ?>" alt="" style="width:40px;height:40px;object-fit:cover;">
                 <span><?php echo htmlspecialchars($user_info['username'], ENT_QUOTES, 'UTF-8'); ?></span>
               <?php else: ?>
-                <div class="avatar-md rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px; background-color: #eef2ff; color: #4a69bd; font-weight: 600;">
-                  <i class="mdi mdi-account-off"></i>
-                </div>
+                <img class="avatar-md rounded-circle me-2" src="<?php echo htmlspecialchars(huli_avatar_url('')); ?>" alt="" style="width:40px;height:40px;object-fit:cover;">
                 <span>未登录</span>
               <?php endif; ?>
             </a>

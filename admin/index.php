@@ -6,6 +6,7 @@ if (!file_exists('../config.php')) {
     die("出现错误！配置文件丢失，请先完成安装。");
 }
 require_once '../config.php';
+require_once __DIR__ . '/../common/avatar.php';
 if (!isset($_SESSION['admin_id'])) {
     header('Location: login.php');
     exit;
@@ -16,6 +17,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     exit;
 }
 $username = htmlspecialchars($_SESSION['admin_username']);
+$admin_qq = '';
+try { $pdo_a = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS); $stmt_a = $pdo_a->prepare("SELECT qq FROM huli_admins WHERE id = ?"); $stmt_a->execute([$_SESSION['admin_id']]); $admin_qq = $stmt_a->fetchColumn() ?: ''; } catch (Exception $e) {}
 ?>
 
 <!DOCTYPE html>
@@ -329,7 +332,7 @@ $username = htmlspecialchars($_SESSION['admin_username']);
           </li>
           <li class="dropdown">
             <a href="javascript:void(0)" data-bs-toggle="dropdown" class="dropdown-toggle">
-              <img class="avatar-md rounded-circle" src="https://api.ipojie.com/favicon.ico" alt="huliapi" />
+              <img class="avatar-md rounded-circle" src="<?php echo htmlspecialchars(huli_avatar_url($admin_qq)); ?>" alt="" style="width:40px;height:40px;object-fit:cover;" />
               <span style="margin-left: 10px;">huliapi</span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">

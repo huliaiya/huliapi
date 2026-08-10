@@ -48,15 +48,20 @@ function huli_download($url, $dest) {
     curl_setopt($ch, CURLOPT_TIMEOUT, 300);
     curl_setopt($ch, CURLOPT_FILE, $fp);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_FAILONERROR, true);
     curl_setopt($ch, CURLOPT_USERAGENT, 'huliapi-updater');
-    if (!curl_exec($ch)) {
-        $err = curl_error($ch);
-        curl_close($ch);
-        fclose($fp);
-        throw new Exception('下载更新包失败: ' . $err);
-    }
+    $ok = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
     curl_close($ch);
     fclose($fp);
+    if (!$ok) {
+        $msg = $err ? $err : 'HTTP ' . $http_code;
+        throw new Exception('下载更新包失败: ' . $msg);
+    }
+    if ($http_code < 200 || $http_code >= 300) {
+        throw new Exception('下载更新包失败: HTTP ' . $http_code . '（可能是 GitHub 限流或链接失效）');
+    }
 }
 
 function huli_api_check() {

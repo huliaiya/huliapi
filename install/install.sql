@@ -45,6 +45,7 @@ CREATE TABLE `huli_admins` (
   `nickname` varchar(100) NOT NULL DEFAULT '管理员' COMMENT '管理员昵称',
   `password` varchar(100) NOT NULL COMMENT '管理员密码',
   `email` varchar(100) NOT NULL COMMENT '管理员邮箱',
+  `qq` varchar(20) NOT NULL DEFAULT '' COMMENT 'QQ号',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp() COMMENT '创建时间',
   `last_login` timestamp NULL DEFAULT NULL COMMENT '最后登录时间',
   `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '状态',
@@ -367,6 +368,7 @@ CREATE TABLE `huli_users` (
   `expires_at` datetime NULL DEFAULT NULL COMMENT '过期时间',
   `last_points_warn_date` date DEFAULT NULL COMMENT '最后点数提醒日期',
   `last_balance_warn_date` date DEFAULT NULL COMMENT '最后余额提醒日期',
+  `qq` varchar(20) NOT NULL DEFAULT '' COMMENT 'QQ号',
   PRIMARY KEY (`id`),
   UNIQUE KEY `api_key` (`api_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户账户表';
