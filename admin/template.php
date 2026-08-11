@@ -64,7 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } catch (Exception $e) {
-        $feedback_msg = "操作失败: " . $e->getMessage();
+        error_log('首页模板操作失败: ' . $e->getMessage());
+        $feedback_msg = '操作失败，请稍后重试。';
         $feedback_type = "error";
     }
 }
@@ -89,7 +90,8 @@ if (isset($_GET['delete'])) {
             $feedback_type = "error";
         }
     } catch (Exception $e) {
-        $feedback_msg = "操作失败: " . $e->getMessage();
+        error_log('用户模板操作失败: ' . $e->getMessage());
+        $feedback_msg = '操作失败，请稍后重试。';
         $feedback_type = "error";
     }
 }

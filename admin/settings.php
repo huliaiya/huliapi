@@ -48,7 +48,7 @@ try {
     $settings = array_merge($defaults, $db_settings);
 } catch (Exception $e) {
     if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
-    $feedback_msg = '操作失败: ' . $e->getMessage(); $feedback_type = 'error';
+    error_log('系统设置操作失败: ' . $e->getMessage()); $feedback_msg = '操作失败，请稍后重试。'; $feedback_type = 'error';
 }
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>

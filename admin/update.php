@@ -87,12 +87,21 @@ function huli_api_prepare() {
         if (!class_exists('ZipArchive')) { throw new Exception('服务器不支持ZipArchive，无法解压。请安装php-zip扩展。'); }
         $za = new ZipArchive;
         if ($za->open($zip) !== true) { throw new Exception('无法打开更新包文件。'); }
+        for ($index = 0; $index < $za->numFiles; $index++) {
+            $entry = $za->getNameIndex($index);
+            $normalized = str_replace('\\', '/', $entry);
+            if ($normalized === '' || $normalized[0] === '/' || preg_match('~(^|/)\.\.(/|$)~', $normalized)) {
+                $za->close();
+                throw new Exception('更新包包含非法文件路径。');
+            }
+        }
         if (!@mkdir($extract, 0755, true)) { throw new Exception('无法创建临时解压目录。'); }
         $za->extractTo($extract);
         $za->close();
     } catch (Exception $e) {
+        error_log('更新包准备失败: ' . $e->getMessage());
         @unlink($zip);
-        huli_api(['success' => false, 'message' => $e->getMessage()]);
+        huli_api(['success' => false, 'message' => '更新包准备失败，请稍后重试。']);
     }
     $_SESSION['huli_update_zip'] = $zip;
     $_SESSION['huli_update_extract'] = $extract;
@@ -116,6 +125,9 @@ function huli_api_apply() {
         foreach ($iter as $item) {
             $relative = str_replace('\\', '/', substr($item->getPathname(), strlen($root) + 1));
             if ($relative === '') { continue; }
+            if ($relative[0] === '/' || preg_match('~(^|/)\.\.(/|$)~', $relative)) {
+                throw new Exception('更新包包含非法文件路径。');
+            }
             if (in_array($relative, $protected_files, true)) { continue; }
             if (strpos($relative, 'install/') === 0) { continue; }
             if ($admin_redirect && ($relative === 'admin' || strpos($relative, 'admin/') === 0)) {
@@ -142,7 +154,8 @@ function huli_api_apply() {
         }
         if (function_exists('opcache_invalidate')) { opcache_invalidate($target . '/common/version.php', true); }
     } catch (Exception $e) {
-        huli_api(['success' => false, 'message' => '更新过程中发生错误: ' . $e->getMessage()]);
+        error_log('系统更新失败: ' . $e->getMessage());
+        huli_api(['success' => false, 'message' => '更新过程中发生错误，请检查日志后重试。']);
     } finally {
         if (!empty($_SESSION['huli_update_zip'])) { @unlink($_SESSION['huli_update_zip']); }
         huli_rrmdir($extract);

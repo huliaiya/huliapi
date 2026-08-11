@@ -168,7 +168,8 @@ try {
     $stmt->execute();
     $keys = $stmt->fetchAll();
 } catch (Exception $e) {
-    $feedback_msg = '操作失败: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+    error_log('卡密操作失败: ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。';
     $feedback_type = 'error';
     $keys = [];
     $total = 0;

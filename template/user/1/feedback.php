@@ -29,6 +29,7 @@ $allow_temp_key = $settings['allow_temp_key'] ?? 1;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>意见反馈 - <?php echo htmlspecialchars($site_name); ?></title>
+    <link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
     <style>
         :root {
             --bg-color: #f7f8fc; --sidebar-bg: #ffffff; --card-bg: #ffffff;

@@ -1,6 +1,15 @@
 <?php
 class TemplateManager {
     private static $pdo = null;
+    private static function validFolder($folder, $type) {
+        $folder = (string)$folder;
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $folder)) {
+            return null;
+        }
+        $base = realpath(__DIR__ . '/../template/' . $type);
+        $path = realpath(__DIR__ . '/../template/' . $type . '/' . $folder);
+        return ($base && $path && strpos($path, $base . DIRECTORY_SEPARATOR) === 0 && is_dir($path)) ? $folder : null;
+    }
     private static function getDb() {
         if (self::$pdo === null) {
             $dsn = "mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET;
@@ -22,9 +31,9 @@ class TemplateManager {
             $stmt = self::getDb()->prepare("SELECT folder FROM huli_site_home_templates WHERE is_active = 1 LIMIT 1");
             $stmt->execute();
             $result = $stmt->fetch();
-            return $result ? $result['folder'] : 'default';
+            return self::validFolder($result['folder'] ?? '', 'home') ?: '1';
         } catch (Exception $e) {
-            return 'default';
+            return '1';
         }
     }
     public static function getAllHomeTemplates() {
@@ -72,9 +81,9 @@ class TemplateManager {
             $stmt = self::getDb()->prepare("SELECT folder FROM huli_site_user_templates WHERE is_active = 1 LIMIT 1");
             $stmt->execute();
             $result = $stmt->fetch();
-            return $result ? $result['folder'] : 'default';
+            return self::validFolder($result['folder'] ?? '', 'user') ?: '1';
         } catch (Exception $e) {
-            return 'default';
+            return '1';
         }
     }
     public static function getAllUserTemplates() {

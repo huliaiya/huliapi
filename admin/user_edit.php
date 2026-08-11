@@ -127,7 +127,8 @@ try {
         }
     }
 } catch (Exception $e) {
-    $feedback_msg = '操作失败: ' . $e->getMessage();
+    error_log('用户编辑失败: ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。';
     $feedback_type = 'error';
 }
 $current_page_script = basename($_SERVER['PHP_SELF']);

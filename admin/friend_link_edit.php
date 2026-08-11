@@ -82,7 +82,8 @@ if (!empty($data['logo'])) {
         }
     }
 } catch (Exception $e) {
-    $feedback_msg = $e->getMessage();
+    error_log('友情链接编辑失败: ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。';
     $feedback_type = "error";
 }
 ?>

@@ -48,7 +48,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
         $_SESSION['feedback_msg'] = '删除失败: 参数无效';
         $_SESSION['feedback_type'] = 'error';
     } catch (Exception $e) {
-        $_SESSION['feedback_msg'] = '删除失败: ' . $e->getMessage();
+        error_log('API 删除失败: ' . $e->getMessage());
+        $_SESSION['feedback_msg'] = '删除失败，请稍后重试。';
         $_SESSION['feedback_type'] = 'error';
     }
     header('Location: api_list.php');
@@ -191,7 +192,8 @@ try {
     $totalPages = 1;
     $pdo = null;
 } catch (Exception $e) {
-    $feedback_msg = $e->getMessage();
+    error_log('API 列表操作失败: ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。';
     $feedback_type = 'error';
     $apis = [];
     $totalPages = 1;

@@ -56,7 +56,8 @@ try {
     }
     $plans = $pdo->query("SELECT * FROM huli_billing_plans ORDER BY price ASC")->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    $feedback_msg = '数据库操作失败: ' . $e->getMessage();
+    error_log('计费计划列表操作失败: ' . $e->getMessage());
+    $feedback_msg = '数据库操作失败，请稍后重试。';
     $feedback_type = 'error';
     $plans = [];
 }

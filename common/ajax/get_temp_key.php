@@ -1,7 +1,7 @@
 <?php
 @session_start();
 error_reporting(E_ALL);
-ini_set('display_errors', 'On');
+ini_set('display_errors', 'Off');
 header('Content-Type: application/json; charset=utf-8');
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -170,7 +170,7 @@ try {
         $mail->send();
     } catch (Exception $e) {
         $pdo->rollBack();
-        $error_message = "邮件发送失败，请检查您的邮箱地址或联系管理员。错误: {$e->getMessage()}";
+        $error_message = '邮件发送失败，请检查您的邮箱地址或联系管理员。';
         error_log('邮件发送失败: ' . $e->getMessage() . ' ErrorInfo: ' . $mail->ErrorInfo);
         json_response(false, $error_message);
     }
@@ -183,6 +183,7 @@ try {
     if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    json_response(false, '申请失败，请稍后重试。错误：' . $e->getMessage());
+        error_log('临时密钥申请失败: ' . $e->getMessage());
+        json_response(false, '申请失败，请稍后重试。');
 }
 ?>

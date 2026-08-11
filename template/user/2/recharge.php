@@ -79,7 +79,8 @@ try {
     }
     exit;
 } catch (Exception $e) {
-    $error_msg = '创建订单失败: ' . $e->getMessage();
+    error_log('创建充值订单失败: ' . $e->getMessage());
+    $error_msg = '创建订单失败，请稍后重试。';
     if (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
         http_response_code($e->getCode() ?: 500);
         echo json_encode([

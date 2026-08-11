@@ -60,7 +60,7 @@ try {
     $stmt_list->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt_list->execute();
     $orders = $stmt_list->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) { $feedback_msg = '数据库操作失败: ' . $e->getMessage(); $feedback_type = 'error'; $orders = []; }
+} catch (Exception $e) { error_log('订单列表操作失败: ' . $e->getMessage()); $feedback_msg = '数据库操作失败，请稍后重试。'; $feedback_type = 'error'; $orders = []; }
 
 function getOrderStatusBadge($status) {
     switch ($status) {

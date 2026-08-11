@@ -1,7 +1,7 @@
 <?php
 @session_start();
 error_reporting(E_ALL);
-ini_set('display_errors', 'On');
+ini_set('display_errors', 'Off');
 if (!file_exists('../config.php')) {
     die("出现错误！配置文件丢失，请先完成安装。");
 }
@@ -139,7 +139,8 @@ try {
         }
     }
 } catch (PDOException $e) {
-    $db_error = "数据库连接错误: " . $e->getMessage();
+        error_log("数据库连接错误: " . $e->getMessage());
+        $db_error = "数据库服务暂时不可用，请稍后重试。";
     error_log("[" . date('Y-m-d H:i:s') . "] 数据库错误: " . $e->getMessage() . "\n", 3, "../logs/db_errors.log");
     $server_info['mysql_version'] = '连接失败';
 }

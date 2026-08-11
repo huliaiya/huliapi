@@ -40,7 +40,8 @@ try {
         $success_msg = '密码重置成功！请使用新密码登录。';
     }
 } catch (Exception $e) {
-    $error_msg = $e->getMessage();
+    error_log('用户密码重置失败: ' . $e->getMessage());
+    $error_msg = '密码重置失败，请检查填写内容后重试。';
 }
 ?>
 
@@ -49,6 +50,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <title>重置密码 - huliapi</title>
+    <link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
     <?php if($favicon_url):?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($favicon_url);?>"><?php endif;?>
     <style>
         :root {

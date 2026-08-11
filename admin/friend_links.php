@@ -336,7 +336,8 @@ try {
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
 } catch (PDOException $e) {
-    $feedback_msg = '数据库错误: ' . $e->getMessage();
+    error_log('友链管理数据库错误: ' . $e->getMessage());
+    $feedback_msg = '数据库操作失败，请稍后重试';
     $feedback_type = 'error';
     $links = [];
 }

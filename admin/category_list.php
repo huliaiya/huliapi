@@ -46,7 +46,8 @@ try {
                              ORDER BY c.id DESC");
     $categories = $stmt_list->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    $feedback_msg = '操作失败: ' . $e->getMessage();
+    error_log('分类操作失败: ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。';
     $feedback_type = 'error';
     $categories = [];
 }

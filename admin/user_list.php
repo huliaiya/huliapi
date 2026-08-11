@@ -115,7 +115,8 @@ try {
     $stmt_list->execute();
     $users = $stmt_list->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    $feedback_msg = '数据库操作失败: ' . $e->getMessage();
+    error_log('用户列表操作失败: ' . $e->getMessage());
+    $feedback_msg = '数据库操作失败，请稍后重试。';
     $feedback_type = 'error';
     $users = [];
 }

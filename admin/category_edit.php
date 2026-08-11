@@ -42,7 +42,8 @@ try {
         exit;
     }
 } catch (Exception $e) {
-    $feedback_msg = '操作失败: ' . $e->getMessage();
+    error_log('分类编辑失败: ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。';
     $feedback_type = 'error';
 }
 ?>

@@ -59,7 +59,8 @@ try {
         }
     }
 } catch (Exception $e) {
-    $feedback_msg = $e->getMessage();
+    error_log('广告编辑失败: ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。';
     $feedback_type = "error";
 }
 ?>

@@ -34,7 +34,8 @@ try {
     $stmt = $pdo->query("SELECT * FROM huli_advertisements ORDER BY sort_order DESC, created_at DESC");
     $ads = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    $feedback_msg = "数据库错误: " . $e->getMessage();
+    error_log('广告列表操作失败: ' . $e->getMessage());
+    $feedback_msg = '数据库操作失败，请稍后重试。';
     $feedback_type = "error";
 }
 ?>

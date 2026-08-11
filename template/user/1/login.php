@@ -55,9 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $login_ok = false;
                 if (password_verify($password, $user['password'])) {
                     $login_ok = true;
-                } elseif ($password === $user['password']) {
-                    $pdo->prepare("UPDATE huli_users SET password = ? WHERE id = ?")->execute([password_hash($password, PASSWORD_DEFAULT), $user['id']]);
-                    $login_ok = true;
                 }
                 if ($login_ok) {
                 if ($user['status'] === 'active') {
@@ -86,6 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>用户登录 - huliapi</title>
+    <link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
     <?php if($favicon_url):?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($favicon_url);?>"><?php endif;?>
     <style>
         :root {

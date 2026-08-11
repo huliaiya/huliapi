@@ -67,7 +67,8 @@ try {
         $error_msg = '注册失败，管理员已关闭注册功能。';
     }
 } catch (Exception $e) {
-    $error_msg = $e->getMessage();
+    error_log('用户注册失败: ' . $e->getMessage());
+    $error_msg = '注册失败，请检查填写内容后重试。';
 }
 ?>
 
@@ -77,6 +78,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>用户注册 - huliapi</title>
+    <link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
     <?php if (!empty($settings['favicon_url'])): ?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($settings['favicon_url']); ?>"><?php endif; ?>
     <style>
         :root {

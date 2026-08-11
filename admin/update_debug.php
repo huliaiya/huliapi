@@ -1,7 +1,7 @@
 <?php
 @session_start();
 @error_reporting(E_ALL);
-@ini_set('display_errors', 'On');
+@ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 define('SENLIN_CLIENT_VERSION', '1.0.0');
 define('UPDATE_API_URL', 'https://xiaoqi.icofun.cn/updates/api.php');

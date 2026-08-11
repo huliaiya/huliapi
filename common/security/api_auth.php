@@ -482,10 +482,12 @@ try {
         $pdo->commit();
     } catch (Exception $e) {
         $pdo->rollBack();
-        api_error_exit(500, '内部服务器错误: ' . $e->getMessage());
+            error_log('API 鉴权限速异常: ' . $e->getMessage());
+            api_error_exit(500, '内部服务器错误，请稍后重试。');
     }
 } catch (Exception $e) {
-    api_error_exit(500, '内部服务器错误: ' . $e->getMessage());
+        error_log('API 鉴权异常: ' . $e->getMessage());
+        api_error_exit(500, '内部服务器错误，请稍后重试。');
 }
 ob_end_flush();
 ?>

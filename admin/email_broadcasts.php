@@ -59,7 +59,7 @@ try {
     $stmt = $pdo->query("SELECT * FROM huli_email_broadcasts ORDER BY created_at DESC");
     $broadcasts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    $feedback_msg = $e->getMessage(); $feedback_type = "error";
+    error_log('邮件广播列表操作失败: ' . $e->getMessage()); $feedback_msg = '操作失败，请稍后重试。'; $feedback_type = "error";
 }
 ?><!DOCTYPE html>
 <html lang="zh">

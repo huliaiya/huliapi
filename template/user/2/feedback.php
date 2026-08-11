@@ -33,6 +33,7 @@ $allow_temp_key = $settings['allow_temp_key'] ?? 1;
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
 <link rel="stylesheet" type="text/css" href="../../../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" type="text/css" href="../../../assets/css/bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="../../../assets/css/style.min.css">

@@ -36,7 +36,7 @@ try {
         $_SESSION['feedback_type'] = 'success';
         header('Location: announcement_list.php'); exit;
     }
-} catch (Exception $e) { $feedback_msg = '操作失败: ' . $e->getMessage(); $feedback_type = 'error'; }
+} catch (Exception $e) { error_log('公告编辑失败: ' . $e->getMessage()); $feedback_msg = '操作失败，请稍后重试。'; $feedback_type = 'error'; }
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
 

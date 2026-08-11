@@ -252,7 +252,8 @@ try {
         exit;
     }
 } catch (Exception $e) {
-    $apply_msg  = $e->getMessage();
+    error_log('友情链接申请失败: ' . $e->getMessage());
+    $apply_msg  = '申请失败，请稍后重试。';
     $apply_type = "danger";
 }
 
@@ -267,6 +268,7 @@ $csrf_token = createCsrfToken();
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="author" content="yinq">
 <title>友情链接 - huliapi</title>
+<link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
