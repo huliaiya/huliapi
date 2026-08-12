@@ -75,11 +75,371 @@ foreach($params as $p) {
     <title><?php echo htmlspecialchars($api['name']); ?> - API详情 - <?php echo htmlspecialchars($site_name); ?></title>
     <link rel="stylesheet" type="text/css" href="../../../assets/css/materialdesignicons.min.css">
     <link rel="stylesheet" type="text/css" href="../../../assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="../../../assets/css/liquid-glass.css">
     <style>
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(186, 224, 255, .55), transparent 28rem),
+      radial-gradient(circle at 88% 92%, rgba(196, 232, 240, .45), transparent 30rem),
+      linear-gradient(135deg, #eef5fb 0%, #f5fafd 50%, #eaf3fb 100%);
+    background-attachment: fixed;
+    color: var(--glass-text);
+    font-size: 14px;
+    min-height: 100vh;
+}
+.container-fluid {
+    padding: 18px 20px !important;
+    max-width: 1180px;
+}
+.page-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--glass-text);
+    margin: 6px 0 18px 0;
+    position: relative;
+    padding-left: 14px;
+}
+.btn-back-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    background: linear-gradient(135deg, rgba(108, 177, 245, .22), rgba(92, 197, 211, .22));
+    border: 1px solid rgba(180, 220, 245, .55);
+    border-radius: 22px;
+    color: #1f3a5f;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    box-shadow: 0 4px 14px rgba(45, 100, 155, .08);
+    transition: all .25s;
+}
+.btn-back-home:hover {
+    background: linear-gradient(135deg, rgba(108, 177, 245, .35), rgba(92, 197, 211, .35));
+    border-color: var(--glass-accent, #5d9fe8);
+    color: var(--glass-accent, #5d9fe8);
+    transform: translateX(-2px);
+    box-shadow: 0 6px 18px rgba(93, 159, 232, .25);
+    text-decoration: none;
+}
+.btn-back-home i {
+    font-size: 18px;
+}
+.page-title::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 4px;
+    border-radius: 4px;
+    background: linear-gradient(180deg, var(--glass-accent), var(--glass-accent-2));
+}
+.api-card {
+    background: rgba(255, 255, 255, .68);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    margin-bottom: 18px;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(64, 120, 180, .12);
+    transition: transform .3s, box-shadow .3s;
+}
+.api-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 44px rgba(64, 120, 180, .18);
+}
+.api-card .card-header {
+    background: linear-gradient(135deg, rgba(238, 247, 255, .85), rgba(219, 234, 254, .65));
+    border-bottom: 1px solid rgba(180, 220, 245, .35);
+    padding: 12px 18px;
+    font-weight: 700;
+    color: var(--glass-text);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.api-card .card-header i {
+    color: var(--glass-accent);
+    font-size: 18px;
+}
+.api-card .card-body {
+    padding: 16px 18px;
+}
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--glass-muted);
+}
+.info-row i {
+    font-size: 14px;
+    color: var(--glass-accent);
+}
+.info-row strong {
+    font-weight: 600;
+    color: var(--glass-text);
+}
+.url-box {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+    font-size: 12.5px;
+    margin: 8px 0;
+    background: rgba(245, 250, 255, .7);
+    color: var(--glass-text);
+    word-break: break-all;
+    backdrop-filter: blur(8px);
+}
+.copy-btn {
+    background: linear-gradient(135deg, var(--glass-accent), var(--glass-accent-2));
+    color: #fff;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(93, 159, 232, .35);
+    transition: all .25s;
+}
+.copy-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(93, 159, 232, .5);
+}
+.param-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+}
+.param-table th, .param-table td {
+    border: none;
+    border-bottom: 1px solid rgba(180, 220, 245, .25);
+    padding: 10px 12px;
+    text-align: left;
+}
+.param-table th {
+    background: linear-gradient(135deg, rgba(238, 247, 255, .85), rgba(219, 234, 254, .65));
+    font-weight: 700;
+    color: var(--glass-text);
+    font-size: 12.5px;
+}
+.param-table tbody tr:hover {
+    background: rgba(238, 247, 255, .5);
+}
+.param-table tbody tr:last-child td { border-bottom: none; }
+.test-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 13px;
+}
+.test-row label {
+    min-width: 80px;
+    font-weight: 600;
+    color: var(--glass-text);
+}
+.test-row input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    font-size: 13px;
+    background: rgba(255, 255, 255, .65);
+    transition: all .2s;
+}
+.test-row input:focus {
+    outline: none;
+    border-color: var(--glass-accent);
+    box-shadow: 0 0 0 3px rgba(93, 159, 232, .18);
+    background: rgba(255, 255, 255, .9);
+}
+.btn-test {
+    background: linear-gradient(135deg, var(--glass-accent), var(--glass-accent-2));
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(93, 159, 232, .35);
+    transition: all .25s;
+}
+.btn-test:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(93, 159, 232, .5);
+}
+.response-area {
+    width: 100%;
+    height: 220px;
+    padding: 10px 12px;
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+    font-size: 12.5px;
+    background: rgba(245, 250, 255, .7);
+    color: var(--glass-text);
+    overflow-y: auto;
+    margin-top: 12px;
+    white-space: pre-wrap;
+    backdrop-filter: blur(8px);
+}
+.response-area img, .response-area audio, .response-area video {
+  max-width: 100%;
+  max-height: 200px;
+  display: block;
+  margin: 8px 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.response-area pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.code-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.tab-btn {
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, .55);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px 10px 0 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--glass-muted);
+    cursor: pointer;
+    border-bottom: none;
+    transition: all .2s;
+}
+.tab-btn:hover {
+    background: rgba(238, 247, 255, .85);
+    color: var(--glass-text);
+}
+.tab-btn.active {
+    background: linear-gradient(135deg, var(--glass-accent), var(--glass-accent-2));
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(93, 159, 232, .35);
+}
+.code-panel {
+    display: none;
+}
+.code-panel.active {
+    display: block;
+}
+.code-panel pre {
+    margin: 0;
+    padding: 14px;
+    border: 1px solid var(--glass-border);
+    border-radius: 0 10px 10px 10px;
+    font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+    font-size: 12.5px;
+    background: rgba(245, 250, 255, .75);
+    color: var(--glass-text);
+    overflow-x: auto;
+    backdrop-filter: blur(8px);
+}
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+}
+.status-green {
+    background: rgba(220, 252, 231, .85);
+    color: #16a34a;
+}
+.status-red {
+    background: rgba(254, 226, 226, .85);
+    color: #dc2626;
+}
+.status-yellow {
+    background: rgba(255, 251, 235, .85);
+    color: #ca8a04;
+}
+.status-gray {
+    background: rgba(243, 244, 246, .85);
+    color: #6b7280;
+}
+.api-list {
+    padding: 8px 0;
+    max-height: 360px;
+    overflow-y: auto;
+}
+.api-item {
+    padding: 11px 18px;
+    cursor: pointer;
+    transition: background-color .2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 3px solid transparent;
+}
+.api-item:hover {
+    background-color: rgba(238, 247, 255, .6);
+}
+.api-item.active {
+    background: linear-gradient(90deg, rgba(93, 159, 232, .14), transparent);
+    border-left-color: var(--glass-accent);
+}
+.api-item .api-info {
+    flex: 1;
+}
+.api-item .api-name {
+    font-size: 13px;
+    color: var(--glass-text);
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.api-item .api-endpoint {
+    font-size: 11.5px;
+    color: var(--glass-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.api-item .api-status {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+.api-list::-webkit-scrollbar {
+    width: 6px;
+}
+.api-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.api-list::-webkit-scrollbar-thumb {
+    background: rgba(93, 159, 232, .35);
+    border-radius: 6px;
+}
+.api-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(93, 159, 232, .55);
 }
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -284,79 +644,6 @@ body {
     background: #f3f4f6;
     color: #6b7280;
 }
-.floating-api-switcher {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    z-index: 999;
-}
-.floating-btn {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: #4096ff;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 3px 10px rgba(64, 150, 255, 0.4);
-    transition: all 0.2s ease;
-}
-.floating-btn:hover {
-    background: #3385ff;
-    transform: scale(1.05);
-}
-.api-list-container {
-    display: none;
-    position: absolute;
-    right: 0;
-    bottom: 60px;
-    width: 280px;
-    max-height: 400px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-    overflow: hidden;
-    border: 1px solid #e8f3ff;
-}
-.api-list-header {
-    padding: 12px 16px;
-    background: #f8fbff;
-    border-bottom: 1px solid #e8f3ff;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.api-list-header h5 {
-    margin: 0;
-    font-size: 14px;
-    color: #2d3748;
-    font-weight: 600;
-}
-.close-list-btn {
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    font-size: 18px;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-}
-.close-list-btn:hover {
-    background: #f1f5f9;
-    color: #64748b;
-}
-.api-list {
-    padding: 8px 0;
-    max-height: 340px;
-    overflow-y: auto;
-}
 .api-item {
     padding: 10px 16px;
     cursor: pointer;
@@ -412,6 +699,12 @@ body {
 </head>
 <body>
     <div class="container-fluid">
+        <div class="d-flex align-items-center mb-3 gap-2">
+            <a href="<?= $homeTemplateBaseUrl ?>main1.php" class="btn-back-home">
+                <i class="mdi mdi-arrow-left"></i>
+                <span>返回 API 大厅</span>
+            </a>
+        </div>
         <h1 class="page-title"><?php echo htmlspecialchars($api['name']); ?></h1>
         <div class="api-card">
             <div class="card-header">
@@ -605,18 +898,6 @@ fetch(url)
             </div>
         </div>
     </div>
-    <div class="floating-api-switcher">
-        <button class="floating-btn" id="api-switcher-btn">
-            <i class="mdi mdi-api"></i>
-        </button>
-        <div class="api-list-container" id="api-list-container">
-            <div class="api-list-header">
-                <h5>API 接口列表</h5>
-                <button class="close-list-btn">&times;</button>
-            </div>
-            <div class="api-list" id="api-list"></div>
-        </div>
-    </div>
     <script src="../../../assets/js/jquery.min.js"></script>
     <script>
     function copyText(elementId) {
@@ -639,121 +920,6 @@ fetch(url)
             return jsonStr;
         }
     }
-
-    function getStatusLabel(status) {
-        switch(status) {
-            case 'normal': return '<span class="api-status status-green">正常</span>';
-            case 'error': return '<span class="api-status status-red">异常</span>';
-            case 'maintenance': return '<span class="api-status status-yellow">维护</span>';
-            default: return '<span class="api-status status-gray">未知</span>';
-        }
-    }
-    $(document).ready(function() {
-        $('#code-tabs').on('click', '.tab-btn', function() {
-            const targetId = $(this).data('target');
-            $('#code-tabs .tab-btn').removeClass('active');
-            $(this).addClass('active');
-            $('#code-panels .code-panel').removeClass('active');
-            $('#panel-' + targetId).addClass('active');
-        });
-        $('#api-tester-form').on('submit', async function(e) {
-            e.preventDefault();
-            const responseOutput = $('#response-output');
-            responseOutput.html('正在请求...');
-            const apiUrl = $(this).data('url');
-            const apiMethod = $(this).data('method').toUpperCase();
-            const formData = $(this).serialize();
-            let requestUrl = apiUrl;
-            let fetchOptions = {
-                method: apiMethod,
-                headers: {}
-            };
-            <?php if($is_logged_in): ?>
-            fetchOptions.headers['Authorization'] = 'Bearer <?php echo $_SESSION['user_api_key'] ?? ''; ?>';
-            <?php endif; ?>
-            if (apiMethod === 'GET') {
-                requestUrl += '?' + formData;
-            } else {
-                fetchOptions.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-                fetchOptions.body = formData;
-            }
-            try {
-                const response = await fetch(requestUrl, fetchOptions);
-                const status = response.status;
-                const contentType = response.headers.get('Content-Type') || '';
-                const isImage = /^image\//.test(contentType);
-                const isAudio = /^audio\//.test(contentType);
-                const isVideo = /^video\//.test(contentType);
-                const isMedia = isImage || isAudio || isVideo;
-                let resultHtml = `<div style="color:#16a34a; margin-bottom:8px;">HTTP Status: ${status}</div><hr style="border:0.5px solid #ccc; margin:8px 0;">`;
-                if (isMedia) {
-                    const blob = await response.blob();
-                    const blobUrl = URL.createObjectURL(blob);
-                    if (isImage) {
-                        resultHtml += `<img src="${blobUrl}" alt="图片返回结果" onclick="window.open('${blobUrl}', '_blank')" title="点击查看原图">`;
-                    } else if (isAudio) {
-                        resultHtml += `<audio controls src="${blobUrl}">您的浏览器不支持音频播放`;
-                    } else if (isVideo) {
-                        resultHtml += `<video controls src="${blobUrl}" preload="metadata">您的浏览器不支持视频播放</video>`;
-                    }
-                    window.addEventListener('unload', () => URL.revokeObjectURL(blobUrl));
-                } else {
-                    let responseText = await response.text();
-                    if (contentType.indexOf('application/json') === -1) {
-                        responseText = responseText.replace(/\\n/g, '\n');
-                    }
-                    const formattedText = formatJson(responseText);
-                    resultHtml += `<pre>${formattedText}</pre>`;
-                }
-                responseOutput.html(resultHtml);
-            } catch (error) {
-                responseOutput.html(`<div style="color:#dc2626;">请求失败: ${error.message}</div>`);
-            }
-        });
-        async function loadApiList() {
-            try {
-                const response = await fetch('get_api_list.php');
-                const apis = await response.json();
-                const apiList = $('#api-list');
-                apiList.empty();
-                apis.forEach(api => {
-                    const isActive = api.id === <?php echo $api_id; ?>;
-                    const statusLabel = getStatusLabel(api.status);
-                    apiList.append(`
-                        <div class="api-item ${isActive ? 'active' : ''}" data-id="${api.id}">
-                            <div class="api-info">
-                                <div class="api-name">${api.name}</div>
-                                <div class="api-endpoint">${api.endpoint}</div>
-                            </div>
-                            ${statusLabel}
-                        </div>
-                    `);
-                });
-                $('.api-item').on('click', function() {
-                    const apiId = $(this).data('id');
-                    if (apiId !== <?php echo $api_id; ?>) {
-                        window.location.href = `?id=${apiId}`;
-                    }
-                });
-            } catch (error) {
-                console.error('加载API列表失败:', error);
-            }
-        }
-        $('#api-switcher-btn').on('click', function() {
-            $('#api-list-container').toggle();
-            if ($('#api-list-container').is(':visible')) {
-                loadApiList();
-            }
-        });
-        $('.close-list-btn').on('click', function() {
-            $('#api-list-container').hide();
-        });
-        $(document).on('click', function(e) {
-            if (!$(e.target).closest('.floating-api-switcher').length) {
-                $('#api-list-container').hide();
-            }
-        });
-    });
     </script>
 </body>
 </html>

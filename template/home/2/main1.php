@@ -83,6 +83,7 @@ function getCallCountStyle($count) {
 <link rel="stylesheet" type="text/css" href="../../../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" type="text/css" href="../../../assets/css/bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="../../../assets/css/style.min.css">
+<link rel="stylesheet" type="text/css" href="../../../assets/css/liquid-glass.css">
 <style>
 .api-card {
     transition: all 0.3s ease;
@@ -97,11 +98,27 @@ function getCallCountStyle($count) {
     backdrop-filter: blur(18px) saturate(150%);
     -webkit-backdrop-filter: blur(18px) saturate(150%);
 }
-.api-card:hover {
+.api-card-link {
+    display: block;
+    color: inherit;
+}
+.api-card-link:hover {
     transform: translateY(-5px);
     box-shadow:
         0 18px 38px rgba(45, 100, 155, .20),
         inset 0 1px 0 rgba(255, 255, 255, .7);
+    color: inherit;
+}
+.api-card-link:hover,
+.api-card-link:focus {
+    text-decoration: none;
+}
+.api-card .card-title,
+.api-card .card-text,
+.api-card .badge,
+.api-card span,
+.api-card h4 {
+    pointer-events: none;
 }
 .announcement-bar {
     background-color: #e9f5ff;
@@ -136,6 +153,27 @@ function getCallCountStyle($count) {
     color: #6c757d;
     pointer-events: none;
 }
+.sidebar-toggle-btn {
+    height: 44px;
+    padding: 0 18px;
+    background: linear-gradient(135deg, rgba(108, 177, 245, .22), rgba(92, 197, 211, .22));
+    border: 1px solid rgba(180, 220, 245, .6);
+    color: #1f3a5f;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 22px;
+    transition: all .25s;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(45, 100, 155, .08);
+}
+.sidebar-toggle-btn:hover {
+    background: linear-gradient(135deg, rgba(108, 177, 245, .35), rgba(92, 197, 211, .35));
+    border-color: var(--glass-accent, #5d9fe8);
+    color: var(--glass-accent, #5d9fe8);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(93, 159, 232, .25);
+}
 .badge.bg-green {
     background-color: #10b981;
 }
@@ -156,71 +194,68 @@ function getCallCountStyle($count) {
     font-size: 12px;
     padding: 0.2rem 0.4rem;
 }
-.floating-sidebar-btn {
-    position: fixed;
-    right: 30px;
-    bottom: 30px;
-    z-index: 999;
-    transition: left 0.3s ease, top 0.3s ease;
-}
-.floating-sidebar-btn.is-dragging {
-    transition: none;
-}
-.floating-sidebar-btn .btn-float {
-    width: 58px;
-    height: 58px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #bcd6fb, #7fb3f5);
-    color: #fff;
-    border: none;
-    box-shadow: 0 6px 18px rgba(127, 179, 245, 0.45);
-    cursor: grab;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: none;
-}
-.floating-sidebar-btn.is-dragging .btn-float {
-    cursor: grabbing;
-    box-shadow: 0 10px 24px rgba(127, 179, 245, 0.6);
-    transform: scale(1.06);
-}
-.floating-sidebar-btn .btn-float:hover {
-    background: linear-gradient(135deg, #aecdfb, #6ea8f3);
-}
-.floating-sidebar-btn .btn-float:focus {
-    box-shadow: none;
-}
-.floating-sidebar-btn .btn-float .mdi {
-    font-size: 26px;
-    line-height: 1;
-}
 .offcanvas-start {
     width: 300px;
+    background: linear-gradient(165deg, rgba(232, 244, 255, .92), rgba(214, 234, 250, .88));
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    border-right: 1px solid rgba(255, 255, 255, .55);
+    box-shadow: 18px 0 44px rgba(33, 61, 105, .18);
+}
+.offcanvas-backdrop {
+    background: linear-gradient(135deg, rgba(108, 177, 245, .12), rgba(92, 197, 211, .12));
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+}
+.offcanvas-backdrop.show {
+    opacity: 1;
+}
+.offcanvas-header {
+    background: linear-gradient(135deg, rgba(108, 177, 245, .18), rgba(92, 197, 211, .18));
+    border-bottom: 1px solid rgba(255, 255, 255, .45);
+}
+.offcanvas-title {
+    font-weight: 700;
+    color: #1f3a5f;
 }
 .search-box {
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid rgba(180, 220, 245, .45);
+    background: rgba(255, 255, 255, .4);
+}
+.search-box .form-control {
+    background: rgba(255, 255, 255, .65);
+    border: 1px solid rgba(180, 220, 245, .55);
+    color: #1f3a5f;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.search-box .form-control:focus {
+    background: rgba(255, 255, 255, .85);
+    border-color: var(--glass-accent, #5d9fe8);
+    box-shadow: 0 0 0 3px rgba(93, 159, 232, .18);
 }
 .sidebar-categories {
     height: calc(100vh - 120px);
     overflow-y: auto;
 }
 .sidebar-category {
-    border-bottom: 1px solid #f1f1f1;
+    border-bottom: 1px solid rgba(255, 255, 255, .35);
 }
 .sidebar-category-header {
     padding: 12px 16px;
-    background-color: #f8f9fa;
-    font-weight: 500;
+    background: rgba(255, 255, 255, .55);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    font-weight: 600;
+    color: #1f3a5f;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: background .25s;
 }
 .sidebar-category-header:hover {
-    background-color: #e9ecef;
+    background: rgba(255, 255, 255, .78);
 }
 .sidebar-category-header i {
     transition: transform 0.3s;
@@ -229,7 +264,9 @@ function getCallCountStyle($count) {
     transform: rotate(-90deg);
 }
 .sidebar-category-content {
-    background-color: #fff;
+    background: rgba(245, 250, 253, .35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease;
@@ -238,31 +275,43 @@ function getCallCountStyle($count) {
     max-height: 10000px;
 }
 .sidebar-api-item {
-    padding: 10px 16px 10px 30px;
+    padding: 12px 14px;
     cursor: pointer;
     border-left: 3px solid transparent;
-    transition: all 0.2s;
+    border-radius: 12px;
+    margin: 3px 6px;
+    background: rgba(255, 255, 255, .4);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    transition: all 0.25s cubic-bezier(.4,0,.2,1);
 }
 .sidebar-api-item:hover {
-    background-color: #f8f9fa;
-    border-left-color: #4a69bd;
+    background: rgba(255, 255, 255, .72);
+    border-left-color: var(--glass-accent, #5d9fe8);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(93, 159, 232, .2);
 }
 .sidebar-api-item.active {
-    background-color: #e9f5ff;
-    border-left-color: #4a69bd;
+    background: linear-gradient(135deg, rgba(108, 177, 245, .3), rgba(92, 197, 211, .3));
+    border-left: 3px solid var(--glass-accent, #5d9fe8);
+    box-shadow: 0 4px 16px rgba(93, 159, 232, .3);
 }
 .sidebar-api-name {
     font-size: 14px;
-    margin-bottom: 2px;
+    margin-bottom: 3px;
+    font-weight: 600;
+    color: #1f3a5f;
+    line-height: 1.3;
 }
 .sidebar-api-endpoint {
     font-size: 12px;
-    color: #6c757d;
+    color: #5b7794;
+    line-height: 1.3;
 }
 .sidebar-api-billing {
     font-size: 11px;
-    color: #6b7280;
-    margin-top: 2px;
+    color: #4a6480;
+    margin-top: 3px;
 }
 .no-sidebar-category {
     padding: 16px;
@@ -402,9 +451,15 @@ function getCallCountStyle($count) {
 </div>
 <div class="card mb-4">
     <div class="card-body p-3">
-        <div class="position-relative">
-            <i class="mdi mdi-magnify search-icon fs-5"></i>
-            <input type="text" id="api-search-input" class="form-control api-search-box ps-4" placeholder="搜索API接口名称或描述..." onkeyup="filterAPIs()">
+        <div class="d-flex align-items-center gap-2">
+            <div class="position-relative flex-grow-1">
+                <i class="mdi mdi-magnify search-icon fs-5"></i>
+                <input type="text" id="api-search-input" class="form-control api-search-box ps-4" placeholder="搜索API接口名称或描述..." onkeyup="filterAPIs()">
+            </div>
+            <button type="button" class="btn btn-outline-primary sidebar-toggle-btn" data-bs-toggle="offcanvas" data-bs-target="#apiSidebar" aria-label="打开API分类导航">
+                <i class="mdi mdi-format-list-bulleted-square me-1"></i>
+                <span>分类</span>
+            </button>
         </div>
     </div>
 </div>
@@ -415,7 +470,7 @@ function getCallCountStyle($count) {
         $api['points_per_call'] = isset($api['points_per_call']) ? $api['points_per_call'] : 0;
     ?>
     <div class="col-md-6 col-lg-4 mb-4 api-card-item" data-name="<?php echo htmlspecialchars(strtolower($api['name'])); ?>" data-desc="<?php echo htmlspecialchars(strtolower($api['description'])); ?>" data-category="<?php echo $api['category_id'] ?? '0'; ?>">
-        <div class="card h-100 api-card">
+        <a href="<?= $homeTemplateBaseUrl ?>doc.php?id=<?php echo $api['id']; ?>" class="card h-100 api-card api-card-link text-decoration-none">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <h4 class="card-title mb-0"><?php echo htmlspecialchars($api['name']); ?></h4>
@@ -448,12 +503,12 @@ function getCallCountStyle($count) {
                             <?php echo strtoupper($api['response_format'] ?? 'TEXT'); ?>
                         </span>
                     </div>
-                    <a href="<?= $homeTemplateBaseUrl ?>doc.php?id=<?php echo $api['id']; ?>" class="btn btn-sm btn-primary">
+                    <span class="btn btn-sm btn-primary">
                         查看详情
-                    </a>
+                    </span>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
     <?php endforeach; ?>
 </div>
@@ -473,11 +528,6 @@ function getCallCountStyle($count) {
         <div class="sidebar-categories" id="sidebar-categories">
         </div>
     </div>
-</div>
-<div class="floating-sidebar-btn" id="floatingSidebarBtn">
-    <button class="btn-float" data-bs-toggle="offcanvas" data-bs-target="#apiSidebar" aria-label="API分类">
-        <i class="mdi mdi-menu"></i>
-    </button>
 </div>
 <script type="text/javascript" src="../../../assets/js/jquery.min.js"></script>
 <script type="text/javascript" src="../../../assets/js/popper.min.js"></script>
@@ -506,101 +556,7 @@ function filterAPIs() {
         card.style.display = (regex.test(name) || regex.test(desc)) ? "block" : "none";
     });
 }
-(function () {
-    var wrap = document.getElementById('floatingSidebarBtn');
-    if (!wrap) { return; }
-    var LONG_PRESS = 350;
-    var MOVE_THRESHOLD = 8;
-    var pressed = false;
-    var moving = false;
-    var justDragged = false;
-    var startX = 0;
-    var startY = 0;
-    var rectLeft = 0;
-    var rectTop = 0;
-    var timer = null;
-
-    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-
-    function normalize() {
-        if (wrap.style.left) { return; }
-        var rect = wrap.getBoundingClientRect();
-        wrap.style.left = rect.left + 'px';
-        wrap.style.top = rect.top + 'px';
-        wrap.style.right = 'auto';
-        wrap.style.bottom = 'auto';
-    }
-
-    function snap() {
-        var rect = wrap.getBoundingClientRect();
-        var top = clamp(rect.top, 10, window.innerHeight - rect.height - 10);
-        var left = rect.left < (window.innerWidth - rect.width) / 2 ? 10 : (window.innerWidth - rect.width - 10);
-        wrap.style.left = left + 'px';
-        wrap.style.top = top + 'px';
-        wrap.classList.remove('is-dragging');
-    }
-
-    wrap.addEventListener('pointerdown', function (e) {
-        if (e.pointerType === 'mouse' && e.button !== 0) { return; }
-        normalize();
-        var rect = wrap.getBoundingClientRect();
-        pressed = true;
-        moving = false;
-        startX = e.clientX;
-        startY = e.clientY;
-        rectLeft = rect.left;
-        rectTop = rect.top;
-        clearTimeout(timer);
-        timer = setTimeout(function () {
-            if (pressed) {
-                moving = true;
-                wrap.classList.add('is-dragging');
-            }
-        }, LONG_PRESS);
-    });
-
-    window.addEventListener('pointermove', function (e) {
-        if (!pressed) { return; }
-        var dx = e.clientX - startX;
-        var dy = e.clientY - startY;
-        if (!moving && Math.hypot(dx, dy) > MOVE_THRESHOLD) {
-            moving = true;
-            justDragged = true;
-            clearTimeout(timer);
-            wrap.classList.add('is-dragging');
-        }
-        if (moving) {
-            justDragged = true;
-            var left = clamp(rectLeft + dx, 10 - wrap.offsetWidth, window.innerWidth - 10);
-            var top = clamp(rectTop + dy, 10, window.innerHeight - wrap.offsetHeight - 10);
-            wrap.style.left = left + 'px';
-            wrap.style.top = top + 'px';
-        }
-    });
-
-    function endDrag() {
-        if (!pressed) { return; }
-        pressed = false;
-        clearTimeout(timer);
-        if (moving) {
-            justDragged = true;
-            snap();
-        }
-        moving = false;
-        wrap.classList.remove('is-dragging');
-    }
-
-    window.addEventListener('pointerup', endDrag);
-    window.addEventListener('pointercancel', endDrag);
-
-    document.addEventListener('click', function (e) {
-        if (justDragged) {
-            e.preventDefault();
-            e.stopPropagation();
-            justDragged = false;
-        }
-    }, true);
-})();
+(function () {})();
 $(document).ready(function() {
     $('.scroll-numbers').scrollNumbers();
     function debounce(func, wait) {
