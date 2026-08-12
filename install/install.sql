@@ -409,10 +409,13 @@ CREATE TABLE `huli_email_broadcasts` (
   `scheduled_at` datetime DEFAULT NULL COMMENT '计划发送时间',
   `sent_count` int(11) NOT NULL DEFAULT 0 COMMENT '已发送数量',
   `total_count` int(11) NOT NULL DEFAULT 0 COMMENT '总收件人数',
+  `started_at` datetime DEFAULT NULL COMMENT '开始发送时间',
+  `finished_at` datetime DEFAULT NULL COMMENT '完成时间',
   `created_at` datetime NOT NULL DEFAULT current_timestamp() COMMENT '创建时间',
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  KEY `status` (`status`)
+  KEY `status` (`status`),
+  KEY `schedule_due` (`status`, `scheduled_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='邮件群发表';
 
 DROP TABLE IF EXISTS `huli_push_settings`;

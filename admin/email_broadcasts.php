@@ -5,6 +5,7 @@
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失。"); }
 $username = htmlspecialchars($_SESSION['admin_username']);
+require_once '../common/email_broadcast_dispatcher.php';
 $feedback_msg = ''; $feedback_type = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
@@ -17,45 +18,12 @@ try {
     }
     if (isset($_GET['send_now'])) {
         $id = intval($_GET['send_now']);
-        $stmt = $pdo->prepare("SELECT * FROM huli_email_broadcasts WHERE id = ?");
-        $stmt->execute([$id]); $b = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$b) throw new Exception("群发任务不存在");
-        if ($b['status'] === 'sending') throw new Exception("该任务正在发送中");
-        $pdo->prepare("UPDATE huli_email_broadcasts SET status = 'sending' WHERE id = ?")->execute([$id]);
-        $settings = $pdo->query("SELECT setting_key,setting_value FROM huli_settings")->fetchAll(PDO::FETCH_KEY_PAIR);
-        if (empty($settings['mail_smtp_host']) || empty($settings['mail_smtp_user'])) throw new Exception("SMTP未配置");
-        require_once '../common/PHPMailer/src/Exception.php';
-        require_once '../common/PHPMailer/src/PHPMailer.php';
-        require_once '../common/PHPMailer/src/SMTP.php';
-        $users = $pdo->query("SELECT email FROM huli_users WHERE email IS NOT NULL AND email != ''")->fetchAll(PDO::FETCH_COLUMN);
-        $total = count($users);
-        $pdo->prepare("UPDATE huli_email_broadcasts SET total_count = ? WHERE id = ?")->execute([$total, $id]);
-        $sent = 0;
-        foreach ($users as $email) {
-            try {
-                $mail = new PHPMailer\PHPMailer\PHPMailer(true);
-                $mail->isSMTP();
-                $mail->Host = $settings['mail_smtp_host']; $mail->SMTPAuth = true;
-                $mail->Username = $settings['mail_smtp_user']; $mail->Password = $settings['mail_smtp_pass'];
-                $mail->SMTPSecure = $settings['mail_smtp_secure'] === 'ssl' ? PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS : PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port = intval($settings['mail_smtp_port']); $mail->CharSet = 'UTF-8';
-                $mail->setFrom($settings['mail_smtp_user'], $settings['site_name'] ?? 'huliapi');
-                $mail->addAddress($email);
-                $mail->isHTML(true);
-                $mail->Subject = $b['title'];
-                $body = str_replace('{{email}}', $email, $b['content']);
-                $body = str_replace('{{site_name}}', $settings['site_name'] ?? 'huliapi', $body);
-                $mail->Body = $body;
-                $mail->send();
-                $sent++;
-            } catch (Exception $e) {}
-            if ($sent % 10 === 0) {
-                $pdo->prepare("UPDATE huli_email_broadcasts SET sent_count = ? WHERE id = ?")->execute([$sent, $id]);
-            }
-        }
-        $pdo->prepare("UPDATE huli_email_broadcasts SET status = 'sent', sent_count = ? WHERE id = ?")->execute([$sent, $id]);
-        $feedback_msg = "发送完成！共发送 {$sent}/{$total} 封邮件。"; $feedback_type = "success";
+        $r = huli_broadcast_send_one($pdo, $id, $err);
+        if ($r === false) { $feedback_msg = $err; $feedback_type = "error"; }
+        else { $feedback_msg = "发送完成！共发送 {$r['sent']}/{$r['total']} 封邮件。"; $feedback_type = "success"; }
     }
+    $tick_err = huli_broadcast_web_tick($pdo);
+    if ($tick_err && empty($feedback_msg)) { $feedback_msg = "调度提示：" . $tick_err; $feedback_type = "info"; }
     $stmt = $pdo->query("SELECT * FROM huli_email_broadcasts ORDER BY created_at DESC");
     $broadcasts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {

@@ -19,6 +19,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 $username = htmlspecialchars($_SESSION['admin_username']);
 $admin_qq = '';
 try { $pdo_a = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS); $stmt_a = $pdo_a->prepare("SELECT qq FROM huli_admins WHERE id = ?"); $stmt_a->execute([$_SESSION['admin_id']]); $admin_qq = $stmt_a->fetchColumn() ?: ''; $favicon_url = $pdo_a->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; } catch (Exception $e) { $favicon_url = ''; }
+try { @require_once '../common/email_broadcast_dispatcher.php'; huli_broadcast_web_tick($pdo_a); } catch (Throwable $e) {}
 ?>
 
 <!DOCTYPE html>
