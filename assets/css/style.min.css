@@ -433,8 +433,14 @@ img {
 }
 
 .avatar-md {
+	align-items: center;
+	display: flex;
 	height: 3rem;
+	justify-content: center;
 	width: 3rem;
+}
+.avatar-md > i {
+	transform: translateY(1px);
 }
 
 .avatar-lg {

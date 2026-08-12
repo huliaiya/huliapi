@@ -312,23 +312,65 @@ function formatUptime($seconds) {
 <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
 <style>
-.stat-card {
-    border: none;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    transition: transform 0.2s, box-shadow 0.2s;
+.stats-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 20px;
+    min-height: 96px;
+    border-radius: 18px;
+    border: 1px solid rgba(180, 220, 245, .45);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, .62) 0%, rgba(220, 238, 252, .48) 100%);
+    box-shadow:
+        0 6px 22px rgba(45, 100, 155, .10),
+        inset 0 1px 0 rgba(255, 255, 255, .65);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    transition: transform .25s ease, box-shadow .25s ease;
 }
-.stat-card:hover {
+.stats-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    box-shadow:
+        0 12px 28px rgba(45, 100, 155, .18),
+        inset 0 1px 0 rgba(255, 255, 255, .75);
 }
-.stat-card .avatar-box {
-    width: 48px;
-    height: 48px;
+.stats-card-icon {
+    flex: 0 0 auto;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow:
+        inset 0 2px 4px rgba(255, 255, 255, .35),
+        0 4px 10px rgba(45, 100, 155, .15);
 }
-.stat-card .scroll-numbers {
-    font-weight: 600;
-    font-size: 1.5rem;
+.stats-card-icon > i {
+    font-size: 26px;
+    line-height: 1;
+}
+.stats-card-info {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+.stats-card-value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #0a4b7a;
+    letter-spacing: -.5px;
+}
+.stats-card-label {
+    font-size: 13px;
+    color: #4a7290;
+    margin-top: 4px;
+    letter-spacing: .5px;
 }
 .ranking-badge {
     width: 28px;
@@ -358,12 +400,12 @@ function formatUptime($seconds) {
     border-bottom: none;
 }
 .info-key {
-    color: 
+    color: #5c7d99;
     font-size: 13px;
     font-weight: 500;
 }
 .info-val {
-    color: 
+    color: #0a4b7a;
     font-size: 13px;
     font-weight: 600;
     text-align: right;
@@ -383,12 +425,12 @@ function formatUptime($seconds) {
     -webkit-backdrop-filter: blur(8px);
 }
 .card-status.is-ok {
-    color: 
+    color: #2eb883;
     background: linear-gradient(135deg, rgba(46, 184, 131, .16), rgba(86, 219, 168, .12));
     border: 1px solid rgba(46, 184, 131, .35);
 }
 .card-status.is-fail {
-    color: 
+    color: #e74c3c;
     background: linear-gradient(135deg, rgba(231, 76, 60, .16), rgba(241, 145, 122, .12));
     border: 1px solid rgba(231, 76, 60, .35);
 }
@@ -406,98 +448,30 @@ function formatUptime($seconds) {
         <?php echo $db_error; ?>
     </div>
     <?php endif; ?>
-    <div class="row mt-3">
+    <div class="row mt-3 stats-card-row g-3">
+        <?php
+        $admin_stats = [
+            ['label' => '今日调用', 'value' => number_format($stats['today_calls']), 'icon' => 'mdi-code-array', 'bg' => 'rgba(108, 178, 235, .85)', 'accent' => '#5ba4dc'],
+            ['label' => '昨日调用', 'value' => number_format($stats['yesterday_calls']), 'icon' => 'mdi-code-brackets', 'bg' => 'rgba(120, 200, 230, .85)', 'accent' => '#5fb3d8'],
+            ['label' => '总调用数', 'value' => number_format($stats['total_calls_all']), 'icon' => 'mdi-database', 'bg' => 'rgba(140, 215, 175, .85)', 'accent' => '#7bc89e'],
+            ['label' => '今日收益(元)', 'value' => number_format($stats['today_income'] ?? 0, 2), 'icon' => 'mdi-currency-cny', 'bg' => 'rgba(235, 200, 130, .85)', 'accent' => '#e0b45f'],
+            ['label' => 'API 总数', 'value' => number_format($stats['total_apis']), 'icon' => 'mdi-api', 'bg' => 'rgba(235, 145, 160, .85)', 'accent' => '#e08899'],
+            ['label' => '用户总数', 'value' => number_format($stats['total_users']), 'icon' => 'mdi-account', 'bg' => 'rgba(160, 150, 230, .85)', 'accent' => '#8f86d6'],
+            ['label' => '待处理反馈', 'value' => number_format($stats['pending_feedback']), 'icon' => 'mdi-thumb-up-outline', 'bg' => 'rgba(180, 150, 220, .85)', 'accent' => '#b08fd8'],
+        ];
+        foreach ($admin_stats as $as): ?>
         <div class="col-md-6 col-xl-3">
-            <div class="card stat-card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <span class="avatar-md rounded-circle bg-white bg-opacity-25 avatar-box">
-                            <i class="mdi mdi-code-array fs-4"></i>
-                        </span>
-                        <span class="fs-4 scroll-numbers"><?php echo number_format($stats['today_calls']); ?></span>
-                    </div>
-                    <div class="text-end">今日调用</div>
+            <div class="stats-card">
+                <div class="stats-card-icon" style="background: <?php echo $as['bg']; ?>;">
+                    <i class="mdi <?php echo $as['icon']; ?>"></i>
+                </div>
+                <div class="stats-card-info">
+                    <div class="stats-card-value scroll-numbers"><?php echo $as['value']; ?></div>
+                    <div class="stats-card-label"><?php echo htmlspecialchars($as['label']); ?></div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="card stat-card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <span class="avatar-md rounded-circle bg-white bg-opacity-25 avatar-box">
-                            <i class="mdi mdi-code-array fs-4"></i>
-                        </span>
-                        <span class="fs-4 scroll-numbers"><?php echo number_format($stats['yesterday_calls']); ?></span>
-                    </div>
-                    <div class="text-end">昨日调用</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="card stat-card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <span class="avatar-md rounded-circle bg-white bg-opacity-25 avatar-box">
-                            <i class="mdi mdi-database fs-4"></i>
-                        </span>
-                        <span class="fs-4 scroll-numbers"><?php echo number_format($stats['total_calls_all']); ?></span>
-                    </div>
-                    <div class="text-end">总调用数</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="card stat-card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <span class="avatar-md rounded-circle bg-white bg-opacity-25 avatar-box">
-                            <i class="mdi mdi-currency-cny fs-4"></i>
-                        </span>
-                        <span class="fs-4 scroll-numbers"><?php echo number_format($stats['today_income'] ?? 0, 2); ?></span>
-                    </div>
-                    <div class="text-end">今日收益(元)</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="card stat-card bg-danger text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <span class="avatar-md rounded-circle bg-white bg-opacity-25 avatar-box">
-                            <i class="mdi mdi-api fs-4"></i>
-                        </span>
-                        <span class="fs-4 scroll-numbers"><?php echo number_format($stats['total_apis']); ?></span>
-                    </div>
-                    <div class="text-end">API总数</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="card stat-card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <span class="avatar-md rounded-circle bg-white bg-opacity-25 avatar-box">
-                            <i class="mdi mdi-account fs-4"></i>
-                        </span>
-                        <span class="fs-4 scroll-numbers"><?php echo number_format($stats['total_users']); ?></span>
-                    </div>
-                    <div class="text-end">用户总数</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="card stat-card bg-purple text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <span class="avatar-md rounded-circle bg-white bg-opacity-25 avatar-box">
-                            <i class="mdi mdi-thumb-up-outline fs-4"></i>
-                        </span>
-                        <span class="fs-4 scroll-numbers"><?php echo number_format($stats['pending_feedback']); ?></span>
-                    </div>
-                    <div class="text-end">待处理反馈</div>
-                </div>
-            </div>
-        </div>
+        <?php endforeach; ?>
     </div>
     <div class="row mt-3">
         <div class="col-lg-12">

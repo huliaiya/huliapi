@@ -367,6 +367,78 @@ function getCallCountStyle($count) {
 .ad-placeholder:hover {
     background: #e9ecef;
 }
+.stats-card-row .card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 110px;
+}
+.stats-card-row .card-body > .d-flex {
+    align-items: center;
+}
+.stats-card-row .card-body > .text-end {
+    margin-top: 8px;
+}
+.stats-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 20px;
+    min-height: 96px;
+    border-radius: 18px;
+    border: 1px solid rgba(180, 220, 245, .45);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, .62) 0%, rgba(220, 238, 252, .48) 100%);
+    box-shadow:
+        0 6px 22px rgba(45, 100, 155, .10),
+        inset 0 1px 0 rgba(255, 255, 255, .65);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    transition: transform .25s ease, box-shadow .25s ease;
+}
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 12px 28px rgba(45, 100, 155, .18),
+        inset 0 1px 0 rgba(255, 255, 255, .75);
+}
+.stats-card-icon {
+    flex: 0 0 auto;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow:
+        inset 0 2px 4px rgba(255, 255, 255, .35),
+        0 4px 10px rgba(45, 100, 155, .15);
+}
+.stats-card-icon > i {
+    font-size: 26px;
+    line-height: 1;
+}
+.stats-card-info {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+.stats-card-value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #0a4b7a;
+    letter-spacing: -.5px;
+}
+.stats-card-label {
+    font-size: 13px;
+    color: #4a7290;
+    margin-top: 4px;
+    letter-spacing: .5px;
+}
 </style>
 </head>
 <body>
@@ -395,59 +467,27 @@ function getCallCountStyle($count) {
         </li>
     <?php endif; ?>
 </ul>
-<div class="row mb-4">
+<div class="row mb-4 stats-card-row g-3">
+    <?php
+    $stats = [
+        ['label' => 'API 总数', 'value' => count($apis), 'icon' => 'mdi-api', 'bg' => 'rgba(108, 178, 235, .85)', 'accent' => '#5ba4dc'],
+        ['label' => '总调用量', 'value' => array_sum(array_column($apis, 'total_calls')), 'icon' => 'mdi-arrow-up-bold', 'bg' => 'rgba(235, 145, 195, .85)', 'accent' => '#d97ab1'],
+        ['label' => '可用 API', 'value' => count(array_filter($apis, fn($a) => $a['status'] === 'normal')), 'icon' => 'mdi-check-circle-outline', 'bg' => 'rgba(140, 215, 175, .85)', 'accent' => '#7bc89e'],
+        ['label' => '异常 API', 'value' => count(array_filter($apis, fn($a) => $a['status'] === 'error')), 'icon' => 'mdi-alert-circle-outline', 'bg' => 'rgba(235, 145, 160, .85)', 'accent' => '#e08899'],
+    ];
+    foreach ($stats as $s): ?>
     <div class="col-md-6 col-xl-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <span class="avatar-md rounded-circle bg-white bg-opacity-25 avatar-box">
-                        <i class="mdi mdi-api fs-4"></i>
-                    </span>
-                    <span class="fs-4 scroll-numbers"><?php echo count($apis); ?></span>
-                </div>
-                <div class="text-end">API总数</div>
+        <div class="stats-card">
+            <div class="stats-card-icon" style="background: <?php echo $s['bg']; ?>;">
+                <i class="mdi <?php echo $s['icon']; ?>"></i>
+            </div>
+            <div class="stats-card-info">
+                <div class="stats-card-value scroll-numbers"><?php echo (int)$s['value']; ?></div>
+                <div class="stats-card-label"><?php echo htmlspecialchars($s['label']); ?></div>
             </div>
         </div>
     </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="card bg-pink text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <span class="avatar-md rounded-circle bg-white bg-opacity-25 avatar-box">
-                        <i class="mdi mdi-arrow-up-bold fs-4"></i>
-                    </span>
-                    <span class="fs-4 scroll-numbers"><?php echo array_sum(array_column($apis, 'total_calls')); ?></span>
-                </div>
-                <div class="text-end">总调用量</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <span class="avatar-md rounded-circle bg-white bg-opacity-25 avatar-box">
-                        <i class="mdi mdi-check-circle-outline fs-4"></i>
-                    </span>
-                    <span class="fs-4 scroll-numbers"><?php echo count(array_filter($apis, function($api) { return $api['status'] === 'normal'; })); ?></span>
-                </div>
-                <div class="text-end">可用API</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="card bg-danger text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <span class="avatar-md rounded-circle bg-white bg-opacity-25 avatar-box">
-                        <i class="mdi mdi-alert-circle-outline fs-4"></i>
-                    </span>
-                    <span class="fs-4 scroll-numbers"><?php echo count(array_filter($apis, function($api) { return $api['status'] === 'error'; })); ?></span>
-                </div>
-                <div class="text-end">异常 API</div>
-            </div>
-        </div>
-    </div>
+    <?php endforeach; ?>
 </div>
 <div class="card mb-4">
     <div class="card-body p-3">
