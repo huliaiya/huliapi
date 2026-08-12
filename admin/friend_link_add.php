@@ -60,8 +60,7 @@ if (!empty($data['logo'])) {
         $feedback_type = "success";
         $_POST = [];
     } catch (Exception $e) {
-        error_log('友情链接新增失败: ' . $e->getMessage());
-        $feedback_msg = '操作失败，请稍后重试。';
+        $feedback_msg = $e->getMessage();
         $feedback_type = "error";
     }
 }

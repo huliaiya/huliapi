@@ -41,8 +41,7 @@ try {
         }
     }
 } catch (Exception $e) {
-    error_log('广告删除失败: ' . $e->getMessage());
-    $feedback_msg = '删除失败，请稍后重试。';
+    $feedback_msg = $e->getMessage();
     $feedback_type = "error";
 }
 ?>

@@ -49,7 +49,6 @@ try {
     json_response(true, '购买成功！接口已自动添加到您的API列表中。');
 } catch (Exception $e) {
     if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
-    error_log('API 购买失败: ' . $e->getMessage());
-    json_response(false, '购买失败，请稍后重试。');
+    json_response(false, '购买失败: ' . $e->getMessage());
 }
 ?>

@@ -86,13 +86,22 @@ function getCallCountStyle($count) {
 <style>
 .api-card {
     transition: all 0.3s ease;
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem;
+    border: 1px solid rgba(180, 220, 245, .38);
+    border-radius: 22px;
     height: 100%;
+    background:
+        linear-gradient(140deg, rgba(255, 255, 255, .55) 0%, rgba(214, 234, 250, .42) 50%, rgba(196, 224, 244, .35) 100%);
+    box-shadow:
+        0 8px 28px rgba(45, 100, 155, .10),
+        inset 0 1px 0 rgba(255, 255, 255, .65);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
 }
 .api-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    box-shadow:
+        0 18px 38px rgba(45, 100, 155, .20),
+        inset 0 1px 0 rgba(255, 255, 255, .7);
 }
 .announcement-bar {
     background-color: #e9f5ff;
@@ -108,20 +117,24 @@ function getCallCountStyle($count) {
 .api-search-box {
     border-radius: 50px;
     padding-left: 40px;
+    height: 44px;
+    background:
+        linear-gradient(140deg, rgba(255, 255, 255, .68) 0%, rgba(232, 244, 255, .48) 100%);
+    border: 1px solid rgba(180, 220, 245, .55);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .85),
+        0 4px 14px rgba(45, 100, 155, .08);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
 }
 .search-icon {
     position: absolute;
     z-index: 10;
-    left: 10px;
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
     color: #6c757d;
     pointer-events: none;
-}
-.api-search-box {
-    border-radius: 50px;
-    padding-left: 35px;
-    height: 40px;
 }
 .badge.bg-green {
     background-color: #10b981;

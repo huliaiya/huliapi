@@ -1,7 +1,7 @@
 <?php
 @session_start();
 error_reporting(E_ALL);
-ini_set('display_errors', 'Off');
+ini_set('display_errors', 'On');
 if (!file_exists('../config.php')) {
     die("出现错误！配置文件丢失，请先完成安装。");
 }
@@ -139,8 +139,7 @@ try {
         }
     }
 } catch (PDOException $e) {
-        error_log("数据库连接错误: " . $e->getMessage());
-        $db_error = "数据库服务暂时不可用，请稍后重试。";
+    $db_error = "数据库连接错误: " . $e->getMessage();
     error_log("[" . date('Y-m-d H:i:s') . "] 数据库错误: " . $e->getMessage() . "\n", 3, "../logs/db_errors.log");
     $server_info['mysql_version'] = '连接失败';
 }
@@ -209,6 +208,97 @@ if (function_exists('curl_init')) {
 } else {
     $sysInfo['公网IP'] = 'CURL未启用';
 }
+
+$dbCard = [
+    'status' => false,
+    'host' => defined('DB_HOST') ? DB_HOST : '-',
+    'name' => defined('DB_NAME') ? DB_NAME : '-',
+    'charset' => defined('DB_CHARSET') ? DB_CHARSET : '-',
+    'version' => 'N/A',
+    'size' => 'N/A',
+    'tables' => 0,
+    'uptime' => 'N/A',
+    'ping_ms' => null,
+    'max_conn' => 'N/A',
+    'current_conn' => 'N/A',
+];
+if (isset($pdo) && $pdo instanceof PDO) {
+    $dbCard['status'] = true;
+    $dbCard['version'] = $pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
+    $pingStart = microtime(true);
+    try { $pdo->query('SELECT 1'); } catch (Throwable $e) {}
+    $dbCard['ping_ms'] = round((microtime(true) - $pingStart) * 1000, 2);
+    try {
+        $dbCard['tables'] = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = " . $pdo->quote($dbCard['name']))->fetchColumn();
+    } catch (Throwable $e) { $dbCard['tables'] = 0; }
+    try {
+        $status = $pdo->query('SHOW STATUS')->fetchAll(PDO::FETCH_KEY_PAIR);
+        $dbCard['uptime'] = isset($status['Uptime']) ? formatUptime((int)$status['Uptime']) : 'N/A';
+        $dbCard['max_conn'] = isset($status['Max_used_connections']) ? $status['Max_used_connections'] . ' (峰值)' : 'N/A';
+        $vars = $pdo->query('SHOW VARIABLES')->fetchAll(PDO::FETCH_KEY_PAIR);
+        $dbCard['current_conn'] = isset($vars['max_connections']) ? ($status['Threads_connected'] ?? '?') . ' / ' . $vars['max_connections'] : 'N/A';
+    } catch (Throwable $e) {}
+    try {
+        $sizeRow = $pdo->query("SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = " . $pdo->quote($dbCard['name']))->fetchColumn();
+        if ($sizeRow) {
+            $bytes = (int)$sizeRow;
+            if ($bytes >= 1073741824) $dbCard['size'] = round($bytes / 1073741824, 2) . ' GB';
+            elseif ($bytes >= 1048576) $dbCard['size'] = round($bytes / 1048576, 2) . ' MB';
+            elseif ($bytes >= 1024) $dbCard['size'] = round($bytes / 1024, 2) . ' KB';
+            else $dbCard['size'] = $bytes . ' B';
+        }
+    } catch (Throwable $e) {}
+}
+
+$redisCard = [
+    'available' => class_exists('Redis'),
+    'host' => '127.0.0.1',
+    'port' => 6379,
+    'status' => false,
+    'ping_ms' => null,
+    'version' => 'N/A',
+    'used_memory' => 'N/A',
+    'keys' => 'N/A',
+    'uptime' => 'N/A',
+    'mode' => 'database',
+];
+try {
+    $pdo_settings = $pdo ?? null;
+    if ($pdo_settings) {
+        $stmt = $pdo_settings->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('redis_host','redis_port','redis_password','redis_database','qps_mode')");
+        $set = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        $redisCard['host'] = $set['redis_host'] ?? '127.0.0.1';
+        $redisCard['port'] = (int)($set['redis_port'] ?? 6379);
+        $redisCard['mode'] = $set['qps_mode'] ?? 'database';
+    }
+} catch (Throwable $e) {}
+if ($redisCard['available']) {
+    try {
+        $r = new Redis();
+        $pingStart = microtime(true);
+        $r->connect($redisCard['host'], $redisCard['port'], 0.5);
+        $redisCard['ping_ms'] = round((microtime(true) - $pingStart) * 1000, 2);
+        $redisCard['status'] = true;
+        $info = $r->info();
+        $redisCard['version'] = $info['redis_version'] ?? 'N/A';
+        $redisCard['uptime'] = isset($info['uptime_in_seconds']) ? formatUptime((int)$info['uptime_in_seconds']) : 'N/A';
+        if (isset($info['used_memory_human'])) $redisCard['used_memory'] = $info['used_memory_human'];
+        try {
+            $redisCard['keys'] = $r->dbSize();
+        } catch (Throwable $e) { $redisCard['keys'] = 'N/A'; }
+        $r->close();
+    } catch (Throwable $e) {
+        $redisCard['status'] = false;
+        $redisCard['ping_ms'] = null;
+    }
+}
+
+function formatUptime($seconds) {
+    $d = floor($seconds / 86400); $h = floor(($seconds % 86400) / 3600); $m = floor(($seconds % 3600) / 60);
+    if ($d > 0) return $d . '天' . $h . '时' . $m . '分';
+    if ($h > 0) return $h . '时' . $m . '分';
+    return $m . '分' . ($seconds % 60) . '秒';
+}
 ?>
 
 <!DOCTYPE html>
@@ -247,6 +337,65 @@ if (function_exists('curl_init')) {
     align-items: center;
     justify-content: center;
     font-weight: 600;
+}
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+}
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px dashed rgba(134, 194, 255, .18);
+    transition: background .2s ease;
+}
+.info-row:hover {
+    background: linear-gradient(90deg, rgba(134, 194, 255, .08), rgba(119, 222, 218, .05));
+}
+.info-row:nth-last-child(-n+2) {
+    border-bottom: none;
+}
+.info-key {
+    color: 
+    font-size: 13px;
+    font-weight: 500;
+}
+.info-val {
+    color: 
+    font-size: 13px;
+    font-weight: 600;
+    text-align: right;
+    word-break: break-all;
+    max-width: 65%;
+}
+.card-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(255, 255, 255, .55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.card-status.is-ok {
+    color: 
+    background: linear-gradient(135deg, rgba(46, 184, 131, .16), rgba(86, 219, 168, .12));
+    border: 1px solid rgba(46, 184, 131, .35);
+}
+.card-status.is-fail {
+    color: 
+    background: linear-gradient(135deg, rgba(231, 76, 60, .16), rgba(241, 145, 122, .12));
+    border: 1px solid rgba(231, 76, 60, .35);
+}
+@media (max-width: 768px) {
+    .info-grid { grid-template-columns: 1fr; }
+    .info-row:nth-last-child(-n+2) { border-bottom: 1px dashed rgba(134, 194, 255, .18); }
+    .info-row:last-child { border-bottom: none; }
 }
 </style>
 </head>
@@ -407,29 +556,74 @@ if (function_exists('curl_init')) {
                 </div>
             </div>
         </div>
+        <div class="col-lg-12">
+            <div class="card">
+                <header class="card-header">
+                    <div class="card-title"><i class="mdi mdi-information-outline me-1"></i>系统信息</div>
+                </header>
+                <div class="card-body">
+                    <div class="info-grid">
+                        <?php foreach ($sysInfo as $name => $value): ?>
+                            <div class="info-row">
+                                <span class="info-key"><?php echo htmlspecialchars($name); ?></span>
+                                <span class="info-val"><?php echo htmlspecialchars($value); ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-3">
         <div class="col-lg-6">
             <div class="card">
                 <header class="card-header">
-                    <div class="card-title">系统信息</div>
+                    <div class="card-title"><i class="mdi mdi-database me-1"></i>数据库</div>
+                    <span class="card-status <?php echo $dbCard['status'] ? 'is-ok' : 'is-fail'; ?>">
+                        <i class="mdi <?php echo $dbCard['status'] ? 'mdi-check-circle' : 'mdi-close-circle'; ?>"></i>
+                        <?php echo $dbCard['status'] ? '已连接' : '未连接'; ?>
+                    </span>
                 </header>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>项目</th>
-                                    <th>值</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($sysInfo as $name => $value): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($name); ?></td>
-                                        <td><?php echo htmlspecialchars($value); ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                    <div class="info-grid">
+                        <div class="info-row"><span class="info-key">类型</span><span class="info-val">MySQL</span></div>
+                        <div class="info-row"><span class="info-key">版本</span><span class="info-val"><?php echo htmlspecialchars($dbCard['version']); ?></span></div>
+                        <div class="info-row"><span class="info-key">主机</span><span class="info-val"><?php echo htmlspecialchars($dbCard['host']); ?></span></div>
+                        <div class="info-row"><span class="info-key">数据库</span><span class="info-val"><?php echo htmlspecialchars($dbCard['name']); ?></span></div>
+                        <div class="info-row"><span class="info-key">字符集</span><span class="info-val"><?php echo htmlspecialchars($dbCard['charset']); ?></span></div>
+                        <div class="info-row"><span class="info-key">表数量</span><span class="info-val"><?php echo number_format($dbCard['tables']); ?></span></div>
+                        <div class="info-row"><span class="info-key">数据大小</span><span class="info-val"><?php echo htmlspecialchars($dbCard['size']); ?></span></div>
+                        <div class="info-row"><span class="info-key">连接数</span><span class="info-val"><?php echo htmlspecialchars((string)$dbCard['current_conn']); ?></span></div>
+                        <div class="info-row"><span class="info-key">运行时间</span><span class="info-val"><?php echo htmlspecialchars($dbCard['uptime']); ?></span></div>
+                        <div class="info-row"><span class="info-key">响应延迟</span><span class="info-val"><?php echo $dbCard['ping_ms'] !== null ? $dbCard['ping_ms'] . ' ms' : 'N/A'; ?></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <header class="card-header">
+                    <div class="card-title"><i class="mdi mdi-server me-1"></i>Redis</div>
+                    <?php if (!$redisCard['available']): ?>
+                        <span class="card-status is-fail"><i class="mdi mdi-close-circle"></i>扩展未安装</span>
+                    <?php elseif ($redisCard['status']): ?>
+                        <span class="card-status is-ok"><i class="mdi mdi-check-circle"></i>已连接</span>
+                    <?php else: ?>
+                        <span class="card-status is-fail"><i class="mdi mdi-close-circle"></i>未连接</span>
+                    <?php endif; ?>
+                </header>
+                <div class="card-body">
+                    <div class="info-grid">
+                        <div class="info-row"><span class="info-key">限速模式</span><span class="info-val"><?php echo $redisCard['mode'] === 'redis' ? 'Redis' : '数据库'; ?></span></div>
+                        <div class="info-row"><span class="info-key">版本</span><span class="info-val"><?php echo htmlspecialchars((string)$redisCard['version']); ?></span></div>
+                        <div class="info-row"><span class="info-key">主机</span><span class="info-val"><?php echo htmlspecialchars($redisCard['host']); ?></span></div>
+                        <div class="info-row"><span class="info-key">端口</span><span class="info-val"><?php echo (int)$redisCard['port']; ?></span></div>
+                        <div class="info-row"><span class="info-key">已用内存</span><span class="info-val"><?php echo htmlspecialchars((string)$redisCard['used_memory']); ?></span></div>
+                        <div class="info-row"><span class="info-key">键数量</span><span class="info-val"><?php echo is_numeric($redisCard['keys']) ? number_format((int)$redisCard['keys']) : htmlspecialchars((string)$redisCard['keys']); ?></span></div>
+                        <div class="info-row"><span class="info-key">运行时间</span><span class="info-val"><?php echo htmlspecialchars((string)$redisCard['uptime']); ?></span></div>
+                        <div class="info-row"><span class="info-key">响应延迟</span><span class="info-val"><?php echo $redisCard['ping_ms'] !== null ? $redisCard['ping_ms'] . ' ms' : 'N/A'; ?></span></div>
+                        <div class="info-row"><span class="info-key">扩展</span><span class="info-val"><?php echo $redisCard['available'] ? '已安装' : '未安装'; ?></span></div>
+                        <div class="info-row"><span class="info-key">状态</span><span class="info-val"><?php echo $redisCard['status'] ? '在线' : '离线'; ?></span></div>
                     </div>
                 </div>
             </div>

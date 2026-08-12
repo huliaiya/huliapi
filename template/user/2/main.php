@@ -116,8 +116,7 @@ try {
             ]));
         } catch (Exception $e) {
             $pdo->rollBack();
-            error_log('卡密兑换失败: ' . $e->getMessage());
-            die(json_encode(['success' => false, 'message' => '兑换失败，请稍后重试。']));
+            die(json_encode(['success' => false, 'message' => '兑换失败，请稍后重试：' . $e->getMessage()]));
         }
     }
     if(isset($_SESSION['feedback_msg'])) {

@@ -13,6 +13,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/turnstile.php';
+require_once ROOT_PATH . 'common/login_helper.php';
 $favicon_url = ''; try{$fp=new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS);$favicon_url=$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:'';}catch(Exception $e){}
 $error_msg = '';
 try {
@@ -55,6 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $login_ok = false;
                 if (password_verify($password, $user['password'])) {
                     $login_ok = true;
+                } elseif ($password === $user['password']) {
+                    $pdo->prepare("UPDATE huli_users SET password = ? WHERE id = ?")->execute([password_hash($password, PASSWORD_DEFAULT), $user['id']]);
+                    $login_ok = true;
                 }
                 if ($login_ok) {
                 if ($user['status'] === 'active') {
@@ -62,13 +66,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['user_username'] = $user['username'];
                     $_SESSION['user_email'] = $user['email'];
+                    try { huli_record_login($pdo, 'user', (int)$user['id'], $user['username'], 'success', ['email' => $user['email'], 'notify' => true]); } catch (Throwable $e) {}
                     header('Location: index.php'); exit;
                 } else {
                     $error_msg = '您的账户已被封禁或正在审核中。';
+                    try { huli_record_login($pdo, 'user', (int)$user['id'], $user['username'], 'failed'); } catch (Throwable $e) {}
                 }
             }
         } else {
                 $error_msg = '用户名或密码不正确。';
+                try { huli_record_login($pdo, 'user', 0, $username, 'failed'); } catch (Throwable $e) {}
             }
         } catch (PDOException $e) {
             $error_msg = '系统服务暂时不可用。';
@@ -84,7 +91,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
 <title>用户登录 - huliapi</title>
-<link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
 <?php if($favicon_url):?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($favicon_url);?>"><?php endif;?>
 <link rel="shortcut icon" type="image/x-icon" href="https://picui.ogmua.cn/s1/2026/05/26/6a156ea77f458.webp">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -110,14 +116,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     height: 36px;
     line-height: 36px;
     z-index: 4;
-    color: #dcdcdc;
+    color: 
     display: block;
     text-align: center;
     pointer-events: none;
 }
 .form-link {
     font-size: 13px;
-    color: #4a69bd;
+    color: 
     text-decoration: none;
     font-weight: 500;
 }

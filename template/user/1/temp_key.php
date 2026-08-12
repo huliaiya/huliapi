@@ -27,7 +27,6 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>申请临时密钥 - <?php echo htmlspecialchars($site_name); ?></title>
-    <link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
     <style>
         :root {
             --bg-color: #f8f9fa; --card-bg: #ffffff; --primary-color: #4a69bd;

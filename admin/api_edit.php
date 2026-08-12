@@ -260,8 +260,7 @@ try {
     $stmt_cats = $pdo->query("SELECT * FROM huli_api_categories ORDER BY name");
     $categories = $stmt_cats->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    error_log('API 编辑失败: ' . $e->getMessage());
-    $feedback_msg = '操作失败，请稍后重试。';
+    $feedback_msg = '操作失败: ' . $e->getMessage();
     $feedback_type = 'error';
 }
 ?>

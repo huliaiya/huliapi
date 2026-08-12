@@ -415,4 +415,63 @@ CREATE TABLE `huli_email_broadcasts` (
   KEY `status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='邮件群发表';
 
+DROP TABLE IF EXISTS `huli_push_settings`;
+CREATE TABLE `huli_push_settings` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `channel` enum('email','wecom','dingtalk','feishu','bark','webhook') NOT NULL,
+  `name` varchar(100) NOT NULL DEFAULT '',
+  `enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `config` text NOT NULL COMMENT 'JSON 配置',
+  `events` text NOT NULL COMMENT 'JSON 事件订阅列表',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `channel` (`channel`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='推送通道配置表';
+
+INSERT INTO `huli_push_settings` (`channel`,`name`,`enabled`,`config`,`events`) VALUES
+('email','邮件通知',0,'{\"smtp_host\":\"\",\"smtp_port\":465,\"smtp_secure\":\"ssl\",\"smtp_user\":\"\",\"smtp_pass\":\"\",\"from_name\":\"huliapi\"}','[]'),
+('wecom','企业微信',0,'{\"webhook\":\"\"}','[]'),
+('dingtalk','钉钉',0,'{\"webhook\":\"\",\"secret\":\"\"}','[]'),
+('feishu','飞书',0,'{\"webhook\":\"\",\"secret\":\"\"}','[]'),
+('bark','Bark iOS',0,'{\"server\":\"https://api.day.app\",\"device_key\":\"\"}','[]'),
+('webhook','自定义 Webhook',0,'{\"url\":\"\",\"method\":\"POST\",\"headers\":\"\"}','[]');
+
+DROP TABLE IF EXISTS `huli_login_logs`;
+CREATE TABLE `huli_login_logs` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `actor_id` int(11) NOT NULL DEFAULT 0,
+  `actor_name` varchar(100) NOT NULL DEFAULT '',
+  `status` enum('success','failed','locked') NOT NULL,
+  `ip` varchar(45) NOT NULL DEFAULT '',
+  `country` varchar(64) NOT NULL DEFAULT '',
+  `region` varchar(64) NOT NULL DEFAULT '',
+  `city` varchar(64) NOT NULL DEFAULT '',
+  `isp` varchar(64) NOT NULL DEFAULT '',
+  `user_agent` varchar(255) NOT NULL DEFAULT '',
+  `login_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `actor` (`actor_id`,`login_at`),
+  KEY `status_time` (`status`,`login_at`),
+  KEY `ip_time` (`ip`,`login_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员登录日志';
+
+DROP TABLE IF EXISTS `huli_user_login_logs`;
+CREATE TABLE `huli_user_login_logs` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL DEFAULT 0,
+  `username` varchar(100) NOT NULL DEFAULT '',
+  `status` enum('success','failed','locked') NOT NULL,
+  `ip` varchar(45) NOT NULL DEFAULT '',
+  `country` varchar(64) NOT NULL DEFAULT '',
+  `region` varchar(64) NOT NULL DEFAULT '',
+  `city` varchar(64) NOT NULL DEFAULT '',
+  `isp` varchar(64) NOT NULL DEFAULT '',
+  `user_agent` varchar(255) NOT NULL DEFAULT '',
+  `login_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_time` (`user_id`,`login_at`),
+  KEY `status_time` (`status`,`login_at`),
+  KEY `ip_time` (`ip`,`login_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='前台用户登录日志';
+
 SET FOREIGN_KEY_CHECKS=1;

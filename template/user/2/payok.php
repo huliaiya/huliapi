@@ -56,8 +56,7 @@ try {
         $payment_methods['qqpay'] = $payment_map['qqpay'];
     }
 } catch (PDOException $e) {
-    error_log('充值页面数据库连接错误: ' . $e->getMessage());
-    die('数据库服务暂时不可用，请稍后重试。');
+    die('数据库连接错误：' . $e->getMessage());
 }
 ?>
 
@@ -70,7 +69,6 @@ try {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
     <link rel="stylesheet" type="text/css" href="../../../assets/css/materialdesignicons.min.css">
     <link rel="stylesheet" type="text/css" href="../../../assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="../../../assets/css/style.min.css">

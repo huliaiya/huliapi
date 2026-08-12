@@ -31,13 +31,6 @@ Entries discovered by the Agent during task execution should follow this format:
 
 ## Entries
 
-[User Instruction Summary]
-- Date: 2026-08-11
-- Context: 全站视觉改造与安全检查
-- Instructions:
-  - 涉及页面改造时，需要同时检查 SQL 注入、XSS、CSRF、认证授权、敏感错误信息和输入校验。
-  - 完成代码修改后，需要进行全量回归检查并说明无法执行的验证项。
-
 [Project Knowledge Summary]
 - Date: 2026-08-10
 - Context: Discovered by Agent while implementing GitHub-based online update detection and the miao update channel branch

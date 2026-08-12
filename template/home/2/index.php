@@ -351,16 +351,11 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
             <?php endif; ?>
             <?php if (!empty($settings['police_record_number'])): ?>
             <div class="filing-item">
-              <span>公安备案号：</span>
-              <a href="https://beian.mps.gov.cn/" target="_blank"><?php echo htmlspecialchars($settings['police_record_number']); ?></a>
+              <img src="http://qy.xilemon.com/static/public/images/mps.png" alt="公安备案标识" class="police-badge">
+              <a href="https://beian.mps.gov.cn/#/query/webSearch?code=<?php echo htmlspecialchars(preg_replace('/[^0-9]/', '', $settings['police_record_number'])); ?>" target="_blank"><?php echo htmlspecialchars($settings['police_record_number']); ?></a>
             </div>
             <?php endif; ?>
           </div>
-            <div class="filing-item">
-              <img src="http://qy.xilemon.com/static/public/images/mps.png" alt="公安备案标识" class="police-badge">
-              <span>公安备案号：</span>
-              <a href="https://beian.mps.gov.cn/#/query/webSearch?code=42022202000162" target="_blank">鄂公网安备42022202000162号</a>
-            </div>
     </aside>
     <header class="lyear-layout-header">
       <nav class="navbar">
@@ -372,153 +367,6 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
           </div>
         </div>
         <ul class="navbar-right d-flex align-items-center">
-          <li class="dropdown dropdown-skin">
-            <span data-bs-toggle="dropdown" class="icon-item">
-              <i class="mdi mdi-palette fs-5"></i>
-            </span>
-            <ul class="dropdown-menu dropdown-menu-end" data-stopPropagation="true">
-              <li class="lyear-skin-title"><p>主题</p></li>
-              <li class="lyear-skin-li clearfix">
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_1" value="default" checked="checked">
-                  <label class="form-check-label" for="site_theme_1"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_2" value="translucent-green">
-                  <label class="form-check-label" for="site_theme_2"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_3" value="translucent-blue">
-                  <label class="form-check-label" for="site_theme_3"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_4" value="translucent-yellow">
-                  <label class="form-check-label" for="site_theme_4"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_5" value="translucent-red">
-                  <label class="form-check-label" for="site_theme_5"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_6" value="translucent-pink">
-                  <label class="form-check-label" for="site_theme_6"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_7" value="translucent-cyan">
-                  <label class="form-check-label" for="site_theme_7"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_8" value="dark">
-                  <label class="form-check-label" for="site_theme_8"></label>
-                </div>
-              </li>
-              <li class="lyear-skin-title"><p>LOGO</p></li>
-              <li class="lyear-skin-li clearfix">
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_1" value="default" checked="checked">
-                  <label class="form-check-label" for="logo_bg_1"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_2" value="color_2">
-                  <label class="form-check-label" for="logo_bg_2"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_3" value="color_3">
-                  <label class="form-check-label" for="logo_bg_3"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_4" value="color_4">
-                  <label class="form-check-label" for="logo_bg_4"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_5" value="color_5">
-                  <label class="form-check-label" for="logo_bg_5"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_6" value="color_6">
-                  <label class="form-check-label" for="logo_bg_6"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_7" value="color_7">
-                  <label class="form-check-label" for="logo_bg_7"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_8" value="color_8">
-                  <label class="form-check-label" for="logo_bg_8"></label>
-                </div>
-              </li>
-              <li class="lyear-skin-title"><p>头部</p></li>
-              <li class="lyear-skin-li clearfix">
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_1" value="default" checked="checked">
-                  <label class="form-check-label" for="header_bg_1"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_2" value="color_2">
-                  <label class="form-check-label" for="header_bg_2"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_3" value="color_3">
-                  <label class="form-check-label" for="header_bg_3"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_4" value="color_4">
-                  <label class="form-check-label" for="header_bg_4"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_5" value="color_5">
-                  <label class="form-check-label" for="header_bg_5"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_6" value="color_6">
-                  <label class="form-check-label" for="header_bg_6"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_7" value="color_7">
-                  <label class="form-check-label" for="header_bg_7"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_8" value="color_8">
-                  <label class="form-check-label" for="header_bg_8"></label>
-                </div>
-              </li>
-              <li class="lyear-skin-title"><p>侧边栏</p></li>
-              <li class="lyear-skin-li clearfix">
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_1" value="default" checked="checked">
-                  <label class="form-check-label" for="sidebar_bg_1"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_2" value="color_2">
-                  <label class="form-check-label" for="sidebar_bg_2"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_3" value="color_3">
-                  <label class="form-check-label" for="sidebar_bg_3"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_4" value="color_4">
-                  <label class="form-check-label" for="sidebar_bg_4"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_5" value="color_5">
-                  <label class="form-check-label" for="sidebar_bg_5"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_6" value="color_6">
-                  <label class="form-check-label" for="sidebar_bg_6"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_7" value="color_7">
-                  <label class="form-check-label" for="sidebar_bg_7"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_8" value="color_8">
-                  <label class="form-check-label" for="sidebar_bg_8"></label>
-                </div>
-              </li>
-            </ul>
-          </li>
           <li class="dropdown">
             <a href="javascript:void(0)" data-bs-toggle="dropdown" class="dropdown-toggle d-flex align-items-center">
               <?php if ($is_logged_in): ?>
@@ -562,7 +410,7 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
     </main>
   </div>
 
-<div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel" aria-hidden="true" data-bs-backdrop="static">
+<div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
@@ -674,12 +522,55 @@ $(document).ready(function() {
         $('#modalAnnouncementTime').text('发布时间:' + formatTime(created));
         $('#announcementModal').modal('show');
     });
+
+    function huliInitDropdowns() {
+        if (window.bootstrap && bootstrap.Dropdown) {
+            document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (el) {
+                if (!bootstrap.Dropdown.getInstance(el)) {
+                    try { new bootstrap.Dropdown(el); } catch (e) {}
+                }
+            });
+        }
+        if (!document.documentElement.getAttribute('data-huli-dd-init')) {
+            document.documentElement.setAttribute('data-huli-dd-init', '1');
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.dropdown-menu') || e.target.closest('[data-bs-toggle="dropdown"]')) return;
+                document.querySelectorAll('.dropdown-menu.show').forEach(function(m) {
+                    var parent = m.closest('.dropdown');
+                    var t = parent ? parent.querySelector('[data-bs-toggle="dropdown"]') : null;
+                    var d = t ? bootstrap.Dropdown.getInstance(t) : null;
+                    if (d) d.hide();
+                });
+            }, true);
+        }
+    }
+    huliInitDropdowns();
+    window.addEventListener('load', huliInitDropdowns);
 });
 
 
 </script>
 
 
-<script src="https://api.suyanw.cn/api/mouse/yinghua.js"/></script>
+<!-- Cherry-blossom effect intentionally disabled for UI clarity. -->
+<!-- <script src="https://api.suyanw.cn/api/mouse/yinghua.js"/></script> -->
+<script>
+/* Random floating motion for stat cards, API cards, and FAB.
+   Each element gets a unique duration (3.8-6.4s) and delay (0-2s)
+   so the page feels alive without synchronised pulses. */
+(function () {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var targets = document.querySelectorAll(
+        '.card.bg-primary, .card.bg-pink, .card.bg-success, .card.bg-danger, .card.bg-warning, .card.bg-info, .api-card, .floating-sidebar-btn .btn-float'
+    );
+    targets.forEach(function (el) {
+        var duration = (3.8 + Math.random() * 2.6).toFixed(2) + 's';
+        var delay = (Math.random() * 2).toFixed(2) + 's';
+        el.classList.add('huli-float');
+        el.style.setProperty('--float-duration', duration);
+        el.style.setProperty('--float-delay', delay);
+    });
+})();
+</script>
 </body>
 </html>

@@ -23,7 +23,6 @@ try {
 <head>
     <meta charset="UTF-8">
     <title>找回密码 - huliapi</title>
-    <link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
     <style>
         :root {
             --bg-color: #f8f9fa; --form-bg-color: #ffffff; --primary-color: #4a69bd;

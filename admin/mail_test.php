@@ -1,7 +1,7 @@
 <?php
 @session_start();
 @error_reporting(E_ALL);
-@ini_set('display_errors', 'Off');
+@ini_set('display_errors', 'On');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (!file_exists('../config.php')) { die("出现错误！配置文件丢失。"); }
 require_once '../config.php';
@@ -47,8 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['recipient_email'])) {
         }
         echo '<strong>邮件已成功发送！</strong>';
     } catch (Exception $e) {
-        error_log('测试邮件发送失败: ' . $e->getMessage());
-        echo '<strong>邮件发送失败。</strong> 请检查邮件配置后重试。';
+        echo "<strong>邮件发送失败。</strong> 错误信息: " . htmlspecialchars($e->getMessage());
     }
     $feedback_output = ob_get_clean();
 }

@@ -13,8 +13,8 @@ $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");$log.="✓ 数据库清理完成\n";$lo
 $sql_commands=preg_split('/;\s*\n/',$sql);$log.="> 开始导入数据库结构 (共 ".count($sql_commands)." 条SQL语句)...\n";foreach($sql_commands as $command){$command=trim($command);if(!empty($command)){$table_name='';if(preg_match('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([^\s`(]+)/i',$command,$matches)){$table_name=$matches[1];}if(empty($table_name)&&preg_match('/INSERT\s+INTO\s+`?([^\s`]+)/i',$command,$matches)){$table_name=$matches[1];}if(empty($table_name)){$table_name='SQL命令';}
 try{$start_time=microtime(true);$pdo->exec($command);$time_taken=round((microtime(true)-$start_time)*1000,2);$log.="✓ [{$table_name}] 执行成功 ({$time_taken}ms)\n";}catch(PDOException $e){if(strpos($e->getMessage(),'already exists')!==false){$log.="⚠ [{$table_name}] 表已存在 (跳过)\n";}else{$log.="✗ [{$table_name}] 执行失败: ".$e->getMessage()."\n";}}}}
  $log.="✓ 数据库导入完成\n";$adminStmt=$pdo->prepare("UPDATE huli_admins SET username = ?, password = ?, email = ?, qq = ?, nickname = ? WHERE id = 1");$adminStmt->execute([$install['admin_username'],password_hash($install['admin_password'],PASSWORD_DEFAULT),$install['admin_email'],$install['admin_qq'],$install['admin_nickname']]);$settingStmt=$pdo->prepare("UPDATE huli_settings SET setting_value = ? WHERE setting_key = ?");foreach([['mail_smtp_host',$install['smtp_host']],['mail_smtp_port',(string)$install['smtp_port']],['mail_smtp_secure',$install['smtp_secure']],['mail_smtp_user',$install['smtp_user']],['mail_smtp_pass',$install['smtp_pass']],['turnstile_site_key',$install['turnstile_site_key']],['turnstile_secret_key',$install['turnstile_secret_key']]] as $setting){$settingStmt->execute([$setting[1],$setting[0]]);}$log.="✓ 管理员和邮件配置保存成功\n";if($install['admin_path']!=='admin'){if(!is_dir('../admin')){throw new Exception('默认后台目录不存在，无法重命名');}if(file_exists('../'.$install['admin_path'])){throw new Exception('后台目录名已存在，请更换名称');}if(!rename('../admin','../'.$install['admin_path'])){throw new Exception('后台目录重命名失败，请检查目录权限');}$log.="✓ 后台目录已设置为 /{$install['admin_path']}/\n";}$log.="> 正在创建安装锁文件...\n";file_put_contents('install.lock','安装锁'.PHP_EOL.'安装完成时间: '.date('Y-m-d H:i:s'));$log.="✓ 安装锁文件创建成功\n";$_SESSION['install_log']=$log;$_SESSION['installed_admin']=$install;header("Location: ?step=".STEP_COMPLETE);exit;}}catch(Exception $e){$error=$e->getMessage();if($action==='install_db'&&$config_written_this_run){if(file_exists('../config.php')){@unlink('../config.php');}if(file_exists('install.lock')){@unlink('install.lock');}}}}
-function checkEnvironment(){if(version_compare(PHP_VERSION,'7.4.0','<')){throw new Exception('PHP版本需要7.4.0或更高，当前版本: '.PHP_VERSION);}
-$required_extensions=['pdo','pdo_mysql','zip'];$missing=[];foreach($required_extensions as $ext){if(!extension_loaded($ext)){$missing[]=$ext;}}if(!empty($missing)){throw new Exception('缺少必需的PHP扩展: '.implode(', ',$missing));}
+ function checkEnvironment(){if(version_compare(PHP_VERSION,'8.0.0','<')){throw new Exception('PHP版本需要8.0.0或更高，当前版本: '.PHP_VERSION);}
+ $required_extensions=['pdo','pdo_mysql','curl','openssl','mbstring','gd','zip'];$missing=[];foreach($required_extensions as $ext){if(!extension_loaded($ext)){$missing[]=$ext;}}if(!empty($missing)){throw new Exception('缺少必需的PHP扩展: '.implode(', ',$missing));}
 $check_dirs=['../','../API'];foreach($check_dirs as $dir){if(!is_writable($dir)){throw new Exception("目录/文件不可写: {$dir}");}}
 $check_file='../config.php';if(file_exists($check_file)&&!is_writable($check_file)){throw new Exception("目录/文件不可写: {$check_file}");}}
 function showInstallPage($step,$error=null){$steps=[STEP_CHECK_ENV=>['title'=>'环境检测','active'=>$step==STEP_CHECK_ENV,'completed'=>$step>STEP_CHECK_ENV],STEP_DB_CONFIG=>['title'=>'数据库配置','active'=>$step==STEP_DB_CONFIG,'completed'=>$step>STEP_DB_CONFIG],STEP_INSTALL_DB=>['title'=>'安装数据库','active'=>$step==STEP_INSTALL_DB,'completed'=>$step>STEP_INSTALL_DB],STEP_COMPLETE=>['title'=>'安装完成','active'=>$step==STEP_COMPLETE,'completed'=>false]];?>
@@ -27,6 +27,7 @@ function showInstallPage($step,$error=null){$steps=[STEP_CHECK_ENV=>['title'=>'�
 <title>系统安装向导</title>
 <link rel="stylesheet" href="../assets/css/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/materialdesignicons.min.css">
+<link rel="stylesheet" href="../assets/css/liquid-glass.css">
 <style>
 :root {
   --primary: #1976d2;
@@ -338,6 +339,202 @@ body {
   .section-heading small { display:none; }
 }
 </style>
+<style>
+/* Installation-only layers keep the setup flow legible over the shared glass material. */
+html { background: #101a35; }
+body {
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+  padding: clamp(18px, 4vw, 54px);
+  background:
+    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(78, 132, 255, .62), transparent 68%),
+    radial-gradient(ellipse 60% 70% at 100% 0%, rgba(93, 177, 255, .42), transparent 66%),
+    radial-gradient(ellipse 70% 60% at 50% 110%, rgba(38, 208, 194, .32), transparent 70%),
+    linear-gradient(145deg, #111b38 0%, #1c2850 48%, #102d46 100%);
+}
+body::before,
+body::after {
+  position: fixed;
+  z-index: -1;
+  display: block;
+  pointer-events: none;
+  content: "";
+  border-radius: 999px;
+  filter: blur(4px);
+}
+body::before {
+  width: min(44vw, 560px);
+  height: min(44vw, 560px);
+  top: -18vw;
+  right: 8vw;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.35), rgba(91, 178, 255, .18) 38%, transparent 70%);
+  box-shadow: 0 0 100px rgba(113, 132, 255, .3);
+}
+body::after {
+  width: min(35vw, 420px);
+  height: min(35vw, 420px);
+  bottom: -16vw;
+  left: 8vw;
+  background: radial-gradient(circle at 45% 40%, rgba(91, 238, 221, .3), transparent 68%);
+}
+.install-container { max-width: 1080px; }
+.install-container > .card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.28) !important;
+  border-radius: 30px;
+  background: linear-gradient(135deg, rgba(255,255,255,.2), rgba(255,255,255,.07)) !important;
+  box-shadow: 0 34px 100px rgba(2, 8, 28, .42), inset 0 1px 0 rgba(255,255,255,.44), inset 0 -1px 0 rgba(255,255,255,.08);
+  -webkit-backdrop-filter: blur(34px) saturate(155%);
+  backdrop-filter: blur(34px) saturate(155%);
+}
+.install-container > .card::before {
+  position: absolute;
+  inset: 1px;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  border-radius: 29px;
+  background: linear-gradient(115deg, rgba(255,255,255,.22), transparent 24%, transparent 74%, rgba(255,255,255,.1));
+}
+.card-header,
+.card-body { position: relative; z-index: 1; }
+.card-header {
+  padding: clamp(30px, 5vw, 56px) 28px 38px;
+  background: linear-gradient(135deg, rgba(104, 168, 255, .34), rgba(70, 195, 231, .22) 55%, rgba(69, 224, 211, .18)) !important;
+  border-bottom: 1px solid rgba(255,255,255,.2) !important;
+}
+.card-header::before { background: rgba(255,255,255,.11); box-shadow: 0 0 35px rgba(255,255,255,.16); }
+.card-header::after { background: rgba(99, 237, 222, .12); }
+.card-title { letter-spacing: .03em; text-shadow: 0 2px 20px rgba(24, 35, 88, .28); }
+.card-body { padding: clamp(24px, 4vw, 48px); color: #eaf0ff; }
+.step-indicator { margin: 0 auto 42px; max-width: 760px; }
+.step { padding: 0 clamp(9px, 2.5vw, 30px); }
+.step-number {
+  position: relative;
+  z-index: 2;
+  border: 1px solid rgba(255,255,255,.32);
+  background: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.72);
+  box-shadow: inset 0 1px rgba(255,255,255,.3), 0 8px 22px rgba(5, 12, 45, .2);
+}
+.step.active .step-number { background: linear-gradient(135deg, #5d9dff, #42c8e8); box-shadow: 0 0 0 6px rgba(111, 177, 255, .18), 0 12px 28px rgba(62, 137, 231, .3); }
+.step.completed .step-number { background: linear-gradient(135deg, #36d8c4, #4aa7ff); box-shadow: 0 0 0 6px rgba(61, 218, 198, .14), 0 12px 28px rgba(37, 164, 183, .28); }
+.step-title, .text-muted, .form-text, small.text-muted { color: rgba(226, 235, 255, .7) !important; }
+.step.active .step-title { color: #fff; }
+.step.completed .step-title { color: #a8ffed; }
+.step-connector { left: calc(50% + 27px); z-index: 0; width: calc(100% - 54px); background: rgba(255,255,255,.16); }
+.step.completed .step-connector { background: linear-gradient(90deg, #39d9c4, #6aafff); }
+.alert,
+.env-check-box,
+.credentials-box,
+.security-alert,
+.section-heading,
+.terminal-container {
+  border-color: rgba(255,255,255,.18) !important;
+}
+.alert { color: #fff; background: rgba(255, 102, 137, .16) !important; border: 1px solid rgba(255, 154, 177, .3) !important; }
+.env-check-box, .credentials-box, .terminal-container { background: rgba(9, 20, 52, .2); border-radius: 20px; padding: 22px; }
+.env-check-item { border-bottom-color: rgba(255,255,255,.1); }
+.env-check-item:hover { background: rgba(255,255,255,.08); }
+.env-check-box h5, .credentials-box h5, .terminal-container h5, .section-heading { color: #f5f8ff; }
+.check-success { color: #68f2d2; }
+.check-danger { color: #ff91ad; }
+.form-label { color: #f5f8ff; font-weight: 600; }
+.form-control, .form-select {
+  min-height: 48px;
+  color: #f5f8ff !important;
+  border: 1px solid rgba(255,255,255,.2) !important;
+  background: rgba(7, 17, 47, .3) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.1), 0 8px 22px rgba(5, 12, 45, .1);
+}
+.form-control::placeholder { color: rgba(226,235,255,.42); }
+.form-control:focus, .form-select:focus { border-color: rgba(124, 176, 255, .85) !important; background: rgba(12, 27, 68, .46) !important; box-shadow: 0 0 0 4px rgba(94, 145, 255, .16), inset 0 1px rgba(255,255,255,.18); }
+.form-select option { color: #17233b; }
+.section-heading { padding-bottom: 13px; border-bottom: 1px solid rgba(255,255,255,.16); }
+.terminal { color: #dff7ff; border: 1px solid rgba(133, 234, 255, .22); border-radius: 18px; background: rgba(3, 10, 29, .7); box-shadow: inset 0 0 30px rgba(0,0,0,.26), 0 14px 30px rgba(3, 10, 29, .16); }
+.terminal-success { color: #68f2d2; }
+.terminal-error { color: #ff91ad; }
+.terminal-warning { color: #ffd27b; }
+.terminal-info, .terminal-prompt { color: #8fc8ff; }
+.credential-item { border-bottom-color: rgba(255,255,255,.12); }
+.credential-label, .credential-value { color: #f5f8ff; }
+.credential-icon { color: #8fb5ff; }
+.btn-install, .btn-primary { color: #fff !important; border: 1px solid rgba(255,255,255,.28) !important; background: linear-gradient(135deg, #4d97ff, #38c4e5) !important; box-shadow: 0 14px 28px rgba(65, 145, 220, .25), inset 0 1px rgba(255,255,255,.5); }
+.btn-install:hover, .btn-primary:hover { filter: brightness(1.08); }
+.btn-outline-primary, .btn-outline-secondary { color: #eaf0ff; border-color: rgba(255,255,255,.32); background: rgba(255,255,255,.08); }
+.btn-outline-primary:hover, .btn-outline-secondary:hover { color: #17233b; background: rgba(255,255,255,.78); border-color: rgba(255,255,255,.8); }
+.success-icon { color: #69f2d5; filter: drop-shadow(0 8px 22px rgba(64, 225, 202, .34)); }
+.security-alert { color: #ffe5a7; background: rgba(255, 177, 66, .12); border-left: 3px solid #ffc66d !important; }
+hr { border-color: rgba(255,255,255,.16); opacity: 1; }
+@media (max-width: 560px) {
+  body { align-items: flex-start; padding: 12px; }
+  .install-container > .card { border-radius: 22px; }
+  .card-body { padding: 18px 14px; }
+  .step-indicator { margin-bottom: 28px; }
+  .step { padding: 0 5px; }
+  .step-number { width: 36px; height: 36px; font-size: .9rem; }
+  .step-title { max-width: 70px; font-size: .72rem; }
+  .step-connector { left: calc(50% + 19px); width: calc(100% - 38px); }
+  .env-check-box, .credentials-box, .terminal-container { padding: 15px; }
+  .d-flex.justify-content-between { gap: 12px; }
+  .d-flex.justify-content-between .btn { flex: 1; }
+}
+@supports not ((backdrop-filter: blur(1px))) {
+  .install-container > .card { background: #263763 !important; }
+}
+</style>
+<style>
+/* Keep the wizard light and high-contrast while retaining the layered glass finish. */
+html { background: #eaf4ff; }
+body {
+  color: #20304d;
+  background:
+    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(91, 169, 255, .34), transparent 68%),
+    radial-gradient(ellipse 60% 70% at 100% 0%, rgba(102, 190, 255, .25), transparent 66%),
+    radial-gradient(ellipse 70% 60% at 50% 110%, rgba(53, 218, 200, .2), transparent 70%),
+    linear-gradient(145deg, #eaf3ff 0%, #f8f6ff 48%, #ebfbf8 100%);
+}
+body::before { background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.72), rgba(103, 157, 255, .12) 38%, transparent 70%); box-shadow: 0 0 100px rgba(103, 157, 255, .2); }
+body::after { background: radial-gradient(circle at 45% 40%, rgba(66, 210, 196, .2), transparent 68%); }
+.install-container > .card {
+  border-color: rgba(255,255,255,.78) !important;
+  background: linear-gradient(135deg, rgba(255,255,255,.84), rgba(255,255,255,.55)) !important;
+  box-shadow: 0 34px 100px rgba(49, 89, 145, .18), inset 0 1px 0 rgba(255,255,255,.95), inset 0 -1px 0 rgba(130, 162, 205, .12);
+}
+.install-container > .card::before { background: linear-gradient(115deg, rgba(255,255,255,.8), transparent 24%, transparent 74%, rgba(255,255,255,.38)); }
+.card-header { background: linear-gradient(135deg, rgba(38, 125, 224, .96), rgba(44, 180, 225, .9) 56%, rgba(83, 208, 210, .86)) !important; }
+.card-body { color: #20304d; }
+.step-number { position: relative; z-index: 2; border-color: rgba(255,255,255,.92); background: #e0e9f5; color: #61718c; box-shadow: inset 0 1px rgba(255,255,255,.9), 0 8px 22px rgba(38, 82, 137, .14); }
+.step.active .step-number { background: #5d9dff; color: #fff; }
+.step.completed .step-number { background: #39cdb8; color: #fff; }
+.step-connector { display: none !important; }
+.step-title, .text-muted, .form-text, small.text-muted { color: #687a94 !important; }
+.step.active .step-title { color: #2476cf; }
+.step.completed .step-title { color: #159d8e; }
+.step-connector { background: rgba(184, 199, 219, .7); }
+.alert { color: #8d2948; background: rgba(255, 225, 233, .82) !important; border-color: rgba(226, 111, 143, .34) !important; }
+.env-check-box, .credentials-box, .terminal-container { background: rgba(255,255,255,.34); }
+.env-check-item { border-bottom-color: rgba(132, 157, 190, .16); }
+.env-check-item:hover { background: rgba(255,255,255,.58); }
+.env-check-box h5, .credentials-box h5, .terminal-container h5, .section-heading { color: #25446f; }
+.check-success { color: #10ae93; }
+.check-danger { color: #dc5475; }
+.form-label { color: #294366; }
+.form-control, .form-select { color: #20304d !important; border-color: rgba(119, 148, 188, .34) !important; background: rgba(255,255,255,.72) !important; box-shadow: inset 0 1px rgba(255,255,255,.95), 0 8px 22px rgba(43, 85, 135, .06); }
+.form-control::placeholder { color: #8a9ab1; }
+.form-control:focus, .form-select:focus { border-color: rgba(45, 134, 229, .72) !important; background: rgba(255,255,255,.92) !important; box-shadow: 0 0 0 4px rgba(45, 134, 229, .12), inset 0 1px rgba(255,255,255,.95); }
+.section-heading { border-bottom-color: rgba(119, 148, 188, .2); }
+.credential-item { border-bottom-color: rgba(119, 148, 188, .2); }
+.credential-label, .credential-value { color: #294366; }
+.credential-icon { color: #377fda; }
+.btn-outline-primary, .btn-outline-secondary { color: #315477; border-color: rgba(91, 126, 171, .38); background: rgba(255,255,255,.58); }
+.btn-outline-primary:hover, .btn-outline-secondary:hover { color: #21456e; background: rgba(255,255,255,.9); border-color: rgba(91, 126, 171, .58); }
+.security-alert { color: #805c22; background: rgba(255, 244, 210, .72); border-left-color: #e9ad43 !important; }
+hr { border-color: rgba(119, 148, 188, .22); }
+@supports not ((backdrop-filter: blur(1px))) { .install-container > .card { background: rgba(255,255,255,.96) !important; } }
+</style>
 </head>
 <body>
 <div class="install-container">
@@ -375,14 +572,14 @@ body {
           <h5 class="mb-4"><i class="mdi mdi-server-security mr-2"></i>系统环境检测</h5>
           <ul class="env-check-list">
             <li class="env-check-item">
-              <i class="mdi mdi-<?= version_compare(PHP_VERSION, '7.4.0', '>=') ? 'check-circle' : 'close-circle' ?> env-check-icon <?= version_compare(PHP_VERSION, '7.4.0', '>=') ? 'check-success' : 'check-danger' ?>"></i>
+               <i class="mdi mdi-<?= version_compare(PHP_VERSION, '8.0.0', '>=') ? 'check-circle' : 'close-circle' ?> env-check-icon <?= version_compare(PHP_VERSION, '8.0.0', '>=') ? 'check-success' : 'check-danger' ?>"></i>
               <div>
                 <strong>PHP版本</strong>
-                <p class="text-muted"><?= PHP_VERSION ?> (要求: 7.4.0+)</p>
+                 <p class="text-muted"><?= PHP_VERSION ?> (要求: 8.0.0+)</p>
               </div>
             </li>
             <?php
-            $required_extensions = ['pdo', 'pdo_mysql','zip'];
+             $required_extensions = ['pdo', 'pdo_mysql', 'curl', 'openssl', 'mbstring', 'gd', 'zip'];
             foreach ($required_extensions as $ext): 
               $loaded = extension_loaded($ext);
             ?>

@@ -13,6 +13,29 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        body {
+            background-color: #eaf4ff;
+            background-image:
+                radial-gradient(circle at 18% 18%, rgba(118, 181, 255, .35), rgba(0, 0, 0, 0) 38%),
+                radial-gradient(circle at 82% 82%, rgba(119, 222, 218, .32), rgba(0, 0, 0, 0) 42%),
+                radial-gradient(circle at 50% 100%, rgba(178, 220, 255, .25), rgba(0, 0, 0, 0) 40%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        .error-page,
+        .body-main,
+        .error-content,
+        .quick-links,
+        .actions-card {
+            background: rgba(255, 255, 255, .62) !important;
+            backdrop-filter: blur(16px) saturate(140%);
+            -webkit-backdrop-filter: blur(16px) saturate(140%);
+            border: 1px solid rgba(180, 220, 245, .35) !important;
+            box-shadow:
+                0 18px 50px rgba(45, 100, 155, .14),
+                inset 0 1px 0 rgba(255, 255, 255, .75) !important;
+            border-radius: 22px !important;
+        }
         *,
         *::before,
         *::after {

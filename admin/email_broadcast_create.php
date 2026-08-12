@@ -37,7 +37,7 @@ try {
         if (!$edit_id) { $broadcast = ['title'=>'','content'=>'','scheduled_at'=>'','status'=>'draft']; }
         else { $broadcast['title'] = $title; $broadcast['content'] = $content; $broadcast['scheduled_at'] = $scheduled_at; $broadcast['status'] = $status; }
     }
-} catch (Exception $e) { error_log('邮件广播创建失败: ' . $e->getMessage()); $feedback_msg = '操作失败，请稍后重试。'; $feedback_type = 'error'; }
+} catch (Exception $e) { $feedback_msg = $e->getMessage(); $feedback_type = 'error'; }
 ?>
 <!DOCTYPE html>
 <html lang="zh">

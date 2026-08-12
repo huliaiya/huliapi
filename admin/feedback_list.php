@@ -111,8 +111,7 @@ try {
     $stmt_list->execute();
     $feedbacks = $stmt_list->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    error_log('反馈列表操作失败: ' . $e->getMessage());
-    $feedback_msg = '数据库操作失败，请稍后重试。';
+    $feedback_msg = '数据库操作失败: ' . $e->getMessage();
     $feedback_type = 'error';
     $feedbacks = [];
 }

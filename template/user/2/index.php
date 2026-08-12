@@ -61,17 +61,17 @@ if ($currentTemplate !== $activeTemplate) {
         <style>
             body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
             .container { max-width: 600px; margin: 0 auto; }
-            h1 { color: #d9534f; }
+            h1 { color: 
             .btn {
                 display: inline-block;
                 padding: 10px 20px;
-                background: #337ab7;
+                background: 
                 color: white;
                 text-decoration: none;
                 border-radius: 4px;
                 margin-top: 20px;
             }
-            .btn:hover { background: #286090; }
+            .btn:hover { background: 
         </style>
     </head>
     <body>
@@ -167,6 +167,12 @@ if ($currentTemplate !== $activeTemplate) {
                 <span>在线充值</span>
               </a>
             </li>
+            <li class="nav-item">
+              <a class="multitabs" href="<?= $userTemplateBaseUrl ?>login_logs.php">
+                <i class="mdi mdi-shield-lock-outline"></i>
+                <span>我的登录日志</span>
+              </a>
+            </li>
           </ul>
         </nav>
         <div class="sidebar-footer">
@@ -186,153 +192,6 @@ if ($currentTemplate !== $activeTemplate) {
           </div>
         </div>
         <ul class="navbar-right d-flex align-items-center">
-          <li class="dropdown dropdown-skin">
-		    <span data-bs-toggle="dropdown" class="icon-item">
-              <i class="mdi mdi-palette fs-5"></i>
-            </span>
-			<ul class="dropdown-menu dropdown-menu-end" data-stopPropagation="true">
-              <li class="lyear-skin-title"><p>主题</p></li>
-              <li class="lyear-skin-li clearfix">
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_1" value="default" checked="checked">
-                  <label class="form-check-label" for="site_theme_1"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_2" value="translucent-green">
-                  <label class="form-check-label" for="site_theme_2"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_3" value="translucent-blue">
-                  <label class="form-check-label" for="site_theme_3"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_4" value="translucent-yellow">
-                  <label class="form-check-label" for="site_theme_4"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_5" value="translucent-red">
-                  <label class="form-check-label" for="site_theme_5"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_6" value="translucent-pink">
-                  <label class="form-check-label" for="site_theme_6"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_7" value="translucent-cyan">
-                  <label class="form-check-label" for="site_theme_7"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="site_theme" id="site_theme_8" value="dark">
-                  <label class="form-check-label" for="site_theme_8"></label>
-                </div>
-              </li>
-			  <li class="lyear-skin-title"><p>LOGO</p></li>
-			  <li class="lyear-skin-li clearfix">
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_1" value="default" checked="checked">
-                  <label class="form-check-label" for="logo_bg_1"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_2" value="color_2">
-                  <label class="form-check-label" for="logo_bg_2"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_3" value="color_3">
-                  <label class="form-check-label" for="logo_bg_3"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_4" value="color_4">
-                  <label class="form-check-label" for="logo_bg_4"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_5" value="color_5">
-                  <label class="form-check-label" for="logo_bg_5"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_6" value="color_6">
-                  <label class="form-check-label" for="logo_bg_6"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_7" value="color_7">
-                  <label class="form-check-label" for="logo_bg_7"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="logo_bg" id="logo_bg_8" value="color_8">
-                  <label class="form-check-label" for="logo_bg_8"></label>
-                </div>
-			  </li>
-			  <li class="lyear-skin-title"><p>头部</p></li>
-			  <li class="lyear-skin-li clearfix">
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_1" value="default" checked="checked">
-                  <label class="form-check-label" for="header_bg_1"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_2" value="color_2">
-                  <label class="form-check-label" for="header_bg_2"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_3" value="color_3">
-                  <label class="form-check-label" for="header_bg_3"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_4" value="color_4">
-                  <label class="form-check-label" for="header_bg_4"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_5" value="color_5">
-                  <label class="form-check-label" for="header_bg_5"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_6" value="color_6">
-                  <label class="form-check-label" for="header_bg_6"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_7" value="color_7">
-                  <label class="form-check-label" for="header_bg_7"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="header_bg" id="header_bg_8" value="color_8">
-                  <label class="form-check-label" for="header_bg_8"></label>
-                </div>
-			  </li>
-			  <li class="lyear-skin-title"><p>侧边栏</p></li>
-			  <li class="lyear-skin-li clearfix">
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_1" value="default" checked="checked">
-                  <label class="form-check-label" for="sidebar_bg_1"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_2" value="color_2">
-                  <label class="form-check-label" for="sidebar_bg_2"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_3" value="color_3">
-                  <label class="form-check-label" for="sidebar_bg_3"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_4" value="color_4">
-                  <label class="form-check-label" for="sidebar_bg_4"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_5" value="color_5">
-                  <label class="form-check-label" for="sidebar_bg_5"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_6" value="color_6">
-                  <label class="form-check-label" for="sidebar_bg_6"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_7" value="color_7">
-                  <label class="form-check-label" for="sidebar_bg_7"></label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="sidebar_bg" id="sidebar_bg_8" value="color_8">
-                  <label class="form-check-label" for="sidebar_bg_8"></label>
-                </div>
-			  </li>
-		    </ul>
-		  </li>
           <li class="dropdown">
             <a href="javascript:void(0)" data-bs-toggle="dropdown" class="dropdown-toggle d-flex align-items-center">
               <?php if ($is_logged_in): ?>
@@ -411,6 +270,30 @@ $(document).ready(function() {
             }
         });
     }, 300000);
+
+    function huliInitDropdowns() {
+        if (window.bootstrap && bootstrap.Dropdown) {
+            document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (el) {
+                if (!bootstrap.Dropdown.getInstance(el)) {
+                    try { new bootstrap.Dropdown(el); } catch (e) {}
+                }
+            });
+        }
+        if (!document.documentElement.getAttribute('data-huli-dd-init')) {
+            document.documentElement.setAttribute('data-huli-dd-init', '1');
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.dropdown-menu') || e.target.closest('[data-bs-toggle="dropdown"]')) return;
+                document.querySelectorAll('.dropdown-menu.show').forEach(function(m) {
+                    var parent = m.closest('.dropdown');
+                    var t = parent ? parent.querySelector('[data-bs-toggle="dropdown"]') : null;
+                    var d = t ? bootstrap.Dropdown.getInstance(t) : null;
+                    if (d) d.hide();
+                });
+            }, true);
+        }
+    }
+    huliInitDropdowns();
+    window.addEventListener('load', huliInitDropdowns);
 });
 </script>
 </body>

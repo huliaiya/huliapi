@@ -70,17 +70,17 @@ if ($currentTemplate !== $activeTemplate) {
         <style>
             body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
             .container { max-width: 600px; margin: 0 auto; }
-            h1 { color: #d9534f; }
+            h1 { color: 
             .btn {
                 display: inline-block;
                 padding: 10px 20px;
-                background: #337ab7;
+                background: 
                 color: white;
                 text-decoration: none;
                 border-radius: 4px;
                 margin-top: 20px;
             }
-            .btn:hover { background: #286090; }
+            .btn:hover { background: 
         </style>
     </head>
     <body>
@@ -103,21 +103,19 @@ if ($currentTemplate !== $activeTemplate) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>用户中心 - <?php echo htmlspecialchars($site_name); ?></title>
-    <link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
     <?php if (!empty($settings['favicon_url'])): ?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($settings['favicon_url']); ?>"><?php endif; ?>
     <style>
         :root {
-            --bg-color: #f7f8fc; --sidebar-bg: #ffffff; --card-bg: #ffffff;
-            --primary-color: #4a69bd; --primary-hover: #3b528f; --primary-light: #eef2ff;
-            --text-dark: #1f2937; --text-normal: #4b5563; --text-light: #9ca3af;
-            --border-color: #e5e7eb; --shadow-color: rgba(149, 157, 165, 0.1);
-            --success-bg: #dcfce7; --success-text: #166534; --error-bg: #fee2e2; --error-text: #991b1b;
+            --bg-color: 
+            --primary-color: 
+            --text-dark: 
+            --border-color: 
+            --success-bg: 
         }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-normal); line-height: 1.6; }
-        #page-container { display: flex; min-height: 100vh; }
-        #sidebar { width: 280px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100%; z-index: 100; transform: translateX(-100%); transition: transform 0.3s ease; }
+
         .sidebar-header { padding: 24px; border-bottom: 1px solid var(--border-color); }
         .sidebar-logo { font-size: 24px; font-weight: 700; color: var(--text-dark); text-decoration: none; }
         .user-info-panel { padding: 24px; text-align: center; }
@@ -129,10 +127,10 @@ if ($currentTemplate !== $activeTemplate) {
         .nav-link.active, .nav-link:hover { background-color: var(--primary-light); color: var(--primary-color); }
         .nav-link svg { margin-right: 12px; flex-shrink: 0; }
         .sidebar-footer { padding: 24px; border-top: 1px solid var(--border-color); }
-        .btn-logout { display: block; width: 100%; text-align: center; padding: 12px; border-radius: 8px; background-color: #fee2e2; color: #b91c1c; font-weight: 600; text-decoration: none; }
-        #main-content { flex-grow: 1; margin-left: 0; display: flex; flex-direction: column; width: 100%; }
+        .btn-logout { display: block; width: 100%; text-align: center; padding: 12px; border-radius: 8px; background-color: 
+        
         .main-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 32px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 50; }
-        #mobile-menu-btn { background: none; border: none; cursor: pointer; }
+        
         .content-wrapper { padding: 32px; }
         .page-header h1 { font-size: 32px; font-weight: 800; color: var(--text-dark); margin: 0; }
         .feedback-alert { padding: 16px; border-radius: 8px; font-weight: 500; margin-bottom: 24px; border: 1px solid transparent; opacity: 0; transition: opacity 0.5s; }
@@ -146,21 +144,21 @@ if ($currentTemplate !== $activeTemplate) {
         .api-key-box { background-color: var(--bg-color); padding: 16px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px; color: var(--text-dark); word-break: break-all; margin-bottom: 16px; }
         .key-actions { display: flex; gap: 12px; }
         .btn { padding: 10px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; border: none; cursor: pointer; }
-        .btn-primary { background-color: var(--primary-color); color: #fff; }
-        .btn-danger { background-color: #fee2e2; color: #b91c1c; }
+        .btn-primary { background-color: var(--primary-color); color: 
+        .btn-danger { background-color: 
         .stat-value { font-size: 36px; font-weight: 700; color: var(--text-dark); }
         .stat-label { font-size: 14px; color: var(--text-light); margin-top: 4px; }
         .activity-list { list-style: none; }
         .activity-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
         .activity-item:last-child { border-bottom: none; }
         .activity-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; }
-        .activity-icon.success { background-color: #dcfce7; color: #166534; }
-        .activity-icon.fail { background-color: #fee2e2; color: #991b1b; }
+        .activity-icon.success { background-color: 
+        .activity-icon.fail { background-color: 
         .activity-details { flex-grow: 1; }
         .activity-title { font-weight: 500; }
         .activity-time { font-size: 12px; color: var(--text-light); }
         .input-group { display: flex; flex-wrap: wrap; gap: 10px; }
-        .form-control { width: 100%; height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background-color: #f9fafb; font-size: 16px; flex-grow: 1; }
+        .form-control { width: 100%; height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background-color: 
         .input-group button { flex-shrink: 0; }
         .redeem-feedback { min-height: 24px; margin-top: 12px; font-weight: 500; font-size: 14px; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; }
@@ -180,10 +178,10 @@ if ($currentTemplate !== $activeTemplate) {
         .payment-method.selected { border-color: var(--primary-color); background-color: var(--primary-light); }
         .payment-method img { width: 32px; height: 32px; margin-right: 16px; }
         .btn-confirm-payment { width: 100%; margin-top: 24px; padding: 14px; }
-        .btn-confirm-payment:disabled { background-color: #d1d5db; cursor: not-allowed; }
-        #sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 99; }
-        @media (min-width: 1025px) { #sidebar { transform: translateX(0); } #main-content { margin-left: 280px; } #mobile-menu-btn { display: none; } }
-        @media (max-width: 1024px) { body.sidebar-open #sidebar { transform: translateX(0); } body.sidebar-open #sidebar-overlay { display: block; } .content-grid { grid-template-columns: 1fr; } }
+        .btn-confirm-payment:disabled { background-color: 
+        
+        @media (min-width: 1025px) { 
+        @media (max-width: 1024px) { body.sidebar-open 
         @media (max-width: 768px) { .content-wrapper { padding: 16px; } .page-header h1 { font-size: 28px; } }
     </style>
 </head>
@@ -197,6 +195,7 @@ if ($currentTemplate !== $activeTemplate) {
                 <a href="index.php" class="nav-link active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-5.5-2.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM10 12a5.99 5.99 0 00-4.793 2.39A6.483 6.483 0 0010 16.5a6.483 6.483 0 004.793-2.11A5.99 5.99 0 0010 12z" clip-rule="evenodd" /></svg>用户中心</a>
                 <a href="#" id="recharge-menu-item" class="nav-link"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2.5 4A1.5 1.5 0 001 5.5v1A1.5 1.5 0 002.5 8H3v8.5A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5V8h.5A1.5 1.5 0 0019 6.5v-1A1.5 1.5 0 0017.5 4h-15zM11 12a1 1 0 10-2 0 1 1 0 002 0z" /></svg>账户充值</a>
                 <a href="<?= TemplateManager::getUserTemplateUrl() ?>feedback.php" class="nav-link"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2c-1.717 0-3.28.534-4.522 1.425C3.899 4.347 3 5.91 3 7.5c0 1.27.666 2.454 1.734 3.162a.75.75 0 01.266.588v3.5a.75.75 0 00.75.75h8.5a.75.75 0 00.75-.75v-3.5a.75.75 0 01.266-.588C16.334 9.954 17 8.77 17 7.5c0-1.59-.899-3.153-2.478-4.075C13.28 2.534 11.717 2 10 2zM4.5 7.5c0-1.06.688-2.184 1.88-2.94A5.498 5.498 0 0110 3.5c1.45 0 2.763.54 3.62 1.06A3.48 3.48 0 0115.5 7.5c0 .84-.42 1.68-1.12 2.24a2.253 2.253 0 00-1.38.527.75.75 0 01-.266.588v2.895h-5.5V10.85a.75.75 0 01-.266-.588 2.253 2.253 0 00-1.38-.527C4.92 9.18 4.5 8.34 4.5 7.5z" clip-rule="evenodd" /></svg>意见反馈</a>
+                <a href="<?= TemplateManager::getUserTemplateUrl() ?>login_logs.php" class="nav-link"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>我的登录日志</a>
             </nav>
             <div class="sidebar-footer"><a href="logout.php" class="btn-logout">安全退出</a></div>
         </aside>

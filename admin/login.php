@@ -12,6 +12,7 @@ if (file_exists('../config.php')) {
     die("出现错误！配置文件丢失，请先完成安装。");
 }
 require_once __DIR__ . '/../common/turnstile.php';
+require_once __DIR__ . '/../common/login_helper.php';
 $favicon_url = '';
 try { $fp = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS); $favicon_url = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; } catch(Exception $e) {}
 $error_msg = '';
@@ -46,13 +47,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['admin_username'] = defined('ADMIN_NICKNAME') ? ADMIN_NICKNAME : ($admin['nickname'] ?: $username);
                     $updateStmt = $pdo->prepare("UPDATE huli_admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?");
                     $updateStmt->execute([$admin['id']]);
+                    try { huli_record_login($pdo, 'admin', (int)$admin['id'], $_SESSION['admin_username'], 'success'); } catch (Throwable $e) {}
                     header('Location: index.php');
                     exit;
                 } else {
                     $error_msg = '该账户已被禁用';
+                    try { huli_record_login($pdo, 'admin', 0, $username, 'failed'); } catch (Throwable $e) {}
                 }
             } else {
                 $error_msg = '账号或密码不正确';
+                try { huli_record_login($pdo, 'admin', 0, $username, 'failed'); } catch (Throwable $e) {}
             }
         } catch (PDOException $e) {
             $error_msg = '系统服务暂时不可用，请稍后重试。';
@@ -92,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     height: 36px;
     line-height: 36px;
     z-index: 4;
-    color: #dcdcdc;
+    color: 
     display: block;
     text-align: center;
     pointer-events: none;
@@ -101,8 +105,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     left: 15px;
 }
 body {
-    background-image: url(images/login-bg-2.jpg);
-    background-size: cover;
+    background:
+        radial-gradient(circle at 15% 15%, rgba(255, 220, 200, .30), transparent 32rem),
+        radial-gradient(circle at 85% 85%, rgba(192, 224, 250, .32), transparent 30rem),
+        radial-gradient(circle at 50% 50%, rgba(232, 244, 252, .28), transparent 40rem),
+        linear-gradient(135deg, 
+    background-color: 
+    background-attachment: fixed;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -121,14 +130,16 @@ body {
     cursor: pointer;
     height: 38px;
     border-radius: 4px;
-    border: 1px solid #dee2e6;
+    border: 1px solid 
 }
 </style>
 </head>
 <body>
 <div class="card card-shadowed p-5 mb-0 mr-2 ml-2" style="max-width: 450px;">
   <div class="text-center mb-4">
-    <a href="./"> <img alt="light year admin" src="../assets/images/logo-sidebar.png"> </a>
+    <a href="./"> <img alt="huli admin" src="../assets/images/logo-sidebar.png"> </a>
+    <h4 class="mt-3 mb-1"><?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?></h4>
+    <p class="text-muted mb-0">管理控制台 · 请登录以继续</p>
   </div>
   <form method="POST" action="login.php" class="signin-form needs-validation" novalidate>
     <?php if (!empty($error_msg)): ?>

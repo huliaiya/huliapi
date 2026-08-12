@@ -1,6 +1,6 @@
 <?php
 error_reporting(E_ALL);
-ini_set('display_errors', 0);
+ini_set('display_errors', 1);
 $configFile = __DIR__ . '/config.php';
 if (!file_exists($configFile)) {
     header('Content-Type: application/json');
@@ -93,14 +93,12 @@ try {
     header('Content-Type: text/plain; charset=utf-8');
     echo "╔错误信息╗\n";
     echo "╟数据库连接错误\n";
-    error_log('API 数据库错误: ' . $e->getMessage());
-    echo "╟详情: 服务暂时不可用，请稍后重试。\n";
+    echo "╟详情: " . $e->getMessage() . "\n";
     echo "╚请检查配置后重试\n";
 } catch (Exception $e) {
     header('Content-Type: text/plain; charset=utf-8');
     echo "╔错误信息╗\n";
     echo "╟系统错误\n";
-    error_log('API 服务错误: ' . $e->getMessage());
-    echo "╟详情: 服务暂时不可用，请稍后重试。\n";
+    echo "╟详情: " . $e->getMessage() . "\n";
     echo "╚请稍后重试\n";
 }

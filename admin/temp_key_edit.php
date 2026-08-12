@@ -26,7 +26,7 @@ try {
     $stmt_get->execute([$key_id]);
     $key_data = $stmt_get->fetch(PDO::FETCH_ASSOC);
     if (!$key_data) { header('Location: temp_keys.php'); exit; }
-} catch (Exception $e) { error_log('临时密钥编辑失败: ' . $e->getMessage()); $feedback_msg = '操作失败，请稍后重试。'; $feedback_type = 'error'; }
+} catch (Exception $e) { $feedback_msg = '操作失败: ' . $e->getMessage(); $feedback_type = 'error'; }
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
 

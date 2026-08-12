@@ -66,15 +66,14 @@ try {
         $success_msg = '密码重置成功！请使用新密码登录';
     }
 } catch (Exception $e) {
-    error_log('用户密码重置失败: ' . $e->getMessage());
     if ($is_ajax) {
         header('Content-Type: application/json');
         die(json_encode([
             'success' => false,
-            'message' => '密码重置失败，请检查填写内容后重试。'
+            'message' => $e->getMessage()
         ]));
     }
-    $error_msg = '密码重置失败，请检查填写内容后重试。';
+    $error_msg = $e->getMessage();
 }
 ?>
 
@@ -85,7 +84,6 @@ try {
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
 <title>重置密码 - <?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?></title>
-<link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">

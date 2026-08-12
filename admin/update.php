@@ -87,21 +87,12 @@ function huli_api_prepare() {
         if (!class_exists('ZipArchive')) { throw new Exception('服务器不支持ZipArchive，无法解压。请安装php-zip扩展。'); }
         $za = new ZipArchive;
         if ($za->open($zip) !== true) { throw new Exception('无法打开更新包文件。'); }
-        for ($index = 0; $index < $za->numFiles; $index++) {
-            $entry = $za->getNameIndex($index);
-            $normalized = str_replace('\\', '/', $entry);
-            if ($normalized === '' || $normalized[0] === '/' || preg_match('~(^|/)\.\.(/|$)~', $normalized)) {
-                $za->close();
-                throw new Exception('更新包包含非法文件路径。');
-            }
-        }
         if (!@mkdir($extract, 0755, true)) { throw new Exception('无法创建临时解压目录。'); }
         $za->extractTo($extract);
         $za->close();
     } catch (Exception $e) {
-        error_log('更新包准备失败: ' . $e->getMessage());
         @unlink($zip);
-        huli_api(['success' => false, 'message' => '更新包准备失败，请稍后重试。']);
+        huli_api(['success' => false, 'message' => $e->getMessage()]);
     }
     $_SESSION['huli_update_zip'] = $zip;
     $_SESSION['huli_update_extract'] = $extract;
@@ -125,9 +116,6 @@ function huli_api_apply() {
         foreach ($iter as $item) {
             $relative = str_replace('\\', '/', substr($item->getPathname(), strlen($root) + 1));
             if ($relative === '') { continue; }
-            if ($relative[0] === '/' || preg_match('~(^|/)\.\.(/|$)~', $relative)) {
-                throw new Exception('更新包包含非法文件路径。');
-            }
             if (in_array($relative, $protected_files, true)) { continue; }
             if (strpos($relative, 'install/') === 0) { continue; }
             if ($admin_redirect && ($relative === 'admin' || strpos($relative, 'admin/') === 0)) {
@@ -154,8 +142,7 @@ function huli_api_apply() {
         }
         if (function_exists('opcache_invalidate')) { opcache_invalidate($target . '/common/version.php', true); }
     } catch (Exception $e) {
-        error_log('系统更新失败: ' . $e->getMessage());
-        huli_api(['success' => false, 'message' => '更新过程中发生错误，请检查日志后重试。']);
+        huli_api(['success' => false, 'message' => '更新过程中发生错误: ' . $e->getMessage()]);
     } finally {
         if (!empty($_SESSION['huli_update_zip'])) { @unlink($_SESSION['huli_update_zip']); }
         huli_rrmdir($extract);
@@ -250,17 +237,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 </div>
 
 <div class="modal fade" id="progress-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="mdi mdi-progress-download"></i> 正在更新系统</h5>
-      </div>
-      <div class="modal-body">
-        <p class="mb-3" id="progress-text">准备更新...</p>
-        <div class="progress" style="height: 22px;">
-          <div class="progress-bar progress-bar-striped progress-bar-animated" id="progress-bar" role="progressbar" style="width: 0%;">0%</div>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content update-modal">
+      <div class="modal-body p-4">
+        <div class="d-flex align-items-center mb-3">
+          <div class="update-icon"><i class="mdi mdi-cloud-download-outline"></i></div>
+          <div class="flex-grow-1">
+            <h5 class="modal-title mb-0">正在更新系统</h5>
+            <small class="text-muted">更新期间请勿关闭页面</small>
+          </div>
         </div>
-        <p class="text-muted small mt-3 mb-0">更新期间请勿关闭页面。</p>
+        <div class="progress update-progress mb-3" style="height: 10px;">
+          <div class="progress-bar" id="progress-bar" role="progressbar" style="width: 0%;"></div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="text-muted small" id="progress-text">准备更新...</span>
+          <span class="progress-percent" id="progress-percent">0%</span>
+        </div>
+        <ul class="update-steps">
+          <li class="step" data-step="download"><span class="step-dot"></span><span class="step-label">下载更新包</span></li>
+          <li class="step" data-step="extract"><span class="step-dot"></span><span class="step-label">解压文件</span></li>
+          <li class="step" data-step="apply"><span class="step-dot"></span><span class="step-label">应用更新</span></li>
+          <li class="step" data-step="finish"><span class="step-dot"></span><span class="step-label">完成</span></li>
+        </ul>
       </div>
     </div>
   </div>
@@ -268,15 +267,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 <div class="modal fade" id="result-modal" data-bs-backdrop="static" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="result-title">更新完成</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body" id="result-body"></div>
-      <div class="modal-footer">
-        <a href="main.php" class="btn btn-primary">返回后台首页</a>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+    <div class="modal-content update-modal">
+      <div class="modal-body p-4">
+        <div class="d-flex align-items-center mb-3">
+          <div class="update-icon" id="result-icon"><i class="mdi mdi-check-circle-outline"></i></div>
+          <div class="flex-grow-1">
+            <h5 class="modal-title mb-0" id="result-title">更新完成</h5>
+            <small class="text-muted" id="result-sub"></small>
+          </div>
+        </div>
+        <div id="result-body"></div>
+        <div class="d-flex justify-content-end gap-2 mt-3">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">关闭</button>
+          <a href="main.php" class="btn btn-primary">返回后台首页</a>
+        </div>
       </div>
     </div>
   </div>
@@ -286,6 +290,137 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 <script type="text/javascript" src="../assets/js/jquery.min.js"></script>
 <script type="text/javascript" src="../assets/js/popper.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
+<style>
+.update-modal.modal-content {
+    background: linear-gradient(135deg, rgba(255,255,255,.88), rgba(244,249,253,.82)) !important;
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid rgba(134, 194, 255, .35) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 30px 60px rgba(45, 100, 155, .25), inset 0 1px 0 rgba(255,255,255,.7) !important;
+    overflow: hidden;
+}
+body[data-theme="dark"] .update-modal.modal-content,
+body.theme-dark .update-modal.modal-content {
+    background: linear-gradient(135deg, rgba(28,42,58,.88), rgba(22,34,50,.82)) !important;
+    border-color: rgba(134, 194, 255, .25) !important;
+    color: 
+}
+.update-icon {
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(134,194,255,.25), rgba(119,222,218,.18));
+    color: 
+    font-size: 26px;
+    margin-right: 14px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
+}
+.update-progress {
+    background: rgba(134,194,255,.18) !important;
+    border-radius: 999px !important;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(45,100,155,.12);
+}
+.update-progress .progress-bar {
+    background: linear-gradient(90deg, 
+    border-radius: 999px;
+    transition: width .35s cubic-bezier(.22,.61,.36,1);
+    position: relative;
+    overflow: hidden;
+}
+.update-progress .progress-bar::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent);
+    animation: update-shimmer 1.6s linear infinite;
+}
+@keyframes update-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+.progress-percent {
+    font-size: 18px;
+    font-weight: 700;
+    background: linear-gradient(135deg, 
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: .5px;
+}
+.update-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+.update-steps .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 4px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.4);
+    transition: background .3s ease, transform .3s ease;
+}
+.update-steps .step .step-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(134,194,255,.4);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.6);
+    transition: background .3s ease, box-shadow .3s ease, transform .3s ease;
+}
+.update-steps .step .step-label {
+    font-size: 11px;
+    color: 
+    font-weight: 500;
+}
+.update-steps .step.active {
+    background: linear-gradient(135deg, rgba(134,194,255,.22), rgba(119,222,218,.16));
+    transform: translateY(-1px);
+}
+.update-steps .step.active .step-dot {
+    background: linear-gradient(135deg, 
+    box-shadow: 0 0 0 4px rgba(108,182,255,.18), inset 0 0 0 2px rgba(255,255,255,.7);
+    animation: step-pulse 1.2s ease-in-out infinite;
+}
+.update-steps .step.active .step-label {
+    color: 
+    font-weight: 600;
+}
+.update-steps .step.done {
+    background: linear-gradient(135deg, rgba(134,194,255,.22), rgba(119,222,218,.18));
+}
+.update-steps .step.done .step-dot {
+    background: linear-gradient(135deg, 
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.7), 0 2px 6px rgba(108,182,255,.35);
+}
+.update-steps .step.done .step-label {
+    color: 
+    font-weight: 600;
+}
+@keyframes step-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(108,182,255,.18), inset 0 0 0 2px rgba(255,255,255,.7); }
+    50%      { box-shadow: 0 0 0 8px rgba(108,182,255,.06), inset 0 0 0 2px rgba(255,255,255,.7); }
+}
+.result-msg {
+    background: linear-gradient(135deg, rgba(255,255,255,.55), rgba(244,249,253,.45));
+    border: 1px solid rgba(134,194,255,.25);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: 
+    line-height: 1.7;
+}
+@media (prefers-reduced-motion: reduce) {
+    .update-progress .progress-bar::after,
+    .update-steps .step.active .step-dot {
+        animation: none;
+    }
+}
+</style>
 <script>
 var updateAvailable = false;
 var updateVersion = '';
@@ -337,13 +472,29 @@ function refreshCheck() {
   });
 }
 
-function setProgress(percent, text) {
-  $('#progress-bar').css('width', percent + '%').text(percent + '%');
+function setProgress(percent, text, step) {
+  var p = Math.max(0, Math.min(100, Math.round(percent)));
+  window.__updateProgress = p;
+  $('#progress-bar').css('width', p + '%').attr('aria-valuenow', p);
+  $('#progress-percent').text(p + '%');
   if (text) { $('#progress-text').text(text); }
+  if (step) {
+    $('.update-steps .step').removeClass('active done');
+    var order = ['download', 'extract', 'apply', 'finish'];
+    var idx = order.indexOf(step);
+    for (var i = 0; i <= idx; i++) {
+      $('.update-steps .step[data-step="' + order[i] + '"]').addClass(i < idx ? 'done' : 'active');
+    }
+  }
 }
 
-function showResultModal(title, html, type) {
-  $('#result-title').html((type === 'error' ? '<i class="mdi mdi-alert-circle text-danger"></i> ' : '<i class="mdi mdi-check-circle text-success"></i> ') + title);
+function showResultModal(title, html, type, sub) {
+  var iconHtml = type === 'error'
+    ? '<i class="mdi mdi-alert-circle-outline text-danger"></i>'
+    : '<i class="mdi mdi-check-circle-outline text-success"></i>';
+  $('#result-icon').html(iconHtml);
+  $('#result-title').html(title);
+  $('#result-sub').text(sub || '');
   $('#result-body').html(html);
   new bootstrap.Modal($('#result-modal')).show();
 }
@@ -354,42 +505,63 @@ $('#update-btn').on('click', function() {
   $(this).prop('disabled', true);
   var progressModal = new bootstrap.Modal($('#progress-modal'));
   progressModal.show();
-  setProgress(10, '正在下载更新包...');
+  setProgress(8, '正在下载更新包...', 'download');
+  var dlTimer = setInterval(function() {
+    var cur = window.__updateProgress || 8;
+    if (cur < 48) { setProgress(cur + 1); }
+  }, 250);
   $.post('update.php', {action: 'prepare'}, function(res) {
+    clearInterval(dlTimer);
     if (!res.success) {
       progressModal.hide();
-      $(this).prop('disabled', false);
-      showResultModal('更新失败', '<div class="alert alert-danger mb-0">' + $('<div>').text(res.message).html() + '</div>', 'error');
+      $('#update-btn').prop('disabled', false);
+      showResultModal('更新失败', '<div class="alert alert-danger mb-0">' + $('<div>').text(res.message).html() + '</div>', 'error', '请检查服务器网络后重试');
       return;
     }
-    setProgress(60, '正在解压并应用更新文件...');
+    setProgress(55, '正在解压更新文件...', 'extract');
+    var exTimer = setInterval(function() {
+      var cur = window.__updateProgress || 55;
+      if (cur < 85) { setProgress(cur + 2); }
+    }, 200);
     $.post('update.php', {action: 'apply'}, function(res2) {
+      clearInterval(exTimer);
       if (!res2.success) {
         progressModal.hide();
         $('#update-btn').prop('disabled', false);
-        showResultModal('更新失败', '<div class="alert alert-danger mb-0">' + $('<div>').text(res2.message).html() + '</div>', 'error');
+        showResultModal('更新失败', '<div class="alert alert-danger mb-0">' + $('<div>').text(res2.message).html() + '</div>', 'error', '应用更新时发生错误');
         return;
       }
-      setProgress(100, '更新完成');
+      setProgress(90, '正在应用更新...', 'apply');
+      var applyTimer = setInterval(function() {
+        var cur = window.__updateProgress || 90;
+        if (cur < 99) { setProgress(cur + 1); } else { clearInterval(applyTimer); }
+      }, 120);
       setTimeout(function() {
-        progressModal.hide();
-        var html = '<div class="alert alert-success mb-3">' + $('<div>').text(res2.message).html() + '</div>';
-        if (res2.admin_path_changed && res2.admin_msg) {
-          html += '<div class="alert alert-success mb-3"><i class="mdi mdi-check-circle"></i> <strong>后台目录已自动更新：</strong><br>' +
-            $('<div>').text(res2.admin_msg).html() +
-            '<div class="mt-2 small">当前后台地址：<a href="../' + res2.admin_path + '/" target="_blank">/' + res2.admin_path + '/</a></div></div>';
-        }
-        showResultModal('更新完成', html, 'success');
-        refreshCheck();
-      }, 600);
+        clearInterval(applyTimer);
+        setProgress(100, '更新完成', 'finish');
+        setTimeout(function() {
+          progressModal.hide();
+          var html = '<div class="result-msg"><i class="mdi mdi-check-circle text-success me-1"></i>' + $('<div>').text(res2.message).html() + '</div>';
+          if (res2.admin_path_changed && res2.admin_msg) {
+            html += '<div class="result-msg mt-2"><i class="mdi mdi-folder-arrow-right text-primary me-1"></i><strong>后台目录已自动更新：</strong>' +
+              $('<div>').text(res2.admin_msg).html() +
+              '<div class="small mt-1">当前后台地址：<a href="../' + res2.admin_path + '/" target="_blank">/' + res2.admin_path + '/</a></div></div>';
+          }
+          showResultModal('更新完成', html, 'success', '已成功升级到 v' + res2.version);
+          refreshCheck();
+        }, 350);
+      }, 280);
     }).fail(function() {
+      clearInterval(exTimer);
       progressModal.hide();
-      showResultModal('更新失败', '<div class="alert alert-danger mb-0">应用更新请求失败，请检查服务器状态。</div>', 'error');
+      $('#update-btn').prop('disabled', false);
+      showResultModal('更新失败', '<div class="alert alert-danger mb-0">应用更新请求失败，请检查服务器状态。</div>', 'error', '网络请求失败');
     });
   }).fail(function() {
+    clearInterval(dlTimer);
     progressModal.hide();
     $('#update-btn').prop('disabled', false);
-    showResultModal('更新失败', '<div class="alert alert-danger mb-0">下载更新包请求失败，请检查服务器网络。</div>', 'error');
+    showResultModal('更新失败', '<div class="alert alert-danger mb-0">下载更新包请求失败，请检查服务器网络。</div>', 'error', '网络请求失败');
   });
 });
 

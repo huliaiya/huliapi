@@ -60,8 +60,7 @@ try {
     header("Location: {$payment_url}");
     exit;
 } catch (Exception $e) {
-    error_log('创建充值订单失败: ' . $e->getMessage());
-    $_SESSION['feedback_msg'] = '创建订单失败，请稍后重试。';
+    $_SESSION['feedback_msg'] = '创建订单失败: ' . $e->getMessage();
     $_SESSION['feedback_type'] = 'error';
     header('Location: index.php');
     exit;

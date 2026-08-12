@@ -27,7 +27,6 @@ $site_name = $settings['site_name'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>申请临时密钥 - <?php echo htmlspecialchars($site_name); ?></title>
-    <link rel="stylesheet" href="../../../assets/css/liquid-glass.css">
     <link rel="stylesheet" type="text/css" href="../../../assets/css/materialdesignicons.min.css">
     <link rel="stylesheet" type="text/css" href="../../../assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="../../../assets/css/animate.min.css">

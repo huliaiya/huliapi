@@ -16,33 +16,45 @@ try {
     ];
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
     $columns = $pdo->query("SHOW COLUMNS FROM `huli_cdkeys`")->fetchAll(PDO::FETCH_COLUMN);
-    $pdo->beginTransaction();
-    if (!in_array('type', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `type` ENUM('balance', 'points', 'membership') NOT NULL DEFAULT 'balance' AFTER `cdkey`");
-    } else {
-        $pdo->exec("ALTER TABLE `huli_cdkeys` CHANGE COLUMN `type` `type` ENUM('balance', 'points', 'membership') NOT NULL DEFAULT 'balance'");
-    }
-    if (!in_array('points', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `points` INT NOT NULL DEFAULT 0 AFTER `balance`");
-    }
-    if (!in_array('membership_days', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `membership_days` INT NOT NULL DEFAULT 0 AFTER `points`");
-    }
-    if (in_array('status', $columns)) {
-        $statusColumn = $pdo->query("SELECT DATA_TYPE, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'huli_cdkeys' AND COLUMN_NAME = 'status'")->fetch();
-        if (strpos($statusColumn['COLUMN_TYPE'], 'unused') === false || strpos($statusColumn['COLUMN_TYPE'], 'used') === false) {
-            $pdo->exec("ALTER TABLE `huli_cdkeys` CHANGE COLUMN `status` `status` ENUM('unused', 'used') NOT NULL DEFAULT 'unused'");
+    $needsAlter = false;
+    if (!in_array('type', $columns)) { $needsAlter = true; }
+    elseif ($pdo->query("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='huli_cdkeys' AND COLUMN_NAME='type'")->fetchColumn() !== "ENUM('balance', 'points', 'membership')") { $needsAlter = true; }
+    if (!in_array('points', $columns)) { $needsAlter = true; }
+    if (!in_array('membership_days', $columns)) { $needsAlter = true; }
+    if (!in_array('status', $columns)) { $needsAlter = true; }
+    elseif ($pdo->query("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='huli_cdkeys' AND COLUMN_NAME='status'")->fetchColumn() !== "ENUM('unused', 'used')") { $needsAlter = true; }
+    if (!in_array('used_by_user_id', $columns)) { $needsAlter = true; }
+    if (!in_array('used_at', $columns)) { $needsAlter = true; }
+    if ($needsAlter) {
+        try {
+            $pdo->beginTransaction();
+            if (!in_array('type', $columns)) {
+                $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `type` ENUM('balance', 'points', 'membership') NOT NULL DEFAULT 'balance' AFTER `cdkey`");
+            } else {
+                $pdo->exec("ALTER TABLE `huli_cdkeys` CHANGE COLUMN `type` `type` ENUM('balance', 'points', 'membership') NOT NULL DEFAULT 'balance'");
+            }
+            if (!in_array('points', $columns)) {
+                $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `points` INT NOT NULL DEFAULT 0 AFTER `balance`");
+            }
+            if (!in_array('membership_days', $columns)) {
+                $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `membership_days` INT NOT NULL DEFAULT 0 AFTER `points`");
+            }
+            if (in_array('status', $columns)) {
+                $pdo->exec("ALTER TABLE `huli_cdkeys` CHANGE COLUMN `status` `status` ENUM('unused', 'used') NOT NULL DEFAULT 'unused'");
+            } else {
+                $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `status` ENUM('unused', 'used') NOT NULL DEFAULT 'unused' AFTER `membership_days`");
+            }
+            if (!in_array('used_by_user_id', $columns)) {
+                $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `used_by_user_id` INT NULL AFTER `status`");
+            }
+            if (!in_array('used_at', $columns)) {
+                $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `used_at` DATETIME NULL AFTER `used_by_user_id`");
+            }
+            $pdo->commit();
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
         }
-    } else {
-        $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `status` ENUM('unused', 'used') NOT NULL DEFAULT 'unused' AFTER `membership_days`");
     }
-    if (!in_array('used_by_user_id', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `used_by_user_id` INT NULL AFTER `status`");
-    }
-    if (!in_array('used_at', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_cdkeys` ADD COLUMN `used_at` DATETIME NULL AFTER `used_by_user_id`");
-    }
-    $pdo->commit();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST['action']) && $_POST['action'] === 'generate') {
             $count = filter_var($_POST['count'], FILTER_VALIDATE_INT, [
@@ -168,8 +180,7 @@ try {
     $stmt->execute();
     $keys = $stmt->fetchAll();
 } catch (Exception $e) {
-    error_log('卡密操作失败: ' . $e->getMessage());
-    $feedback_msg = '操作失败，请稍后重试。';
+    $feedback_msg = '操作失败: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
     $feedback_type = 'error';
     $keys = [];
     $total = 0;
@@ -193,14 +204,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
 <style>
     .copyable { cursor: pointer; position: relative; transition: background-color 0.2s; }
-    .copyable:hover { background-color: #f8f9fa; }
+    .copyable:hover { background-color: 
     .copy-tooltip {
         position: absolute;
         top: -30px;
         left: 50%;
         transform: translateX(-50%);
-        background-color: #333;
-        color: #fff;
+        background-color: 
+        color: 
         padding: 4px 8px;
         border-radius: 4px;
         font-size: 12px;
@@ -211,9 +222,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
     }
     .copyable:hover .copy-tooltip { opacity: 1; }
     .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1100; }
-    .badge-balance { background-color: #d1fae5; color: #065f46; }
-    .badge-points { background-color: #dbeafe; color: #1e40af; }
-    .badge-warning { background-color: #fef3c7; color: #92400e; }
+    .badge-balance { background-color: 
+    .badge-points { background-color: 
+    .badge-warning { background-color: 
     .table-responsive { overflow-x: auto; }
     @media (max-width: 768px) {
         .card-search .row > div {
