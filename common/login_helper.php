@@ -16,18 +16,26 @@ function huli_geo_lookup($ip, $pdo = null) {
     if (!$ip || $ip === '127.0.0.1' || $ip === '::1' || strpos($ip, '192.168.') === 0 || strpos($ip, '10.') === 0) {
         return ['country' => '内网', 'region' => '本地', 'city' => '本地', 'isp' => '内网'];
     }
-    $ctx = stream_context_create(['http' => ['timeout' => 4, 'header' => "User-Agent: huliapi-geo/1.0\r\n"]]);
-    $body = @file_get_contents("https://ipwho.is/" . urlencode($ip) . "?lang=zh-CN", false, $ctx);
-    if ($body) {
-        $j = json_decode($body, true);
-        if (is_array($j) && ($j['success'] ?? true) && !empty($j['country'])) {
-            return [
-                'country' => $j['country'] ?? '',
-                'region' => $j['region'] ?? '',
-                'city' => $j['city'] ?? '',
-                'isp' => $j['connection']['isp'] ?? ($j['connection']['org'] ?? ''),
-            ];
+    if (!function_exists('huli_pconline_geo')) {
+        $geo_lib = __DIR__ . '/geo.php';
+        if (file_exists($geo_lib)) { require_once $geo_lib; }
+    }
+    $j = function_exists('huli_pconline_geo') ? huli_pconline_geo($ip) : null;
+    if ($j && !empty($j['addr'])) {
+        $pro = $j['pro'] ?? '';
+        $city = $j['city'] ?? '';
+        $addr = $j['addr'] ?? '';
+        $isp = '';
+        $isp_parts = explode(' ', $addr);
+        if (count($isp_parts) > 1) {
+            $isp = end($isp_parts);
         }
+        return [
+            'country' => $pro,
+            'region' => $pro,
+            'city' => $city,
+            'isp' => $isp,
+        ];
     }
     return ['country' => '未知', 'region' => '未知', 'city' => '未知', 'isp' => '未知'];
 }
@@ -45,10 +53,6 @@ function huli_record_login($pdo, $actor_type, $actor_id, $actor_name, $status, $
         } elseif ($actor_type === 'user') {
             $stmt = $pdo->prepare("INSERT INTO huli_user_login_logs (user_id, username, status, ip, country, region, city, isp, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$actor_id, $actor_name, $status, $ip, $geo['country'], $geo['region'], $geo['city'], $geo['isp'], $ua]);
-            $log_id = (int)$pdo->lastInsertId();
-        } else {
-            $stmt = $pdo->prepare("INSERT INTO huli_login_logs (actor_type, actor_id, actor_name, status, ip, country, region, city, isp, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$actor_type, $actor_id, $actor_name, $status, $ip, $geo['country'], $geo['region'], $geo['city'], $geo['isp'], $ua]);
             $log_id = (int)$pdo->lastInsertId();
         }
     } catch (Throwable $e) {

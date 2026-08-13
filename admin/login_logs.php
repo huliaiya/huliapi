@@ -21,8 +21,9 @@ try {
             if ($range === '30d')  { $where = "WHERE login_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"; }
             elseif ($range === '90d')  { $where = "WHERE login_at < DATE_SUB(NOW(), INTERVAL 90 DAY)"; }
             elseif ($range === 'all')  { $where = ''; }
-            $del = $pdo->exec("DELETE FROM huli_login_logs {$where}");
-            $_SESSION['feedback_msg'] = '已清理 ' . (int)$del . ' 条登录日志。';
+            $del1 = $pdo->exec("DELETE FROM huli_login_logs {$where}");
+            $del2 = $pdo->exec("DELETE FROM huli_user_login_logs {$where}");
+            $_SESSION['feedback_msg'] = '已清理 ' . ((int)$del1 + (int)$del2) . ' 条登录日志。';
             $_SESSION['feedback_type'] = 'success';
         }
         header('Location: login_logs.php');
@@ -33,6 +34,11 @@ try {
         $feedback_type = $_SESSION['feedback_type'];
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
+    $log_view = "SELECT id, actor_type, actor_name, status, ip, country, region, city, isp, user_agent, login_at FROM (
+        SELECT id, 'admin' AS actor_type, actor_name, status, ip, country, region, city, isp, user_agent, login_at FROM huli_login_logs
+        UNION ALL
+        SELECT id, 'user' AS actor_type, username AS actor_name, status, ip, country, region, city, isp, user_agent, login_at FROM huli_user_login_logs
+    ) AS log_union";
     $actor_type = $_GET['actor_type'] ?? '';
     $status = $_GET['status'] ?? '';
     $keyword = trim($_GET['keyword'] ?? '');
@@ -49,12 +55,11 @@ try {
     $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
     $limit = 20;
     $offset = ($page - 1) * $limit;
-    $total = (int)$pdo->prepare("SELECT COUNT(*) FROM huli_login_logs {$where_sql}")->execute($params) ?: 0;
-    $stmt_total = $pdo->prepare("SELECT COUNT(*) FROM huli_login_logs {$where_sql}");
+    $stmt_total = $pdo->prepare("SELECT COUNT(*) FROM ({$log_view}) AS cnt {$where_sql}");
     $stmt_total->execute($params);
     $total = (int)$stmt_total->fetchColumn();
     $totalPages = max(1, ceil($total / $limit));
-    $stmt = $pdo->prepare("SELECT * FROM huli_login_logs {$where_sql} ORDER BY id DESC LIMIT {$limit} OFFSET {$offset}");
+    $stmt = $pdo->prepare("SELECT * FROM ({$log_view}) AS log_union {$where_sql} ORDER BY login_at DESC, id DESC LIMIT {$limit} OFFSET {$offset}");
     $stmt->execute($params);
     $logs = $stmt->fetchAll();
     $stats = $pdo->query("SELECT
@@ -64,7 +69,7 @@ try {
         SUM(actor_type='admin') AS admin_total,
         SUM(actor_type='user') AS user_total,
         COUNT(DISTINCT ip) AS uniq_ip
-        FROM huli_login_logs WHERE login_at > DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetch();
+        FROM ({$log_view}) AS log_union WHERE login_at > DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetch();
 } catch (Exception $e) {
     $feedback_msg = '加载失败: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
     $feedback_type = 'error';
