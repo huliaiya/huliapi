@@ -286,12 +286,15 @@ function huli_render_channel_card($row) {
             </div>
             <button type="submit" class="btn btn-primary">保存</button>
           </form>
+          <hr class="my-4">
+          <header class="card-header mb-3" style="background:transparent;padding:0;border:none;"><div class="card-title">账号信息</div></header>
+          <p class="text-muted small mb-3">管理管理员登录用户名与密码</p>
           <form method="POST" action="profile.php" class="site-form mb-4">
             <input type="hidden" name="form_type" value="username">
             <div class="mb-3">
               <label for="new_username">管理员用户名</label>
               <input type="text" class="form-control" name="new_username" id="new_username" value="<?php echo $username; ?>" pattern="[A-Za-z0-9_]{2,32}" title="2-32 位字母、数字或下划线" required>
-              <small class="text-muted">当前用户名：<code><?php echo $username; ?></code>　|　2-32 位字母、数字或下划线。修改后需使用新用户名重新登录。</small>
+              <small class="text-muted">2-32 位字母、数字或下划线。修改后需使用新用户名重新登录。</small>
             </div>
             <div class="mb-3">
               <label for="current_password_for_username">当前密码（验证身份）</label>
@@ -299,16 +302,7 @@ function huli_render_channel_card($row) {
             </div>
             <button type="submit" class="btn btn-primary"><i class="mdi mdi-account-edit-outline"></i> 更新用户名</button>
           </form>
-          <hr class="my-4">
-          <header class="card-header mb-3" style="background:transparent;padding:0;border:none;"><div class="card-title">推送通知</div></header>
-          <p class="text-muted small mb-3">配置邮件 / 企业微信 / 钉钉 / 飞书 / Bark / 自定义 Webhook 通道，在登录提醒等事件触发时推送通知</p>
-          <?php if ($push_feedback_msg): ?>
-          <div class="alert alert-<?php echo $push_feedback_type === 'success' ? 'success' : ($push_feedback_type === 'warning' ? 'warning' : 'danger'); ?> mb-3">
-            <?php echo htmlspecialchars($push_feedback_msg); ?>
-          </div>
-          <?php endif; ?>
-          <?php foreach ($channels as $c) { echo huli_render_channel_card($c); } ?>
-          <form method="POST" action="profile.php" class="site-form">
+          <form method="POST" action="profile.php" class="site-form mb-4">
             <input type="hidden" name="form_type" value="password">
             <div class="mb-3">
               <label for="current_password">当前密码</label>
@@ -324,6 +318,15 @@ function huli_render_channel_card($row) {
             </div>
             <button type="submit" class="btn btn-primary">更新密码</button>
           </form>
+          <hr class="my-4">
+          <header class="card-header mb-3" style="background:transparent;padding:0;border:none;"><div class="card-title">推送通知</div></header>
+          <p class="text-muted small mb-3">配置邮件 / 企业微信 / 钉钉 / 飞书 / Bark / 自定义 Webhook 通道，在登录提醒等事件触发时推送通知</p>
+          <?php if ($push_feedback_msg): ?>
+          <div class="alert alert-<?php echo $push_feedback_type === 'success' ? 'success' : ($push_feedback_type === 'warning' ? 'warning' : 'danger'); ?> mb-3">
+            <?php echo htmlspecialchars($push_feedback_msg); ?>
+          </div>
+          <?php endif; ?>
+          <?php foreach ($channels as $c) { echo huli_render_channel_card($c); } ?>
         </div>
       </div>
     </div>
