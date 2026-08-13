@@ -21,9 +21,8 @@ try {
             if ($range === '30d')  { $where = "WHERE login_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"; }
             elseif ($range === '90d')  { $where = "WHERE login_at < DATE_SUB(NOW(), INTERVAL 90 DAY)"; }
             elseif ($range === 'all')  { $where = ''; }
-            $del1 = $pdo->exec("DELETE FROM huli_login_logs {$where}");
-            $del2 = $pdo->exec("DELETE FROM huli_user_login_logs {$where}");
-            $_SESSION['feedback_msg'] = '已清理 ' . ((int)$del1 + (int)$del2) . ' 条登录日志。';
+            $del = $pdo->exec("DELETE FROM huli_login_logs {$where}");
+            $_SESSION['feedback_msg'] = '已清理 ' . (int)$del . ' 条登录日志。';
             $_SESSION['feedback_type'] = 'success';
         }
         header('Location: login_logs.php');
@@ -34,17 +33,10 @@ try {
         $feedback_type = $_SESSION['feedback_type'];
         unset($_SESSION['feedback_msg'], $_SESSION['feedback_type']);
     }
-    $log_view = "SELECT id, actor_type, actor_name, status, ip, country, region, city, isp, user_agent, login_at FROM (
-        SELECT id, 'admin' AS actor_type, actor_name, status, ip, country, region, city, isp, user_agent, login_at FROM huli_login_logs
-        UNION ALL
-        SELECT id, 'user' AS actor_type, username AS actor_name, status, ip, country, region, city, isp, user_agent, login_at FROM huli_user_login_logs
-    ) AS log_union";
-    $actor_type = $_GET['actor_type'] ?? '';
     $status = $_GET['status'] ?? '';
     $keyword = trim($_GET['keyword'] ?? '');
     $where = [];
     $params = [];
-    if ($actor_type === 'admin' || $actor_type === 'user') { $where[] = 'actor_type = ?'; $params[] = $actor_type; }
     if ($status === 'success' || $status === 'failed') { $where[] = 'status = ?'; $params[] = $status; }
     if ($keyword !== '') {
         $where[] = '(actor_name LIKE ? OR ip LIKE ? OR city LIKE ? OR region LIKE ?)';
@@ -55,25 +47,23 @@ try {
     $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
     $limit = 20;
     $offset = ($page - 1) * $limit;
-    $stmt_total = $pdo->prepare("SELECT COUNT(*) FROM ({$log_view}) AS cnt {$where_sql}");
+    $stmt_total = $pdo->prepare("SELECT COUNT(*) FROM huli_login_logs {$where_sql}");
     $stmt_total->execute($params);
     $total = (int)$stmt_total->fetchColumn();
     $totalPages = max(1, ceil($total / $limit));
-    $stmt = $pdo->prepare("SELECT * FROM ({$log_view}) AS log_union {$where_sql} ORDER BY login_at DESC, id DESC LIMIT {$limit} OFFSET {$offset}");
+    $stmt = $pdo->prepare("SELECT id, actor_name, status, ip, country, region, city, isp, user_agent, login_at FROM huli_login_logs {$where_sql} ORDER BY login_at DESC, id DESC LIMIT {$limit} OFFSET {$offset}");
     $stmt->execute($params);
     $logs = $stmt->fetchAll();
     $stats = $pdo->query("SELECT
         COUNT(*) AS total,
         SUM(status='success') AS ok,
         SUM(status='failed') AS fail,
-        SUM(actor_type='admin') AS admin_total,
-        SUM(actor_type='user') AS user_total,
         COUNT(DISTINCT ip) AS uniq_ip
-        FROM ({$log_view}) AS log_union WHERE login_at > DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetch();
+        FROM huli_login_logs WHERE login_at > DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetch();
 } catch (Exception $e) {
     $feedback_msg = '加载失败: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
     $feedback_type = 'error';
-    $logs = []; $stats = ['total'=>0,'ok'=>0,'fail'=>0,'admin_total'=>0,'user_total'=>0,'uniq_ip'=>0]; $total=0; $totalPages=1; $page=1;
+    $logs = []; $stats = ['total'=>0,'ok'=>0,'fail'=>0,'uniq_ip'=>0]; $total=0; $totalPages=1; $page=1;
 }
 ?>
 <!DOCTYPE html>
@@ -94,7 +84,10 @@ try {
   <div class="row">
     <div class="container py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="fw-bold">登录日志</h2>
+            <div>
+                <h2 class="fw-bold mb-1">登录日志</h2>
+                <div class="text-muted small">仅统计后台管理员的登录记录</div>
+            </div>
             <div class="d-flex gap-2">
                 <a href="?action=clear&range=30d" class="btn btn-outline-warning btn-sm" onclick="return confirm('确定清理 30 天前的登录日志吗？');">清理 30 天前</a>
                 <a href="?action=clear&range=all" class="btn btn-outline-danger btn-sm" onclick="return confirm('确定清空全部登录日志吗？此操作不可恢复！');">清空全部</a>
@@ -109,7 +102,6 @@ try {
                 ['label' => '近 7 天登录', 'value' => (int)($stats['total'] ?? 0), 'icon' => 'mdi-login-variant', 'color' => 'primary'],
                 ['label' => '登录成功', 'value' => (int)($stats['ok'] ?? 0), 'icon' => 'mdi-check-circle-outline', 'color' => 'success'],
                 ['label' => '登录失败', 'value' => (int)($stats['fail'] ?? 0), 'icon' => 'mdi-close-circle-outline', 'color' => 'danger'],
-                ['label' => '管理员 / 用户', 'value' => (int)($stats['admin_total'] ?? 0) . ' / ' . (int)($stats['user_total'] ?? 0), 'icon' => 'mdi-account-multiple-outline', 'color' => 'info'],
                 ['label' => '独立 IP', 'value' => (int)($stats['uniq_ip'] ?? 0), 'icon' => 'mdi-ip-network', 'color' => 'warning'],
             ];
             foreach ($stat_cards as $c): ?>
@@ -132,20 +124,13 @@ try {
             <div class="card-body">
                 <form class="row g-2 mb-3" method="get">
                     <div class="col-md-3">
-                        <select name="actor_type" class="form-select">
-                            <option value="">全部角色</option>
-                            <option value="admin" <?php echo $actor_type === 'admin' ? 'selected' : ''; ?>>管理员</option>
-                            <option value="user" <?php echo $actor_type === 'user' ? 'selected' : ''; ?>>用户</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
                         <select name="status" class="form-select">
                             <option value="">全部状态</option>
                             <option value="success" <?php echo $status === 'success' ? 'selected' : ''; ?>>成功</option>
                             <option value="failed" <?php echo $status === 'failed' ? 'selected' : ''; ?>>失败</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-5">
                         <input type="text" name="keyword" class="form-control" placeholder="按账号 / IP / 城市搜索" value="<?php echo htmlspecialchars($keyword, ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
                     <div class="col-md-2">
@@ -157,7 +142,6 @@ try {
                         <thead class="table-light">
                             <tr>
                                 <th>时间</th>
-                                <th>角色</th>
                                 <th>账号</th>
                                 <th>状态</th>
                                 <th>IP 地址</th>
@@ -168,17 +152,10 @@ try {
                         </thead>
                         <tbody>
                             <?php if (empty($logs)): ?>
-                                <tr><td colspan="8" class="text-center text-muted py-4">暂无登录日志</td></tr>
+                                <tr><td colspan="7" class="text-center text-muted py-4">暂无登录日志</td></tr>
                             <?php else: foreach ($logs as $l): ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($l['login_at']); ?></td>
-                                    <td>
-                                        <?php if ($l['actor_type'] === 'admin'): ?>
-                                            <span class="badge bg-primary">管理员</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-info">用户</span>
-                                        <?php endif; ?>
-                                    </td>
                                     <td><?php echo htmlspecialchars($l['actor_name'] ?: '-'); ?></td>
                                     <td>
                                         <?php if ($l['status'] === 'success'): ?>
@@ -199,14 +176,14 @@ try {
                 <?php if ($total > 0): ?>
                 <nav aria-label="分页">
                     <ul class="pagination justify-content-end mt-3">
-                        <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>"><a class="page-link" href="?page=<?php echo $page - 1; ?>&actor_type=<?php echo urlencode($actor_type); ?>&status=<?php echo urlencode($status); ?>&keyword=<?php echo urlencode($keyword); ?>">&laquo;</a></li>
+                        <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>"><a class="page-link" href="?page=<?php echo $page - 1; ?>&status=<?php echo urlencode($status); ?>&keyword=<?php echo urlencode($keyword); ?>">&laquo;</a></li>
                         <?php
                         $startPage = max(1, $page - 2);
                         $endPage = min($totalPages, $page + 2);
                         for ($i = $startPage; $i <= $endPage; $i++): ?>
-                            <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>"><a class="page-link" href="?page=<?php echo $i; ?>&actor_type=<?php echo urlencode($actor_type); ?>&status=<?php echo urlencode($status); ?>&keyword=<?php echo urlencode($keyword); ?>"><?php echo $i; ?></a></li>
+                            <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>"><a class="page-link" href="?page=<?php echo $i; ?>&status=<?php echo urlencode($status); ?>&keyword=<?php echo urlencode($keyword); ?>"><?php echo $i; ?></a></li>
                         <?php endfor; ?>
-                        <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>"><a class="page-link" href="?page=<?php echo $page + 1; ?>&actor_type=<?php echo urlencode($actor_type); ?>&status=<?php echo urlencode($status); ?>&keyword=<?php echo urlencode($keyword); ?>">&raquo;</a></li>
+                        <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>"><a class="page-link" href="?page=<?php echo $page + 1; ?>&status=<?php echo urlencode($status); ?>&keyword=<?php echo urlencode($keyword); ?>">&raquo;</a></li>
                     </ul>
                 </nav>
                 <?php endif; ?>
