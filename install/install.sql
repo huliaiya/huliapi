@@ -322,6 +322,7 @@ INSERT INTO `huli_settings` (`setting_key`,`setting_value`) VALUES
 ('site_name','huliapi'),
 ('temp_key_duration','24'),
 ('temp_key_limit','100'),
+('turnstile_enabled','0'),
 ('turnstile_secret_key','1x0000000000000000000000000000000AA'),
 ('turnstile_site_key','3x00000000000000000000FF'),
 ('enable_free_qps_limit','1'),
