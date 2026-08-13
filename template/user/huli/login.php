@@ -56,10 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare(
                 "SELECT id, username, email, password, status
                  FROM huli_users
-                 WHERE username = ?
+                 WHERE email = ? OR username = ?
+                 ORDER BY (email = ?) DESC
                  LIMIT 1"
             );
-            $stmt->execute([$username]);
+            $stmt->execute([$username, $username, $username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($user) {
                 $login_ok = false;
@@ -151,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <form method="POST" action="login.php" class="signin-form">
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-account" aria-hidden="true"></span>
-      <input type="text" id="username" name="username" class="form-control" placeholder="用户名" required>
+      <input type="text" id="username" name="username" class="form-control" placeholder="用户名 / 邮箱" required>
     </div>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-lock" aria-hidden="true"></span>

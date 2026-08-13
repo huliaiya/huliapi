@@ -37,8 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $stmt = $pdo->prepare("SELECT id, password, nickname, status FROM huli_admins WHERE username = ? LIMIT 1");
-            $stmt->execute([$username]);
+            $stmt = $pdo->prepare("SELECT id, username, email, password, nickname, status FROM huli_admins WHERE email = ? OR username = ? ORDER BY (email = ?) DESC LIMIT 1");
+            $stmt->execute([$username, $username, $username]);
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($admin && password_verify($password, $admin['password'])) {
                 if ($admin['status'] == 1) {
@@ -147,7 +147,7 @@ body {
     <?php endif; ?>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-account" aria-hidden="true"></span>
-      <input type="text" class="form-control" id="username" name="username" placeholder="管理员账号" required>
+      <input type="text" class="form-control" id="username" name="username" placeholder="管理员账号 / 邮箱" required>
     </div>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-lock" aria-hidden="true"></span>
