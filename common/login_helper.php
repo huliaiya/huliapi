@@ -77,19 +77,28 @@ function huli_notify_login($pdo, $actor_name, $email, $ip, $geo, $ua, $actor_typ
     if (!function_exists('huli_push_dispatch')) { return; }
     $title = $actor_type === 'admin' ? '【后台登录提醒】' . ($actor_name ?: '管理员') : '【账号登录提醒】' . ($actor_name ?: '用户');
     $ua_short = strlen($ua) > 80 ? substr($ua, 0, 80) . '…' : $ua;
+    $location = trim(($geo['country'] ?: '') . ' ' . ($geo['region'] ?: '') . ' ' . ($geo['city'] ?: ''));
+    $fields = [
+        '账号' => $actor_name ?: '-',
+        '时间' => date('Y-m-d H:i:s'),
+        'IP 地址' => $ip,
+        '登录位置' => $location !== '' ? $location : '未知',
+        '网络运营商' => $geo['isp'] ?: '未知',
+        '设备信息' => $ua_short,
+    ];
     $content = "**账号**：" . ($actor_name ?: '-') . "\n"
         . "**时间**：" . date('Y-m-d H:i:s') . "\n"
         . "**IP**：" . $ip . "\n"
-        . "**位置**：" . ($geo['country'] ?: '未知') . ' ' . ($geo['region'] ?: '') . ' ' . ($geo['city'] ?: '') . "\n"
+        . "**位置**：" . $location . "\n"
         . "**网络**：" . ($geo['isp'] ?: '未知') . "\n"
         . "**设备**：" . $ua_short;
     try {
         if ($actor_type === 'admin') {
-            huli_push_dispatch($pdo, 'login.notify', $title, $content, $email);
+            huli_push_dispatch($pdo, 'login.notify', $title, $content, $email, $fields);
         } elseif ($user_id > 0 && function_exists('huli_push_dispatch_user')) {
-            huli_push_dispatch_user($pdo, $user_id, 'login.notify', $title, $content, $email);
+            huli_push_dispatch_user($pdo, $user_id, 'login.notify', $title, $content, $email, $fields);
         } else {
-            huli_push_dispatch($pdo, 'login.notify', $title, $content, $email);
+            huli_push_dispatch($pdo, 'login.notify', $title, $content, $email, $fields);
         }
     } catch (Throwable $e) {}
 }

@@ -28,8 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $valid = ['email','wecom','dingtalk','feishu','bark','webhook'];
         $ch = $_POST['test_channel'];
         $recipient = trim($_POST['test_recipient'] ?? '');
-        $title = '【huliapi 推送测试】这是一条测试消息';
-        $content = "**通道**：" . $ch . "\n**时间**：" . date('Y-m-d H:i:s') . "\n如果您收到此消息，说明该推送通道已配置正确。";
+        $title = '【huliapi 推送测试】';
+        $fields = [
+            '测试通道' => $ch,
+            '测试时间' => date('Y-m-d H:i:s'),
+            '用途' => '验证推送通道是否配置正确',
+        ];
+        $content = "这是一条来自 huliapi 的测试消息，用于验证「" . $ch . "」推送通道是否配置正确。";
         try {
             $set = huli_load_user_push_settings($pdo, $user_id);
             if (!in_array($ch, $valid, true) || empty($set[$ch]) || !$set[$ch]['enabled']) {
@@ -42,12 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     case 'email':
                         if (!$recipient) { $feedback_msg = '邮件测试需要填写收件人邮箱。'; $feedback_type = 'warning'; break; }
                         if (empty($cfg['smtp_host']) || empty($cfg['smtp_user']) || empty($cfg['smtp_pass'])) { $feedback_msg = '系统邮件服务未配置，请联系管理员。'; $feedback_type = 'warning'; break; }
-                        $r = huli_push_email($cfg, $recipient, $title, $content); break;
-                    case 'wecom':    $r = huli_push_wecom($cfg, $title, $content); break;
-                    case 'dingtalk': $r = huli_push_dingtalk($cfg, $title, $content); break;
-                    case 'feishu':   $r = huli_push_feishu($cfg, $title, $content); break;
-                    case 'bark':     $r = huli_push_bark($cfg, $title, $content); break;
-                    case 'webhook':  $r = huli_push_webhook($cfg, $title, $content); break;
+                        $r = huli_push_email($cfg, $recipient, $title, $content, $fields); break;
+                    case 'wecom':    $r = huli_push_wecom($cfg, $title, $content, $fields); break;
+                    case 'dingtalk': $r = huli_push_dingtalk($cfg, $title, $content, $fields); break;
+                    case 'feishu':   $r = huli_push_feishu($cfg, $title, $content, $fields); break;
+                    case 'bark':     $r = huli_push_bark($cfg, $title, $content, $fields); break;
+                    case 'webhook':  $r = huli_push_webhook($cfg, $title, $content, $fields); break;
                 }
                 if (empty($feedback_msg)) {
                     $feedback_msg = $r['ok'] ? ('测试发送成功（HTTP ' . ($r['code'] ?? '200') . '）') : ('测试发送失败：' . ($r['err'] ?? 'HTTP ' . ($r['code'] ?? 'N/A')));

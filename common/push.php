@@ -1,6 +1,54 @@
 <?php
 if (!defined('HULI_PUSH_LIB')) { define('HULI_PUSH_LIB', 1); }
 
+/* ======================= 结构化推送内容工具 ======================= */
+// $fields = ['标签' => '值', ...] 各通道据此渲染自己的富文本格式
+
+function huli_md_fields(array $fields, $title = '') {
+    $lines = [];
+    if ($title !== '') {
+        $lines[] = '### ' . $title;
+        $lines[] = '';
+    }
+    foreach ($fields as $k => $v) {
+        $v = (string)$v;
+        $lines[] = $v !== '' ? '- **' . $k . '**：' . $v : '- **' . $k . '**';
+    }
+    return implode("\n", $lines);
+}
+
+function huli_email_html_rows(array $fields) {
+    $rows = '';
+    $i = 0;
+    foreach ($fields as $k => $v) {
+        $bg = $i % 2 === 0 ? '#f6f8fb' : '#ffffff';
+        $rows .= '<tr>'
+            . '<td style="padding:11px 16px;width:100px;background:' . $bg . ';color:#6b7a8c;font-weight:600;white-space:nowrap;border-bottom:1px solid #edf1f6;font-size:13px;">' . htmlspecialchars((string)$k) . '</td>'
+            . '<td style="padding:11px 16px;color:#1f2937;border-bottom:1px solid #edf1f6;word-break:break-all;font-size:14px;">' . htmlspecialchars((string)$v) . '</td>'
+            . '</tr>';
+        $i++;
+    }
+    return $rows;
+}
+
+function huli_email_html_template($title, $content, array $fields, $site_name = 'huliapi') {
+    $rows = $fields ? huli_email_html_rows($fields) : ('<tr><td style="padding:16px;color:#374151;font-size:14px;line-height:1.8;">' . nl2br(htmlspecialchars($content)) . '</td></tr>');
+    return '<div style="background:#f2f6fb;padding:28px 12px;">'
+        . '<div style="max-width:560px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;">'
+        . '<div style="background:linear-gradient(135deg,#2b7ac1,#6ba3e0);padding:24px 28px;border-radius:14px 14px 0 0;color:#ffffff;">'
+        . '<div style="font-size:19px;font-weight:700;letter-spacing:.5px;">' . htmlspecialchars($site_name) . '</div>'
+        . '<div style="font-size:14px;opacity:.9;margin-top:5px;">' . htmlspecialchars($title) . '</div>'
+        . '</div>'
+        . '<div style="background:#ffffff;padding:20px 28px;border-left:1px solid #e3ecf5;border-right:1px solid #e3ecf5;font-size:14px;color:#374151;line-height:1.8;">'
+        . '<p style="margin:0 0 14px;color:#4b5563;">' . nl2br(htmlspecialchars($content)) . '</p>'
+        . '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' . $rows . '</table>'
+        . '</div>'
+        . '<div style="background:#eef3f9;padding:15px 28px;border-radius:0 0 14px 14px;border:1px solid #e3ecf5;border-top:none;font-size:12px;color:#8595a6;line-height:1.7;">'
+        . '⚠ 如非本人操作，请立即修改您的登录密码。<br>本邮件由 ' . htmlspecialchars($site_name) . ' 系统自动发送，请勿直接回复。'
+        . '</div>'
+        . '</div></div>';
+}
+
 function huli_curl_post_json($url, $payload, $headers = []) {
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -15,24 +63,40 @@ function huli_curl_post_json($url, $payload, $headers = []) {
     curl_setopt($ch, CURLOPT_USERAGENT, 'huliapi-push/1.0');
     $body = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_err = curl_errno($ch) ? curl_error($ch) : '';
     curl_close($ch);
-    return ['code' => $code, 'body' => $body];
+    return ['code' => $code, 'body' => $body, 'curl_err' => $curl_err];
 }
 
-function huli_push_wecom($cfg, $title, $content) {
+function huli_curl_err($r) {
+    if (!empty($r['curl_err'])) { return '网络错误: ' . $r['curl_err']; }
+    $code = (int)($r['code'] ?? 0);
+    if ($code >= 200 && $code < 400) { return ''; }
+    $map = [400 => '请求参数有误(400)', 401 => '认证失败(401)', 403 => '无权限(403)', 404 => '接口不存在(404)', 429 => '发送频率受限(429)', 500 => '服务端异常(500)'];
+    return isset($map[$code]) ? $map[$code] : ('HTTP ' . ($code ? $code : '连接失败'));
+}
+
+/* ======================= 各推送通道 ======================= */
+// 第4个可选参数 $fields：结构化字段数组，配置后各通道以自身支持的富文本渲染；缺省则用 $content 纯文本降级
+
+function huli_push_wecom($cfg, $title, $content, $fields = null) {
     $url = $cfg['webhook'] ?? '';
     if (!$url) { return ['ok' => false, 'err' => 'webhook 未配置']; }
+    if (is_array($fields) && !empty($fields)) {
+        $content = huli_md_fields($fields, $title);
+    }
     $payload = [
         'msgtype' => 'markdown',
         'markdown' => [
-            'content' => "## <font color=\"info\">" . $title . "</font>\n\n" . $content,
+            'content' => "## <font color=\"warning\">🔔 " . $title . "</font>\n\n" . $content . "\n\n> 🛡 本消息由 huliapi 推送，如非本人操作请及时处理",
         ],
     ];
     $r = huli_curl_post_json($url, $payload);
-    return ['ok' => $r['code'] === 200, 'code' => $r['code'], 'body' => $r['body']];
+    $ok = $r['code'] === 200;
+    return ['ok' => $ok, 'code' => $r['code'], 'body' => $r['body'], 'err' => $ok ? '' : huli_curl_err($r)];
 }
 
-function huli_push_dingtalk($cfg, $title, $content) {
+function huli_push_dingtalk($cfg, $title, $content, $fields = null) {
     $url = $cfg['webhook'] ?? '';
     $secret = $cfg['secret'] ?? '';
     if (!$url) { return ['ok' => false, 'err' => 'webhook 未配置']; }
@@ -41,18 +105,22 @@ function huli_push_dingtalk($cfg, $title, $content) {
         $sign = base64_encode(hash_hmac('sha256', $timestamp . "\n" . $secret, $secret, true));
         $url .= (strpos($url, '?') === false ? '?' : '&') . 'timestamp=' . $timestamp . '&sign=' . urlencode($sign);
     }
+    if (is_array($fields) && !empty($fields)) {
+        $content = huli_md_fields($fields);
+    }
     $payload = [
         'msgtype' => 'markdown',
         'markdown' => [
             'title' => $title,
-            'text' => "### " . $title . "\n\n" . $content,
+            'text' => "### " . $title . "\n\n" . $content . "\n\n---\n🛡 本消息由 huliapi 推送",
         ],
     ];
     $r = huli_curl_post_json($url, $payload);
-    return ['ok' => $r['code'] === 200, 'code' => $r['code'], 'body' => $r['body']];
+    $ok = $r['code'] === 200;
+    return ['ok' => $ok, 'code' => $r['code'], 'body' => $r['body'], 'err' => $ok ? '' : huli_curl_err($r)];
 }
 
-function huli_push_feishu($cfg, $title, $content) {
+function huli_push_feishu($cfg, $title, $content, $fields = null) {
     $url = $cfg['webhook'] ?? '';
     $secret = $cfg['secret'] ?? '';
     if (!$url) { return ['ok' => false, 'err' => 'webhook 未配置']; }
@@ -63,29 +131,40 @@ function huli_push_feishu($cfg, $title, $content) {
         $sign = base64_encode($hmac);
         $url .= (strpos($url, '?') === false ? '?' : '&') . 'timestamp=' . $timestamp . '&sign=' . urlencode($sign);
     }
+    $md = is_array($fields) && !empty($fields) ? '' : $content;
+    if (is_array($fields) && !empty($fields)) {
+        foreach ($fields as $k => $v) {
+            $md .= '**' . (string)$k . '**：' . (string)$v . "\n";
+        }
+        $md = rtrim($md);
+    }
+    $elements = [['tag' => 'div', 'text' => ['tag' => 'lark_md', 'content' => $md ?: ' ']]];
     $payload = [
         'msg_type' => 'interactive',
         'card' => [
-            'header' => ['title' => ['tag' => 'plain_text', 'content' => $title], 'template' => 'blue'],
-            'elements' => [
-                [['tag' => 'markdown', 'content' => $content]],
-            ],
+            'header' => ['title' => ['tag' => 'plain_text', 'content' => $title . ' 🔔'], 'template' => 'blue'],
+            'elements' => $elements,
         ],
     ];
     $r = huli_curl_post_json($url, $payload);
-    return ['ok' => $r['code'] === 200, 'code' => $r['code'], 'body' => $r['body']];
+    $ok = $r['code'] === 200;
+    return ['ok' => $ok, 'code' => $r['code'], 'body' => $r['body'], 'err' => $ok ? '' : huli_curl_err($r)];
 }
 
-function huli_push_bark($cfg, $title, $content) {
+function huli_push_bark($cfg, $title, $content, $fields = null) {
     $server = rtrim($cfg['server'] ?? 'https://api.day.app', '/');
     $key = $cfg['device_key'] ?? '';
     if (!$key) { return ['ok' => false, 'err' => 'device_key 未配置']; }
-    $payload = ['title' => $title, 'body' => $content, 'group' => 'huliapi', 'level' => 'active'];
+    if (is_array($fields) && !empty($fields)) {
+        $content = huli_md_fields($fields);
+    }
+    $payload = ['title' => $title, 'body' => $content, 'group' => 'huliapi', 'level' => 'active', 'sound' => 'default'];
     $r = huli_curl_post_json($server . '/' . $key, $payload);
-    return ['ok' => $r['code'] === 200, 'code' => $r['code'], 'body' => $r['body']];
+    $ok = $r['code'] === 200;
+    return ['ok' => $ok, 'code' => $r['code'], 'body' => $r['body'], 'err' => $ok ? '' : huli_curl_err($r)];
 }
 
-function huli_push_webhook($cfg, $title, $content) {
+function huli_push_webhook($cfg, $title, $content, $fields = null) {
     $url = $cfg['url'] ?? '';
     if (!$url) { return ['ok' => false, 'err' => 'url 未配置']; }
     $method = strtoupper($cfg['method'] ?? 'POST');
@@ -99,7 +178,13 @@ function huli_push_webhook($cfg, $title, $content) {
             }
         }
     }
-    $payload = json_encode(['title' => $title, 'content' => $content, 'time' => date('c')], JSON_UNESCAPED_UNICODE);
+    $payload = json_encode([
+        'event' => 'push',
+        'title' => $title,
+        'content' => $content,
+        'data' => is_array($fields) && !empty($fields) ? $fields : (object)[],
+        'time' => date('c'),
+    ], JSON_UNESCAPED_UNICODE);
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
@@ -109,13 +194,17 @@ function huli_push_webhook($cfg, $title, $content) {
     curl_setopt($ch, CURLOPT_HTTPHEADER, $hdr);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
     curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'huliapi-push/1.0');
     $body = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_err = curl_errno($ch) ? curl_error($ch) : '';
     curl_close($ch);
-    return ['ok' => $code >= 200 && $code < 400, 'code' => $code, 'body' => $body];
+    $ok = $code >= 200 && $code < 400;
+    return ['ok' => $ok, 'code' => $code, 'body' => $body, 'err' => $ok ? '' : ($curl_err ? '网络错误: ' . $curl_err : huli_curl_err(['code' => $code]))];
 }
 
-function huli_push_email($cfg, $to, $title, $content) {
+function huli_push_email($cfg, $to, $title, $content, $fields = null, $site_name = 'huliapi') {
     if (!file_exists(__DIR__ . '/PHPMailer/src/PHPMailer.php')) { return ['ok' => false, 'err' => 'PHPMailer 未安装']; }
     require_once __DIR__ . '/PHPMailer/src/Exception.php';
     require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
@@ -131,22 +220,20 @@ function huli_push_email($cfg, $to, $title, $content) {
         $secure = strtolower($cfg['smtp_secure'] ?? 'ssl');
         $mail->SMTPSecure = $secure === 'tls' ? PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS : PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
         $mail->Port = (int)($cfg['smtp_port'] ?? ($secure === 'tls' ? 587 : 465));
-        $mail->setFrom($cfg['smtp_user'] ?? '', $cfg['from_name'] ?? 'huliapi');
+        $mail->setFrom($cfg['smtp_user'] ?? '', $cfg['from_name'] ?? $site_name);
         $mail->addAddress($to);
         $mail->isHTML(true);
         $mail->Subject = $title;
-        $mail->Body = '<div style="font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#333;line-height:1.7;">'
-            . '<h3 style="color:#2879ba;margin-bottom:12px;">' . htmlspecialchars($title) . '</h3>'
-            . nl2br(htmlspecialchars($content))
-            . '<hr style="border:none;border-top:1px solid #eee;margin:18px 0;">'
-            . '<p style="font-size:12px;color:#888;">本邮件由 huliapi 系统自动发送，请勿直接回复。</p>'
-            . '</div>';
+        $mail->Body = huli_email_html_template($title, $content, is_array($fields) && !empty($fields) ? $fields : [], $site_name);
+        $mail->AltBody = $contents = huli_md_fields(is_array($fields) && !empty($fields) ? $fields : ['消息' => $content]);
         $mail->send();
         return ['ok' => true];
     } catch (Exception $e) {
         return ['ok' => false, 'err' => $mail->ErrorInfo ?? $e->getMessage()];
     }
 }
+
+/* ======================= 配置加载 ======================= */
 
 function huli_load_system_mail_config($pdo) {
     static $cache = null;
@@ -160,6 +247,7 @@ function huli_load_system_mail_config($pdo) {
         if (!empty($rows['mail_smtp_user'])) $cache['smtp_user'] = $rows['mail_smtp_user'];
         if (!empty($rows['mail_smtp_pass'])) $cache['smtp_pass'] = $rows['mail_smtp_pass'];
         if (!empty($rows['site_name'])) $cache['from_name'] = $rows['site_name'];
+        $cache['site_name'] = $rows['site_name'] ?? 'huliapi';
     } catch (Throwable $e) {}
     return $cache;
 }
@@ -219,24 +307,26 @@ function huli_ensure_user_push_defaults($pdo, $user_id) {
     }
 }
 
-function huli_send_by_channel($channel, $cfg, $title, $content, $recipient = '') {
+/* ======================= 分发入口 ======================= */
+
+function huli_send_by_channel($channel, $cfg, $title, $content, $recipient = '', $fields = null, $site_name = 'huliapi') {
     $r = ['channel' => $channel, 'ok' => false];
     switch ($channel) {
         case 'email':
             if (!$recipient) { $r['err'] = '未指定收件人'; break; }
-            $r = array_merge($r, huli_push_email($cfg, $recipient, $title, $content));
+            $r = array_merge($r, huli_push_email($cfg, $recipient, $title, $content, $fields, $site_name));
             break;
-        case 'wecom':    $r = array_merge($r, huli_push_wecom($cfg, $title, $content)); break;
-        case 'dingtalk': $r = array_merge($r, huli_push_dingtalk($cfg, $title, $content)); break;
-        case 'feishu':   $r = array_merge($r, huli_push_feishu($cfg, $title, $content)); break;
-        case 'bark':     $r = array_merge($r, huli_push_bark($cfg, $title, $content)); break;
-        case 'webhook':  $r = array_merge($r, huli_push_webhook($cfg, $title, $content)); break;
+        case 'wecom':    $r = array_merge($r, huli_push_wecom($cfg, $title, $content, $fields)); break;
+        case 'dingtalk': $r = array_merge($r, huli_push_dingtalk($cfg, $title, $content, $fields)); break;
+        case 'feishu':   $r = array_merge($r, huli_push_feishu($cfg, $title, $content, $fields)); break;
+        case 'bark':     $r = array_merge($r, huli_push_bark($cfg, $title, $content, $fields)); break;
+        case 'webhook':  $r = array_merge($r, huli_push_webhook($cfg, $title, $content, $fields)); break;
         default:         $r['err'] = '未知通道'; break;
     }
     return $r;
 }
 
-function huli_push_dispatch($pdo, $event, $title, $content, $recipient = '') {
+function huli_push_dispatch($pdo, $event, $title, $content, $recipient = '', $fields = null) {
     $set = huli_load_push_settings($pdo);
     if (empty($set)) { return ['dispatched' => 0, 'results' => []]; }
     $sys_mail = huli_load_system_mail_config($pdo);
@@ -246,7 +336,7 @@ function huli_push_dispatch($pdo, $event, $title, $content, $recipient = '') {
         if (!empty($cfg['events']) && !in_array($event, $cfg['events'], true)) { continue; }
         $effective_cfg = ($channel === 'email') ? $sys_mail : $cfg['config'];
         try {
-            $results[] = huli_send_by_channel($channel, $effective_cfg, $title, $content, $recipient);
+            $results[] = huli_send_by_channel($channel, $effective_cfg, $title, $content, $recipient, $fields, $sys_mail['site_name'] ?? 'huliapi');
         } catch (Throwable $e) {
             $results[] = ['channel' => $channel, 'ok' => false, 'err' => $e->getMessage()];
         }
@@ -254,7 +344,7 @@ function huli_push_dispatch($pdo, $event, $title, $content, $recipient = '') {
     return ['dispatched' => count($results), 'results' => $results];
 }
 
-function huli_push_dispatch_user($pdo, $user_id, $event, $title, $content, $recipient = '') {
+function huli_push_dispatch_user($pdo, $user_id, $event, $title, $content, $recipient = '', $fields = null) {
     $set = huli_load_user_push_settings($pdo, $user_id);
     if (empty($set)) { return ['dispatched' => 0, 'results' => []]; }
     $sys_mail = huli_load_system_mail_config($pdo);
@@ -264,7 +354,7 @@ function huli_push_dispatch_user($pdo, $user_id, $event, $title, $content, $reci
         if (!empty($cfg['events']) && !in_array($event, $cfg['events'], true)) { continue; }
         $effective_cfg = ($channel === 'email') ? $sys_mail : $cfg['config'];
         try {
-            $results[] = huli_send_by_channel($channel, $effective_cfg, $title, $content, $recipient);
+            $results[] = huli_send_by_channel($channel, $effective_cfg, $title, $content, $recipient, $fields, $sys_mail['site_name'] ?? 'huliapi');
         } catch (Throwable $e) {
             $results[] = ['channel' => $channel, 'ok' => false, 'err' => $e->getMessage()];
         }
