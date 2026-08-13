@@ -35,8 +35,7 @@ CREATE TABLE `huli_site_user_templates` (
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='用户中心模板管理表';
 
 INSERT INTO `huli_site_user_templates` (`id`,`name`,`folder`,`is_active`,`thumbnail`,`description`,`created_at`,`updated_at`) VALUES
-(1,'默认用户中心模板','1',0,'','系统默认用户中心模板','2026-04-04 00:00:00','2026-04-04 09:01:57'),
-(2,'光年UI用户中心模板','2',1,'','光年UI用户中心模板','2026-04-04 00:00:00','2026-04-04 09:03:22');
+(1,'huli用户中心模板','huli',1,'','huli用户中心模板','2026-04-04 00:00:00','2026-04-04 09:03:22');
 
 DROP TABLE IF EXISTS `huli_admins`;
 CREATE TABLE `huli_admins` (

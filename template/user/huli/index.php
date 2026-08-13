@@ -3,7 +3,7 @@ session_start();
 error_reporting(0);
 ini_set('display_errors', 'Off');
 if (!isset($_SESSION['user_id'])) {
-header('Location: /template/user/2/login.php');
+header('Location: /template/user/huli/login.php');
 exit;
 }
 $rootPath = dirname(__DIR__, 3);
