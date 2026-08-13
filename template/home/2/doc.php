@@ -845,9 +845,18 @@ body {
                             >
                         </div>
                     <?php endforeach; ?>
-                    <button type="submit" class="btn-test">
-                        <i class="mdi mdi-send mr-1"></i>立即测试
-                    </button>
+                    <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+                        <button type="submit" class="btn-test">
+                            <i class="mdi mdi-send mr-1"></i>立即测试
+                        </button>
+                        <button type="button" id="auto-build-url-btn" class="btn-test" style="background:linear-gradient(135deg,#10b981,#34d399);">
+                            <i class="mdi mdi-link-variant mr-1"></i>自动获取链接
+                        </button>
+                        <button type="button" id="copy-test-url-btn" class="btn-test" style="background:linear-gradient(135deg,#6366f1,#818cf8);display:none;">
+                            <i class="mdi mdi-content-copy mr-1"></i>复制测试链接
+                        </button>
+                    </div>
+                    <div id="auto-url-box" class="url-box" style="display:none;margin-top:12px;"></div>
                     <div class="response-area" id="response-output">此处将显示接口返回结果...</div>
                 </form>
             </div>
@@ -920,6 +929,86 @@ fetch(url)
             return jsonStr;
         }
     }
+
+    function renderResponse(raw) {
+        const el = document.getElementById('response-output');
+        if (!raw) { el.textContent = '(空响应)'; return; }
+        const ct = (raw.headers && raw.headers.get('content-type')) || '';
+        if (ct.indexOf('application/json') !== -1) {
+            try {
+                const obj = JSON.parse(raw.body);
+                el.textContent = JSON.stringify(obj, null, 2);
+                return;
+            } catch (e) { /* fall through */ }
+        }
+        const trimmed = (raw.body || '').trim();
+        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+            try {
+                const obj = JSON.parse(trimmed);
+                el.textContent = JSON.stringify(obj, null, 2);
+                return;
+            } catch (e) { /* fall through */ }
+        }
+        el.textContent = raw.body;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('api-tester-form');
+        const baseUrl = form.dataset.url;
+        const method = (form.dataset.method || 'GET').toUpperCase();
+        const output = document.getElementById('response-output');
+
+        function buildUrl() {
+            const inputs = form.querySelectorAll('input[name]');
+            const params = [];
+            inputs.forEach(function(inp) {
+                const v = inp.value.trim();
+                if (v !== '') { params.push([inp.name, v]); }
+            });
+            if (params.length === 0) { return baseUrl; }
+            const qs = params.map(function(p) { return encodeURIComponent(p[0]) + '=' + encodeURIComponent(p[1]); }).join('&');
+            return baseUrl + (baseUrl.indexOf('?') === -1 ? '?' : '&') + qs;
+        }
+
+        form.addEventListener('submit', async function(ev) {
+            ev.preventDefault();
+            const testUrl = buildUrl();
+            output.textContent = '请求中: ' + method + ' ' + testUrl;
+            try {
+                const resp = await fetch(testUrl, { method: method, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const body = await resp.text();
+                renderResponse({ code: resp.status, headers: resp.headers, body: body });
+            } catch (err) {
+                output.textContent = '请求失败：' + err.message;
+            }
+        });
+
+        const autoBtn = document.getElementById('auto-build-url-btn');
+        const urlBox = document.getElementById('auto-url-box');
+        const copyBtn = document.getElementById('copy-test-url-btn');
+        if (autoBtn) {
+            autoBtn.addEventListener('click', function() {
+                const url = buildUrl();
+                urlBox.textContent = url;
+                urlBox.style.display = 'block';
+                copyBtn.style.display = 'inline-flex';
+                copyBtn.dataset.url = url;
+            });
+        }
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function() {
+                const url = copyBtn.dataset.url || '';
+                if (!url) return;
+                const tmp = document.createElement('textarea');
+                tmp.value = url;
+                document.body.appendChild(tmp);
+                tmp.select();
+                try { document.execCommand('copy'); alert('测试链接已复制到剪贴板'); }
+                catch (e) { alert('复制失败，请手动复制'); }
+                document.body.removeChild(tmp);
+            });
+        }
+    });
     </script>
 </body>
 </html>

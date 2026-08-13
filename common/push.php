@@ -148,6 +148,22 @@ function huli_push_email($cfg, $to, $title, $content) {
     }
 }
 
+function huli_load_system_mail_config($pdo) {
+    static $cache = null;
+    if ($cache !== null) { return $cache; }
+    $cache = ['smtp_host' => '', 'smtp_port' => 465, 'smtp_secure' => 'ssl', 'smtp_user' => '', 'smtp_pass' => '', 'from_name' => 'huliapi'];
+    try {
+        $rows = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('mail_smtp_host','mail_smtp_port','mail_smtp_secure','mail_smtp_user','mail_smtp_pass','site_name')")->fetchAll(PDO::FETCH_KEY_PAIR);
+        if (!empty($rows['mail_smtp_host'])) $cache['smtp_host'] = $rows['mail_smtp_host'];
+        if (!empty($rows['mail_smtp_port'])) $cache['smtp_port'] = (int)$rows['mail_smtp_port'];
+        if (!empty($rows['mail_smtp_secure'])) $cache['smtp_secure'] = $rows['mail_smtp_secure'];
+        if (!empty($rows['mail_smtp_user'])) $cache['smtp_user'] = $rows['mail_smtp_user'];
+        if (!empty($rows['mail_smtp_pass'])) $cache['smtp_pass'] = $rows['mail_smtp_pass'];
+        if (!empty($rows['site_name'])) $cache['from_name'] = $rows['site_name'];
+    } catch (Throwable $e) {}
+    return $cache;
+}
+
 function huli_load_push_settings($pdo) {
     static $cache = null;
     if ($cache !== null) { return $cache; }
@@ -168,30 +184,90 @@ function huli_load_push_settings($pdo) {
     return $cache;
 }
 
+function huli_load_user_push_settings($pdo, $user_id) {
+    $cache = [];
+    try {
+        $stmt = $pdo->prepare("SELECT channel, name, enabled, config, events FROM huli_user_push_settings WHERE user_id = ?");
+        $stmt->execute([(int)$user_id]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $r) {
+            $cache[$r['channel']] = [
+                'name' => $r['name'],
+                'enabled' => (int)$r['enabled'] === 1,
+                'config' => json_decode($r['config'], true) ?: [],
+                'events' => json_decode($r['events'], true) ?: [],
+            ];
+        }
+    } catch (Throwable $e) {}
+    return $cache;
+}
+
+function huli_ensure_user_push_defaults($pdo, $user_id) {
+    $defaults = [
+        'email'    => ['name' => '邮件通知',     'enabled' => 1, 'config' => '{}',                                            'events' => ['login.notify']],
+        'wecom'    => ['name' => '企业微信',     'enabled' => 0, 'config' => '{"webhook":""}',                                 'events' => ['login.notify']],
+        'dingtalk' => ['name' => '钉钉',         'enabled' => 0, 'config' => '{"webhook":"","secret":""}',                     'events' => ['login.notify']],
+        'feishu'   => ['name' => '飞书',         'enabled' => 0, 'config' => '{"webhook":"","secret":""}',                     'events' => ['login.notify']],
+        'bark'     => ['name' => 'Bark iOS',     'enabled' => 0, 'config' => '{"server":"https://api.day.app","device_key":""}','events' => ['login.notify']],
+        'webhook'  => ['name' => '自定义 Webhook','enabled' => 0, 'config' => '{"url":"","method":"POST","headers":""}',       'events' => ['login.notify']],
+    ];
+    foreach ($defaults as $channel => $d) {
+        try {
+            $stmt = $pdo->prepare("INSERT IGNORE INTO huli_user_push_settings (user_id, channel, name, enabled, config, events) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([(int)$user_id, $channel, $d['name'], $d['enabled'], $d['config'], json_encode($d['events'], JSON_UNESCAPED_UNICODE)]);
+        } catch (Throwable $e) {}
+    }
+}
+
+function huli_send_by_channel($channel, $cfg, $title, $content, $recipient = '') {
+    $r = ['channel' => $channel, 'ok' => false];
+    switch ($channel) {
+        case 'email':
+            if (!$recipient) { $r['err'] = '未指定收件人'; break; }
+            $r = array_merge($r, huli_push_email($cfg, $recipient, $title, $content));
+            break;
+        case 'wecom':    $r = array_merge($r, huli_push_wecom($cfg, $title, $content)); break;
+        case 'dingtalk': $r = array_merge($r, huli_push_dingtalk($cfg, $title, $content)); break;
+        case 'feishu':   $r = array_merge($r, huli_push_feishu($cfg, $title, $content)); break;
+        case 'bark':     $r = array_merge($r, huli_push_bark($cfg, $title, $content)); break;
+        case 'webhook':  $r = array_merge($r, huli_push_webhook($cfg, $title, $content)); break;
+        default:         $r['err'] = '未知通道'; break;
+    }
+    return $r;
+}
+
 function huli_push_dispatch($pdo, $event, $title, $content, $recipient = '') {
     $set = huli_load_push_settings($pdo);
     if (empty($set)) { return ['dispatched' => 0, 'results' => []]; }
+    $sys_mail = huli_load_system_mail_config($pdo);
     $results = [];
     foreach ($set as $channel => $cfg) {
         if (!$cfg['enabled']) { continue; }
         if (!empty($cfg['events']) && !in_array($event, $cfg['events'], true)) { continue; }
-        $r = ['channel' => $channel, 'ok' => false];
+        $effective_cfg = ($channel === 'email') ? $sys_mail : $cfg['config'];
         try {
-            switch ($channel) {
-                case 'email':
-                    if (!$recipient) { $r['err'] = '未指定收件人'; break; }
-                    $r = array_merge($r, huli_push_email($cfg['config'], $recipient, $title, $content));
-                    break;
-                case 'wecom':    $r = array_merge($r, huli_push_wecom($cfg['config'], $title, $content)); break;
-                case 'dingtalk': $r = array_merge($r, huli_push_dingtalk($cfg['config'], $title, $content)); break;
-                case 'feishu':   $r = array_merge($r, huli_push_feishu($cfg['config'], $title, $content)); break;
-                case 'bark':     $r = array_merge($r, huli_push_bark($cfg['config'], $title, $content)); break;
-                case 'webhook':  $r = array_merge($r, huli_push_webhook($cfg['config'], $title, $content)); break;
-            }
+            $results[] = huli_send_by_channel($channel, $effective_cfg, $title, $content, $recipient);
         } catch (Throwable $e) {
-            $r['err'] = $e->getMessage();
+            $results[] = ['channel' => $channel, 'ok' => false, 'err' => $e->getMessage()];
         }
-        $results[] = $r;
+    }
+    return ['dispatched' => count($results), 'results' => $results];
+}
+
+function huli_push_dispatch_user($pdo, $user_id, $event, $title, $content, $recipient = '') {
+    $set = huli_load_user_push_settings($pdo, $user_id);
+    if (empty($set)) { return ['dispatched' => 0, 'results' => []]; }
+    $sys_mail = huli_load_system_mail_config($pdo);
+    $results = [];
+    foreach ($set as $channel => $cfg) {
+        if (!$cfg['enabled']) { continue; }
+        if (!empty($cfg['events']) && !in_array($event, $cfg['events'], true)) { continue; }
+        $effective_cfg = ($channel === 'email') ? $sys_mail : $cfg['config'];
+        try {
+            $results[] = huli_send_by_channel($channel, $effective_cfg, $title, $content, $recipient);
+        } catch (Throwable $e) {
+            $results[] = ['channel' => $channel, 'ok' => false, 'err' => $e->getMessage()];
+        }
     }
     return ['dispatched' => count($results), 'results' => $results];
 }

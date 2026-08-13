@@ -59,23 +59,17 @@ function huli_record_login($pdo, $actor_type, $actor_id, $actor_name, $status, $
     } catch (Throwable $e) {
         $log_id = 0;
     }
-    if ($status === 'success' && $actor_type === 'user' && !empty($extra['notify']) && !empty($extra['email'])) {
-        huli_notify_login($pdo, $actor_name, $extra['email'], $ip, $geo, $ua, 'user');
-    } elseif ($status === 'success' && $actor_type === 'admin') {
-        $admin_email = '';
-        try {
-            $row = $pdo->prepare("SELECT email FROM huli_admins WHERE id = ?");
-            $row->execute([$actor_id]);
-            $admin_email = $row->fetchColumn() ?: '';
-        } catch (Throwable $e) {}
-        if ($admin_email) {
-            huli_notify_login($pdo, $actor_name, $admin_email, $ip, $geo, $ua, 'admin');
+    if ($status === 'success' && !empty($extra['notify']) && !empty($extra['email'])) {
+        if ($actor_type === 'admin') {
+            huli_notify_login($pdo, $actor_name, $extra['email'], $ip, $geo, $ua, 'admin');
+        } else {
+            huli_notify_login($pdo, $actor_name, $extra['email'], $ip, $geo, $ua, 'user', $actor_id);
         }
     }
     return ['log_id' => $log_id, 'ip' => $ip, 'geo' => $geo];
 }
 
-function huli_notify_login($pdo, $actor_name, $email, $ip, $geo, $ua, $actor_type) {
+function huli_notify_login($pdo, $actor_name, $email, $ip, $geo, $ua, $actor_type, $user_id = 0) {
     if (!function_exists('huli_push_dispatch')) {
         $push_lib = __DIR__ . '/push.php';
         if (file_exists($push_lib)) { require_once $push_lib; }
@@ -90,6 +84,12 @@ function huli_notify_login($pdo, $actor_name, $email, $ip, $geo, $ua, $actor_typ
         . "**网络**：" . ($geo['isp'] ?: '未知') . "\n"
         . "**设备**：" . $ua_short;
     try {
-        huli_push_dispatch($pdo, 'login.notify', $title, $content, $email);
+        if ($actor_type === 'admin') {
+            huli_push_dispatch($pdo, 'login.notify', $title, $content, $email);
+        } elseif ($user_id > 0 && function_exists('huli_push_dispatch_user')) {
+            huli_push_dispatch_user($pdo, $user_id, 'login.notify', $title, $content, $email);
+        } else {
+            huli_push_dispatch($pdo, 'login.notify', $title, $content, $email);
+        }
     } catch (Throwable $e) {}
 }

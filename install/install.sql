@@ -451,12 +451,26 @@ CREATE TABLE `huli_push_settings` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='推送通道配置表';
 
 INSERT INTO `huli_push_settings` (`channel`,`name`,`enabled`,`config`,`events`) VALUES
-('email','邮件通知',0,'{\"smtp_host\":\"\",\"smtp_port\":465,\"smtp_secure\":\"ssl\",\"smtp_user\":\"\",\"smtp_pass\":\"\",\"from_name\":\"huliapi\"}','[]'),
-('wecom','企业微信',0,'{\"webhook\":\"\"}','[]'),
-('dingtalk','钉钉',0,'{\"webhook\":\"\",\"secret\":\"\"}','[]'),
-('feishu','飞书',0,'{\"webhook\":\"\",\"secret\":\"\"}','[]'),
-('bark','Bark iOS',0,'{\"server\":\"https://api.day.app\",\"device_key\":\"\"}','[]'),
-('webhook','自定义 Webhook',0,'{\"url\":\"\",\"method\":\"POST\",\"headers\":\"\"}','[]');
+('email','邮件通知（管理员）',1,'{}','["login.notify"]'),
+('wecom','企业微信（管理员）',1,'{"webhook":""}','["login.notify"]'),
+('dingtalk','钉钉（管理员）',1,'{"webhook":"","secret":""}','["login.notify"]'),
+('feishu','飞书（管理员）',1,'{"webhook":"","secret":""}','["login.notify"]'),
+('bark','Bark iOS（管理员）',1,'{"server":"https://api.day.app","device_key":""}','["login.notify"]'),
+('webhook','自定义 Webhook（管理员）',1,'{"url":"","method":"POST","headers":""}','["login.notify"]');
+
+DROP TABLE IF EXISTS `huli_user_push_settings`;
+CREATE TABLE `huli_user_push_settings` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `channel` enum('email','wecom','dingtalk','feishu','bark','webhook') NOT NULL,
+  `name` varchar(100) NOT NULL DEFAULT '',
+  `enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `config` text NOT NULL COMMENT 'JSON 配置',
+  `events` text NOT NULL COMMENT 'JSON 事件订阅列表',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_channel` (`user_id`,`channel`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户级推送通道配置表';
 
 DROP TABLE IF EXISTS `huli_login_logs`;
 CREATE TABLE `huli_login_logs` (

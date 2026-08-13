@@ -21,6 +21,15 @@ $channels = [];
 try {
     $channels = $pdo->query("SELECT channel, name, enabled, config, events FROM huli_push_settings ORDER BY id ASC")->fetchAll();
 } catch (Throwable $e) {}
+$mail_cfg_hint = '';
+try {
+    $sys_mail = huli_load_system_mail_config($pdo);
+    if (empty($sys_mail['smtp_host']) || empty($sys_mail['smtp_user']) || empty($sys_mail['smtp_pass'])) {
+        $mail_cfg_hint = '<br><span class="text-warning small"><i class="mdi mdi-alert-outline"></i> 系统邮件 SMTP 当前尚未配置，启用通道前请先在【系统设置】中完善。</span>';
+    } else {
+        $mail_cfg_hint = '<br><span class="text-success small"><i class="mdi mdi-check-circle-outline"></i> 系统邮件已配置（' . htmlspecialchars($sys_mail['smtp_host']) . ' / ' . htmlspecialchars($sys_mail['smtp_user']) . '）</span>';
+    }
+} catch (Throwable $e) {}
 $feedback_msg = ''; $feedback_type = '';
 $push_feedback_msg = ''; $push_feedback_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -37,10 +46,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $push_feedback_type = 'warning';
             } else {
                 $cfg = $set[$test_channel]['config'];
+                if ($test_channel === 'email') { $cfg = huli_load_system_mail_config($pdo); }
                 $r = ['ok' => false];
                 switch ($test_channel) {
                     case 'email':
                         if (!$test_recipient) { $push_feedback_msg = '邮件测试需要填写收件人邮箱。'; $push_feedback_type = 'warning'; break; }
+                        if (empty($cfg['smtp_host']) || empty($cfg['smtp_user']) || empty($cfg['smtp_pass'])) { $push_feedback_msg = '系统邮件服务未配置，请先在系统设置中填写 SMTP 信息。'; $push_feedback_type = 'warning'; break; }
                         $r = huli_push_email($cfg, $test_recipient, $title, $content); break;
                     case 'wecom':    $r = huli_push_wecom($cfg, $title, $content); break;
                     case 'dingtalk': $r = huli_push_dingtalk($cfg, $title, $content); break;
@@ -61,39 +72,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $type = $_POST['form_type'] ?? '';
         if ($type === 'push') {
             $channel = $_POST['channel'] ?? '';
-            $valid_channels = ['email', 'wecom', 'dingtalk', 'feishu', 'bark', 'webhook'];
-            if (in_array($channel, $valid_channels, true)) {
-                $config_input = $_POST['config'] ?? [];
-                $enabled = isset($_POST['enabled']) ? 1 : 0;
-                $events = isset($_POST['events']) && is_array($_POST['events']) ? array_values(array_intersect($_POST['events'], ['login.notify'])) : [];
-                $cfg = [];
-                switch ($channel) {
-                    case 'email':
-                        $cfg = [
-                            'smtp_host' => trim($config_input['smtp_host'] ?? ''),
-                            'smtp_port' => (int)($config_input['smtp_port'] ?? 465),
-                            'smtp_secure' => in_array($config_input['smtp_secure'] ?? '', ['ssl', 'tls'], true) ? $config_input['smtp_secure'] : 'ssl',
-                            'smtp_user' => trim($config_input['smtp_user'] ?? ''),
-                            'smtp_pass' => $config_input['smtp_pass'] ?? '',
-                            'from_name' => trim($config_input['from_name'] ?? 'huliapi'),
-                        ];
-                        break;
-                    case 'wecom':
-                        $cfg = ['webhook' => trim($config_input['webhook'] ?? '')];
-                        break;
-                    case 'dingtalk':
-                        $cfg = ['webhook' => trim($config_input['webhook'] ?? ''), 'secret' => trim($config_input['secret'] ?? '')];
-                        break;
-                    case 'feishu':
-                        $cfg = ['webhook' => trim($config_input['webhook'] ?? ''), 'secret' => trim($config_input['secret'] ?? '')];
-                        break;
-                    case 'bark':
-                        $cfg = ['server' => trim($config_input['server'] ?? 'https://api.day.app'), 'device_key' => trim($config_input['device_key'] ?? '')];
-                        break;
-                    case 'webhook':
-                        $cfg = ['url' => trim($config_input['url'] ?? ''), 'method' => in_array(strtoupper($config_input['method'] ?? 'POST'), ['POST','GET','PUT'], true) ? strtoupper($config_input['method']) : 'POST', 'headers' => trim($config_input['headers'] ?? '')];
-                        break;
-                }
+                $valid_channels = ['email', 'wecom', 'dingtalk', 'feishu', 'bark', 'webhook'];
+                if (in_array($channel, $valid_channels, true)) {
+                    $config_input = $_POST['config'] ?? [];
+                    $enabled = isset($_POST['enabled']) ? 1 : 0;
+                    $events = isset($_POST['events']) && is_array($_POST['events']) ? array_values(array_intersect($_POST['events'], ['login.notify'])) : [];
+                    $cfg = [];
+                    switch ($channel) {
+                        case 'email':
+                            $cfg = [];
+                            break;
+                        case 'wecom':
+                            $cfg = ['webhook' => trim($config_input['webhook'] ?? '')];
+                            break;
+                        case 'dingtalk':
+                            $cfg = ['webhook' => trim($config_input['webhook'] ?? ''), 'secret' => trim($config_input['secret'] ?? '')];
+                            break;
+                        case 'feishu':
+                            $cfg = ['webhook' => trim($config_input['webhook'] ?? ''), 'secret' => trim($config_input['secret'] ?? '')];
+                            break;
+                        case 'bark':
+                            $cfg = ['server' => trim($config_input['server'] ?? 'https://api.day.app'), 'device_key' => trim($config_input['device_key'] ?? '')];
+                            break;
+                        case 'webhook':
+                            $cfg = ['url' => trim($config_input['url'] ?? ''), 'method' => in_array(strtoupper($config_input['method'] ?? 'POST'), ['POST','GET','PUT'], true) ? strtoupper($config_input['method']) : 'POST', 'headers' => trim($config_input['headers'] ?? '')];
+                            break;
+                    }
                 $stmt = $pdo->prepare("INSERT INTO huli_push_settings (channel, enabled, config, events) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE enabled = VALUES(enabled), config = VALUES(config), events = VALUES(events)");
                 $stmt->execute([$channel, $enabled, json_encode($cfg, JSON_UNESCAPED_UNICODE), json_encode($events, JSON_UNESCAPED_UNICODE)]);
                 $push_feedback_msg = '推送通道已保存。';
@@ -167,12 +171,11 @@ function huli_render_channel_card($row) {
     $h .= '<input type="hidden" name="form_type" value="push">';
     $h .= '<input type="hidden" name="channel" value="' . htmlspecialchars($ch) . '">';
     if ($ch === 'email') {
-        $h .= '<div class="col-md-6"><label class="form-label">SMTP 服务器</label><input type="text" name="config[smtp_host]" class="form-control" value="' . htmlspecialchars($cfg['smtp_host'] ?? '') . '" placeholder="smtp.qq.com"></div>';
-        $h .= '<div class="col-md-2"><label class="form-label">端口</label><input type="number" name="config[smtp_port]" class="form-control" value="' . (int)($cfg['smtp_port'] ?? 465) . '"></div>';
-        $h .= '<div class="col-md-2"><label class="form-label">加密</label><select name="config[smtp_secure]" class="form-select"><option value="ssl" ' . (($cfg['smtp_secure'] ?? 'ssl') === 'ssl' ? 'selected' : '') . '>SSL</option><option value="tls" ' . (($cfg['smtp_secure'] ?? '') === 'tls' ? 'selected' : '') . '>TLS</option></select></div>';
-        $h .= '<div class="col-md-6"><label class="form-label">发信邮箱</label><input type="email" name="config[smtp_user]" class="form-control" value="' . htmlspecialchars($cfg['smtp_user'] ?? '') . '"></div>';
-        $h .= '<div class="col-md-6"><label class="form-label">密码/授权码</label><input type="password" name="config[smtp_pass]" class="form-control" value="' . htmlspecialchars($cfg['smtp_pass'] ?? '') . '"></div>';
-        $h .= '<div class="col-md-6"><label class="form-label">发信人名称</label><input type="text" name="config[from_name]" class="form-control" value="' . htmlspecialchars($cfg['from_name'] ?? 'huliapi') . '"></div>';
+        $h .= '<div class="col-md-12"><div class="alert alert-info mb-0 py-2"><i class="mdi mdi-information-outline me-1"></i>邮件通道使用系统统一邮件配置（管理员后台 → 系统设置 → 邮件设置），无需在此填写 SMTP 信息。启用本通道后，登录提醒将发送到管理员邮箱。';
+        try {
+            if (isset($GLOBALS['mail_cfg_hint'])) { $h .= $GLOBALS['mail_cfg_hint']; }
+        } catch (Throwable $e) {}
+        $h .= '</div></div>';
     } elseif ($ch === 'wecom') {
         $h .= '<div class="col-md-12"><label class="form-label">机器人 Webhook URL</label><input type="text" name="config[webhook]" class="form-control" value="' . htmlspecialchars($cfg['webhook'] ?? '') . '" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx"></div>';
     } elseif ($ch === 'dingtalk') {
