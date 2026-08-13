@@ -142,7 +142,7 @@ if (strpos($current_script, $api_root_absolute) !== 0) {
 }
 $relative_path = substr($current_script, strlen($api_root_absolute));
 $relative_path = ltrim($relative_path, '/\\');
-$endpoint = rtrim($relative_path, '.php');
+$endpoint = preg_replace('/\.php$/i', '', $relative_path);
 $encoded_endpoint = implode('/', array_map('rawurlencode', explode('/', $endpoint)));
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);

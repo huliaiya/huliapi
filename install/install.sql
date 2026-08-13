@@ -167,6 +167,9 @@ CREATE TABLE `huli_apis` (
   KEY `status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='API接口管理表';
 
+INSERT INTO `huli_apis` (`id`,`admin_id`,`category_id`,`name`,`description`,`endpoint`,`method`,`type`,`file_path`,`parameters`,`status`,`visibility`,`is_billable`,`request_example`,`response_format`,`points_per_call`) VALUES
+(1,1,1,'IP归属地查询','查询指定IP地址的归属地信息','ip','GET','local','API/ip.php','[{"name":"ip","type":"string","required":"no","desc":"要查询的IP地址，为空时返回当前出口IP"}]','normal','public',0,'/API/ip.php?ip=1.2.3.4','application/json',0);
+
 DROP TABLE IF EXISTS `huli_billing_plans`;
 CREATE TABLE `huli_billing_plans` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '方案ID',
