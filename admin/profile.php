@@ -311,10 +311,6 @@ function huli_render_channel_card($row) {
           <form method="POST" action="profile.php" class="site-form">
             <input type="hidden" name="form_type" value="password">
             <div class="mb-3">
-              <label for="username">用户名</label>
-              <input type="text" class="form-control" name="username" id="username" value="<?php echo $username; ?>" disabled>
-            </div>
-            <div class="mb-3">
               <label for="current_password">当前密码</label>
               <input type="password" class="form-control" name="current_password" id="current_password" placeholder="请输入您当前的密码" required>
             </div>
