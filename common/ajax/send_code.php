@@ -21,7 +21,7 @@ require '../../common/PHPMailer/src/SMTP.php';
 $email = filter_var(trim($_POST['email']), FILTER_VALIDATE_EMAIL);
 $type = $_POST['type'] ?? '';
 if (!$email) { json_response(false, '请输入有效的邮箱地址。'); }
-if (!in_array($type, ['register', 'reset', 'friend_link', 'feedback'])) { json_response(false, '无效的操作类型。'); }
+if (!in_array($type, ['register', 'reset', 'admin_reset', 'friend_link', 'feedback'])) { json_response(false, '无效的操作类型。'); }
 if (isset($_SESSION['last_sent_time']) && time() - $_SESSION['last_sent_time'] < 60) {
     json_response(false, '请求过于频繁，请稍后再试。');
 }
@@ -42,6 +42,13 @@ try {
         $user_exists = $stmt_check->fetch();
         if ($type === 'register' && $user_exists) { json_response(false, '该邮箱已被注册。'); }
         if ($type === 'reset' && !$user_exists) { json_response(false, '该邮箱未注册。'); }
+    }
+    if ($type === 'admin_reset') {
+        $stmt_admin = $pdo->prepare("SELECT setting_value FROM huli_settings WHERE setting_key = 'mail_admin_forgot_enabled'");
+        if ((int)$stmt_admin->fetchColumn() !== 1) { json_response(false, '管理员已关闭找回密码功能。'); }
+        $stmt_check = $pdo->prepare("SELECT id FROM huli_admins WHERE email = ?");
+        $stmt_check->execute([$email]);
+        if (!$stmt_check->fetch()) { json_response(false, '该邮箱未绑定任何管理员账号。'); }
     }
     $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -133,6 +140,42 @@ if ($type === 'register') {
     $_SESSION['reset_code'] = $code;
     $_SESSION['reset_email'] = $email;
     $_SESSION['reset_code_expire'] = time() + 300;
+} elseif ($type === 'admin_reset') {
+    $mail->Subject = '【' . ($settings['site_name'] ?? '系统') . '】管理员密码重置 - 您的验证码';
+    $mail->Body = '
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {font-family: "Helvetica Neue", Arial, sans-serif;line-height: 1.6;color: #333;max-width: 600px;margin: 0 auto;padding: 0;background-color: #f7f7f7;}
+            .container {background: #fff;border-radius: 8px;box-shadow: 0 2px 10px rgba(0,0,0,0.05);overflow: hidden;margin: 20px auto;}
+            .header {background-color: #dc3545;color: white;padding: 25px;text-align: center;}
+            .content {padding: 30px;}
+            .code {font-size: 28px;letter-spacing: 3px;color: #dc3545;text-align: center;margin: 25px 0;font-weight: bold;}
+            .footer {padding: 15px;text-align: center;color: #777;font-size: 12px;border-top: 1px solid #eee;}
+            .warning {background: #fff8e1;padding: 15px;border-radius: 4px;margin-top: 20px;font-size: 14px;border-left: 4px solid #FFC107;}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header"><h2>管理员密码重置请求</h2></div>
+            <div class="content">
+                <p>您正在尝试重置 <strong>管理员账号</strong> 的密码，请使用以下验证码继续操作：</p>
+                <div class="code">' . $code . '</div>
+                <div class="warning">
+                    <p><strong>安全提示：</strong></p>
+                    <ul><li>此验证码 <strong>5分钟</strong> 内有效</li><li>请勿向任何人透露此验证码</li><li>如非本人操作，请立即检查账号安全</li></ul>
+                </div>
+            </div>
+            <div class="footer"><p>© ' . date('Y') . ' ' . ($settings['site_name'] ?? '') . ' 版权所有</p></div>
+        </div>
+    </body>
+    </html>
+    ';
+    $_SESSION['admin_reset_code'] = $code;
+    $_SESSION['admin_reset_email'] = $email;
+    $_SESSION['admin_reset_code_expire'] = time() + 300;
 } elseif ($type === 'friend_link') {
     $mail->Subject = '【' . ($settings['site_name'] ?? '系统') . '】友情链接申请 - 您的验证码';
     $mail->Body = '

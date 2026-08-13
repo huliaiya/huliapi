@@ -308,6 +308,7 @@ INSERT INTO `huli_settings` (`setting_key`,`setting_value`) VALUES
 ('afdian_token',''),
 ('afdian_page_url',''),
 ('mail_forgot_enabled','1'),
+('mail_admin_forgot_enabled','1'),
 ('mail_reg_enabled','1'),
 ('mail_smtp_host','smtp.qq.com'),
 ('mail_smtp_pass',''),

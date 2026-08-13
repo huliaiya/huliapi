@@ -13,8 +13,8 @@ if (file_exists('../config.php')) {
 }
 require_once __DIR__ . '/../common/turnstile.php';
 require_once __DIR__ . '/../common/login_helper.php';
-$favicon_url = '';
-try { $fp = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS); $favicon_url = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; } catch(Exception $e) {}
+    $favicon_url = '';
+try { $fp = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS); $favicon_url = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; $mail_forgot_enabled = ((int)$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='mail_admin_forgot_enabled'")->fetchColumn() === 1); } catch(Exception $e) {}
 $error_msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
@@ -176,7 +176,10 @@ body {
       <button class="btn btn-primary" type="submit">安全登录</button>
     </div>
   </form>
-  <p class="text-center text-muted mb-0 small">Copyright © 2025-2026 huliapi 版权所有</p>
+  <?php if (!empty($mail_forgot_enabled)): ?>
+    <p class="text-center mb-0 small"><a href="forgot_password.php">忘记密码？</a></p>
+  <?php endif; ?>
+  <p class="text-center text-muted mb-0 small mt-2">Copyright © 2025-2026 huliapi 版权所有</p>
 </div>
 <script type="text/javascript" src="../assets/js/jquery.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.bundle.min.js"></script>
