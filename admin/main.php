@@ -9,6 +9,7 @@ require_once '../config.php';
 if (file_exists('../common/version.php')) {
     require_once '../common/version.php';
 }
+require_once __DIR__ . '/../common/payment/order_fulfillment.php';
 if (!defined('SENLIN_CLIENT_VERSION')) {
     define('SENLIN_CLIENT_VERSION', '1.5.0');
 }
@@ -55,6 +56,7 @@ try {
         DB_PASS
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    huli_ensure_afdian_order_columns($pdo);
     $pdo->exec("CREATE TABLE IF NOT EXISTS huli_daily_stats (
         id INT AUTO_INCREMENT PRIMARY KEY,
         stat_date DATE NOT NULL,
@@ -67,13 +69,6 @@ try {
         user_id INT NOT NULL,
         content TEXT NOT NULL,
         status ENUM('pending', 'processed') NOT NULL DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS huli_orders (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        amount DECIMAL(10,2) NOT NULL,
-        status ENUM('pending', 'paid', 'failed') NOT NULL DEFAULT 'pending',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     $stats['today_calls'] = $pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE DATE(request_time) = CURDATE()")->fetchColumn() ?: 0;

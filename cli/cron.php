@@ -5,10 +5,14 @@ $root = dirname(__DIR__);
 if (!file_exists($root . '/config.php')) { fwrite(STDERR, "config.php missing\n"); exit(2); }
 require_once $root . '/config.php';
 require_once $root . '/common/email_broadcast_dispatcher.php';
+require_once $root . '/cli/query_pending_orders.php';
 
 $jobs = [];
 $jobs[] = ['name' => 'email_broadcast', 'run' => function ($pdo) {
     return huli_broadcast_tick($pdo, 5);
+}];
+$jobs[] = ['name' => 'afdian_query', 'run' => function ($pdo) {
+    return huli_query_pending_afdian_orders($pdo, 50);
 }];
 
 try {
@@ -21,7 +25,11 @@ foreach ($jobs as $j) {
     try {
         $out = ($j['run'])($pdo);
         $dt = round((microtime(true) - $t0) * 1000);
-        fwrite(STDOUT, sprintf("[%s] OK %dms %s\n", $j['name'], $dt, is_array($out) ? count($out) . ' items' : ''));
+        $summary = '';
+        if (is_array($out)) {
+            $summary = array_is_list($out) ? count($out) . ' items' : json_encode($out);
+        }
+        fwrite(STDOUT, sprintf("[%s] OK %dms %s\n", $j['name'], $dt, $summary));
     } catch (Throwable $e) {
         $dt = round((microtime(true) - $t0) * 1000);
         fwrite(STDERR, sprintf("[%s] FAIL %dms %s\n", $j['name'], $dt, $e->getMessage()));

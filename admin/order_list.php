@@ -4,16 +4,13 @@
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失。"); }
+require_once __DIR__ . '/../common/payment/order_fulfillment.php';
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = ''; $feedback_type = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_orders` (
-        `id` INT AUTO_INCREMENT PRIMARY KEY, `order_id` VARCHAR(64) NOT NULL UNIQUE, `user_id` INT NOT NULL, `plan_id` INT NOT NULL,
-        `amount` DECIMAL(10, 2) NOT NULL, `status` ENUM('pending', 'paid', 'failed') NOT NULL DEFAULT 'pending',
-        `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, `paid_at` TIMESTAMP NULL DEFAULT NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+    huli_ensure_afdian_order_columns($pdo);
     if (isset($_GET['action']) && isset($_GET['id'])) {
         $id = intval($_GET['id']);
         switch ($_GET['action']) {
@@ -26,21 +23,12 @@ try {
                 $_SESSION['feedback_msg'] = '订单已成功标记为失败。'; $_SESSION['feedback_type'] = 'success';
                 break;
             case 'mark_paid':
-                $pdo->beginTransaction();
-                $stmt_order = $pdo->prepare("SELECT * FROM huli_orders WHERE id = ? AND status = 'pending' FOR UPDATE");
-                $stmt_order->execute([$id]); $order = $stmt_order->fetch(PDO::FETCH_ASSOC);
-                if ($order) {
-                    $stmt_plan = $pdo->prepare("SELECT balance_to_add FROM huli_billing_plans WHERE id = ?");
-                    $stmt_plan->execute([$order['plan_id']]); $balance_to_add = $stmt_plan->fetchColumn();
-                    if ($balance_to_add) {
-                        $stmt_update_user = $pdo->prepare("UPDATE huli_users SET balance = balance + ? WHERE id = ?");
-                        $stmt_update_user->execute([$balance_to_add, $order['user_id']]);
-                        $stmt_update_order = $pdo->prepare("UPDATE huli_orders SET status = 'paid', paid_at = CURRENT_TIMESTAMP WHERE id = ?");
-                        $stmt_update_order->execute([$order['id']]);
-                        $pdo->commit();
-                        $_SESSION['feedback_msg'] = '订单已成功标记为已支付，并已为用户增加余额。'; $_SESSION['feedback_type'] = 'success';
-                    } else { $pdo->rollBack(); throw new Exception('找不到对应的计费方案。'); }
-                } else { $pdo->rollBack(); throw new Exception('订单不存在或已处理。'); }
+                $result = huli_mark_order_paid_manual($pdo, $id);
+                if ($result['ok']) {
+                    $_SESSION['feedback_msg'] = $result['message']; $_SESSION['feedback_type'] = 'success';
+                } else {
+                    $_SESSION['feedback_msg'] = $result['message']; $_SESSION['feedback_type'] = 'error';
+                }
                 break;
         }
         header('Location: order_list.php'); exit;
@@ -169,6 +157,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <tr>
                   <th>编号</th>
                   <th>订单号</th>
+                  <th>备注码</th>
                   <th>用户</th>
                   <th>购买方案</th>
                   <th>金额</th>
@@ -180,13 +169,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
               <tbody>
                 <?php if (empty($orders)): ?>
                 <tr>
-                  <td colspan="8" class="text-center py-4 text-muted">暂无订单数据</td>
+                  <td colspan="9" class="text-center py-4 text-muted">暂无订单数据</td>
                 </tr>
                 <?php else: ?>
                   <?php foreach ($orders as $index => $order): ?>
                   <tr>
                     <td><?php echo ($page - 1) * $results_per_page + $index + 1; ?></td>
                     <td><code><?php echo htmlspecialchars($order['order_id']); ?></code></td>
+                    <td><code><?php echo htmlspecialchars($order['match_code'] ?? ''); ?></code></td>
                     <td><?php echo htmlspecialchars($order['username'] ?: '未知用户'); ?></td>
                     <td><?php echo htmlspecialchars($order['plan_name'] ?: '未知方案'); ?></td>
                     <td>¥ <?php echo number_format($order['amount'], 2); ?></td>

@@ -15,7 +15,7 @@ $feedback_msg = ''; $feedback_type = '';
 $user_id = $_SESSION['user_id'];
 $user_info = ['username' => $_SESSION['user_username'], 'email' => $_SESSION['user_email']];
 $user_data = ['api_key' => 'N/A', 'call_count' => 0, 'balance' => '0.00', 'created_at' => 'N/A'];
-$recent_logs = []; $billing_plans = []; $payment_methods = [];
+$recent_logs = []; $billing_plans = [];
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -48,14 +48,6 @@ try {
     $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $site_name = $settings['site_name'] ?? 'huliapi';
-    $payment_map = [
-        'alipay' => ['name' => '支付宝', 'icon' => 'zfb.png'],
-        'wxpay' => ['name' => '微信支付', 'icon' => 'wx.png'],
-        'qqpay' => ['name' => 'QQ钱包', 'icon' => 'qq.png']
-    ];
-    if(!empty($settings['payment_alipay_enabled'])) $payment_methods['alipay'] = $payment_map['alipay'];
-    if(!empty($settings['payment_wxpay_enabled'])) $payment_methods['wxpay'] = $payment_map['wxpay'];
-    if(!empty($settings['payment_qqpay_enabled'])) $payment_methods['qqpay'] = $payment_map['qqpay'];
 } catch (PDOException $e) { $feedback_msg = '无法加载您的数据，请稍后重试。'; $feedback_type = 'error'; }
 $currentTemplate = basename(dirname(__FILE__));
 $activeTemplate = TemplateManager::getActiveUserTemplate();
@@ -172,11 +164,6 @@ if ($currentTemplate !== $activeTemplate) {
         .plan-card { border: 2px solid var(--border-color); border-radius: 12px; padding: 20px; text-align: center; transition: all 0.2s; cursor: pointer; }
         .plan-card.selected { border-color: var(--primary-color); box-shadow: 0 0 0 3px var(--primary-light); }
         .plan-price { font-size: 32px; font-weight: 700; color: var(--primary-color); margin: 8px 0; }
-        .payment-methods { margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 24px; }
-        .payment-methods h3 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
-        .payment-method { display: flex; align-items: center; padding: 16px; border: 2px solid var(--border-color); border-radius: 12px; margin-bottom: 12px; cursor: pointer; }
-        .payment-method.selected { border-color: var(--primary-color); background-color: var(--primary-light); }
-        .payment-method img { width: 32px; height: 32px; margin-right: 16px; }
         .btn-confirm-payment { width: 100%; margin-top: 24px; padding: 14px; }
         .btn-confirm-payment:disabled { background-color: 
         
@@ -225,13 +212,7 @@ if ($currentTemplate !== $activeTemplate) {
                 <div class="plans-grid">
                     <?php if(empty($billing_plans)): ?><p>当前暂无可用的充值方案。</p><?php else: ?><?php foreach($billing_plans as $plan): ?><div class="plan-card" data-plan-id="<?php echo $plan['id']; ?>"><h3 class="plan-name"><?php echo htmlspecialchars($plan['name']); ?></h3><p class="plan-price">¥<?php echo number_format($plan['price'], 2); ?></p><?php if ($plan['billing_type'] === 'balance'): ?><p class="plan-balance">可得余额 ¥<?php echo number_format($plan['balance_to_add'], 2); ?></p><?php elseif ($plan['billing_type'] === 'points'): ?><p class="plan-balance">可得点数 <?php echo number_format($plan['points_to_add']); ?></p><?php else: ?><p class="plan-balance">可得超级会员 <?php echo number_format($plan['membership_days']); ?> 天</p><?php endif; ?></div><?php endforeach; endif; ?>
                 </div>
-                <div class="payment-methods"><h3 class="card-title">选择支付方式</h3>
-                    <?php foreach($payment_methods as $method_key => $method_info): ?>
-                    <div class="payment-method" data-method="<?php echo $method_key; ?>"><img src="../../../common/payment/<?php echo $method_info['icon']; ?>" alt="<?php echo $method_info['name']; ?>"><span><?php echo $method_info['name']; ?></span></div>
-                    <?php endforeach; ?>
-                </div>
-                <input type="hidden" name="plan_id" id="selected-plan-id"><input type="hidden" name="payment_method" id="selected-payment-method">
-                <button type="submit" id="confirm-payment-btn" class="btn btn-primary btn-confirm-payment" disabled>立即支付</button>
+                <input type="hidden" name="plan_id" id="selected-plan-id"><button type="submit" id="confirm-payment-btn" class="btn btn-primary btn-confirm-payment" disabled>立即支付</button>
             </form>
         </div>
     </div>
@@ -252,19 +233,16 @@ if ($currentTemplate !== $activeTemplate) {
         const openModalBtn = document.getElementById('recharge-menu-item');
         const closeModalBtn = document.getElementById('close-recharge-modal');
         const planCards = document.querySelectorAll('.plan-card');
-        const paymentMethods = document.querySelectorAll('.payment-method');
         const selectedPlanInput = document.getElementById('selected-plan-id');
-        const selectedMethodInput = document.getElementById('selected-payment-method');
         const confirmPaymentBtn = document.getElementById('confirm-payment-btn');
         const rechargeForm = document.getElementById('recharge-form');
-        let selectedPlanId = null; let selectedPaymentMethod = null;
-        function checkSelections() { if (selectedPlanId && selectedPaymentMethod) { confirmPaymentBtn.disabled = false; } else { confirmPaymentBtn.disabled = true; } }
+        let selectedPlanId = null;
+        function checkSelections() { confirmPaymentBtn.disabled = !selectedPlanId; }
         if(openModalBtn) openModalBtn.addEventListener('click', (e) => { e.preventDefault(); modal.classList.add('show'); });
         if(closeModalBtn) closeModalBtn.addEventListener('click', () => modal.classList.remove('show'));
         if(modal) modal.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('show'); });
         planCards.forEach(card => { card.addEventListener('click', function() { planCards.forEach(c => c.classList.remove('selected')); this.classList.add('selected'); selectedPlanId = this.dataset.planId; selectedPlanInput.value = selectedPlanId; checkSelections(); }); });
-        paymentMethods.forEach(method => { method.addEventListener('click', function() { paymentMethods.forEach(m => m.classList.remove('selected')); this.classList.add('selected'); selectedPaymentMethod = this.dataset.method; selectedMethodInput.value = selectedPaymentMethod; checkSelections(); }); });
-        if(rechargeForm) { rechargeForm.addEventListener('submit', function(e) { if (!selectedPlanId || !selectedPaymentMethod) { e.preventDefault(); alert('请先选择一个充值方案和一种支付方式。'); } }); }
+        if(rechargeForm) { rechargeForm.addEventListener('submit', function(e) { if (!selectedPlanId) { e.preventDefault(); alert('请先选择一个充值方案。'); } }); }
         const redeemForm = document.getElementById('redeem-form');
         const redeemFeedback = document.getElementById('redeem-feedback');
         if(redeemForm) {

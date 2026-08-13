@@ -6,25 +6,22 @@ if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失。"); }
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = ''; $feedback_type = ''; $page_title = '支付设置';
-$settings = ['epay_pid' => '', 'epay_key' => '', 'epay_url' => '', 'payment_alipay_enabled' => 1, 'payment_wxpay_enabled' => 1, 'payment_qqpay_enabled' => 1];
+$settings = ['afdian_user_id' => '', 'afdian_token' => '', 'afdian_page_url' => ''];
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->exec("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('epay_pid', ''), ('epay_key', ''), ('epay_url', ''), ('payment_alipay_enabled', '1'), ('payment_wxpay_enabled', '1'), ('payment_qqpay_enabled', '1');");
+    $pdo->exec("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('afdian_user_id', ''), ('afdian_token', ''), ('afdian_page_url', '');");
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
         $stmt = $pdo->prepare("UPDATE huli_settings SET setting_value = ? WHERE setting_key = ?");
-        $stmt->execute([trim($_POST['epay_pid']), 'epay_pid']);
-        $stmt->execute([trim($_POST['epay_key']), 'epay_key']);
-        $stmt->execute([trim($_POST['epay_url']), 'epay_url']);
-        $stmt->execute([isset($_POST['payment_alipay_enabled']) ? '1' : '0', 'payment_alipay_enabled']);
-        $stmt->execute([isset($_POST['payment_wxpay_enabled']) ? '1' : '0', 'payment_wxpay_enabled']);
-        $stmt->execute([isset($_POST['payment_qqpay_enabled']) ? '1' : '0', 'payment_qqpay_enabled']);
+        $stmt->execute([trim($_POST['afdian_user_id']), 'afdian_user_id']);
+        $stmt->execute([trim($_POST['afdian_token']), 'afdian_token']);
+        $stmt->execute([trim($_POST['afdian_page_url']), 'afdian_page_url']);
         $pdo->commit();
         $feedback_msg = '支付设置已成功保存。';
         $feedback_type = 'success';
     }
-    $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key LIKE 'epay_%' OR setting_key LIKE 'payment_%'");
+    $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key LIKE 'afdian_%'");
     $db_settings = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
     $settings = array_merge($settings, $db_settings);
 } catch (Exception $e) {
@@ -64,32 +61,28 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <?php endif; ?>
                     <form method="POST" action="payment_settings.php">
                         <div class="mb-3">
-                            <label for="epay_pid" class="form-label">易支付商户ID (PID)</label>
-                            <input type="text" class="form-control" id="epay_pid" name="epay_pid" placeholder="请输入您的商户ID" value="<?php echo htmlspecialchars($settings['epay_pid']); ?>">
-                            <small class="form-text text-muted">从您的易支付后台获取。</small>
+                            <label for="afdian_user_id" class="form-label">爱发电用户ID (User ID)</label>
+                            <input type="text" class="form-control" id="afdian_user_id" name="afdian_user_id" placeholder="请输入爱发电开发者 User ID" value="<?php echo htmlspecialchars($settings['afdian_user_id']); ?>">
+                            <small class="form-text text-muted">登录爱发电后，进入「设置 - 开发者」页面获取。</small>
                         </div>
                         <div class="mb-3">
-                            <label for="epay_key" class="form-label">易支付商户密钥 (Key)</label>
-                            <input type="text" class="form-control" id="epay_key" name="epay_key" placeholder="请输入您的商户密钥" value="<?php echo htmlspecialchars($settings['epay_key']); ?>">
-                            <small class="form-text text-muted">请务必保管好您的密钥，切勿泄露。</small>
+                            <label for="afdian_token" class="form-label">爱发电API Token</label>
+                            <input type="text" class="form-control" id="afdian_token" name="afdian_token" placeholder="请输入爱发电 API Token" value="<?php echo htmlspecialchars($settings['afdian_token']); ?>">
+                            <small class="form-text text-muted">请务必保管好您的 Token，切勿泄露。</small>
                         </div>
                         <div class="mb-3">
-                            <label for="epay_url" class="form-label">易支付API接口地址</label>
-                            <input type="url" class="form-control" id="epay_url" name="epay_url" placeholder="例如：https://pay.example.com/" value="<?php echo htmlspecialchars($settings['epay_url']); ?>">
-                            <small class="form-text text-muted">请确保地址以 / 结尾，例如 https://pay.example.com/</small>
+                            <label for="afdian_page_url" class="form-label">爱发电创作者主页链接</label>
+                            <input type="url" class="form-control" id="afdian_page_url" name="afdian_page_url" placeholder="例如：https://afdian.com/a/yourname" value="<?php echo htmlspecialchars($settings['afdian_page_url']); ?>">
+                            <small class="form-text text-muted">用户付款时将被引导至此赞助页面。</small>
                         </div>
-                        <h5 class="mt-4 mb-3">支付方式开关</h5>
-                        <div class="mb-3 form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="payment_alipay_enabled" name="payment_alipay_enabled" value="1" <?php echo $settings['payment_alipay_enabled'] ? 'checked' : ''; ?>>
-                            <label class="form-check-label" for="payment_alipay_enabled">支付宝支付</label>
-                        </div>
-                        <div class="mb-3 form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="payment_wxpay_enabled" name="payment_wxpay_enabled" value="1" <?php echo $settings['payment_wxpay_enabled'] ? 'checked' : ''; ?>>
-                            <label class="form-check-label" for="payment_wxpay_enabled">微信支付</label>
-                        </div>
-                        <div class="mb-3 form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="payment_qqpay_enabled" name="payment_qqpay_enabled" value="1" <?php echo $settings['payment_qqpay_enabled'] ? 'checked' : ''; ?>>
-                            <label class="form-check-label" for="payment_qqpay_enabled">QQ钱包支付</label>
+                        <h5 class="mt-4 mb-3">接入说明</h5>
+                        <div class="alert alert-info">
+                            <ul class="mb-0">
+                                <li>用户在本站选择充值方案后，将跳转到您设置的赞助页面付款。</li>
+                                <li>用户需要在爱发电付款时选择与本站充值金额一致的赞助档位，并在「备注」中填写系统生成的备注码。</li>
+                                <li>系统每 5 秒自动检测一次，并配合后台定时补偿查询；超过 5 分钟未到账的订单将自动作废。</li>
+                                <li>支付方式由爱发电平台决定，无需在本站配置。</li>
+                            </ul>
                         </div>
                         <div class="mt-4">
                             <button type="submit" class="btn btn-primary me-2">保存设置</button>

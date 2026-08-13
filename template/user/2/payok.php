@@ -41,20 +41,6 @@ try {
     $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $site_name = $settings['site_name'] ?? 'huliapi';
-    $payment_map = [
-        'alipay' => ['name' => '支付宝', 'icon' => 'zfb.png'],
-        'wxpay' => ['name' => '微信支付', 'icon' => 'wx.png'],
-        'qqpay' => ['name' => 'QQ钱包', 'icon' => 'qq.png']
-    ];
-    if(!empty($settings['payment_alipay_enabled'])) {
-        $payment_methods['alipay'] = $payment_map['alipay'];
-    }
-    if(!empty($settings['payment_wxpay_enabled'])) {
-        $payment_methods['wxpay'] = $payment_map['wxpay'];
-    }
-    if(!empty($settings['payment_qqpay_enabled'])) {
-        $payment_methods['qqpay'] = $payment_map['qqpay'];
-    }
 } catch (PDOException $e) {
     die('数据库连接错误：' . $e->getMessage());
 }
@@ -155,29 +141,6 @@ try {
                                     </div>
                                 </div>
                             </div>
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <div class="card-title"><i class="mdi mdi-credit-card-multiple me-2"></i>选择支付方式</div>
-                                </div>
-                                <div class="card-body">
-                                    <?php if(empty($payment_methods)): ?>
-                                        <div class="alert alert-warning">当前暂无可用的支付方式。</div>
-                                    <?php else: ?>
-                                        <div class="row">
-                                            <?php foreach($payment_methods as $method_key => $method_info): ?>
-                                            <div class="col-md-6 mb-3">
-                                                <div class="card payment-method" data-method="<?php echo $method_key; ?>">
-                                                    <div class="card-body d-flex align-items-center">
-                                                        <img src="../../../common/payment/<?php echo $method_info['icon']; ?>" alt="<?php echo $method_info['name']; ?>">
-                                                        <span><?php echo $method_info['name']; ?></span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <?php endforeach; ?>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
                             <div class="d-grid">
                                 <button type="button" id="confirm-payment-btn" class="btn btn-primary btn-lg" disabled>
                                     <i class="mdi mdi-currency-cny me-1"></i> 立即支付
@@ -210,29 +173,15 @@ try {
 <script>
 $(document).ready(function() {
     let selectedPlanId = null;
-    let selectedPaymentMethod = null;
     $('.plan-card').click(function() {
         $('.plan-card').removeClass('border-primary');
         $(this).addClass('border-primary');
         selectedPlanId = $(this).data('plan-id');
-        checkSelections();
+        $('#confirm-payment-btn').prop('disabled', !selectedPlanId);
     });
-    $('.payment-method').click(function() {
-        $('.payment-method').removeClass('border-primary');
-        $(this).addClass('border-primary');
-        selectedPaymentMethod = $(this).data('method');
-        checkSelections();
-    });
-    function checkSelections() {
-        if (selectedPlanId && selectedPaymentMethod) {
-            $('#confirm-payment-btn').prop('disabled', false);
-        } else {
-            $('#confirm-payment-btn').prop('disabled', true);
-        }
-    }
     $('#confirm-payment-btn').click(function() {
-        if (!selectedPlanId || !selectedPaymentMethod) {
-            alert('请先选择充值方案和支付方式');
+        if (!selectedPlanId) {
+            alert('请先选择充值方案');
             return;
         }
         const btn = $(this);
@@ -242,8 +191,7 @@ $(document).ready(function() {
             type: 'POST',
             dataType: 'json',
             data: {
-                plan_id: selectedPlanId,
-                payment_method: selectedPaymentMethod
+                plan_id: selectedPlanId
             },
             success: function(response) {
                 if(response.success && response.payment_url) {

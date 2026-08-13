@@ -32,7 +32,6 @@ $user_data = [
 ];
 $recent_logs = [];
 $billing_plans = [];
-$payment_methods = [];
 try {
     $pdo = new PDO(
         "mysql:host=" . DB_HOST .
@@ -157,20 +156,6 @@ try {
     $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $site_name = $settings['site_name'] ?? 'huliapi';
-    $payment_map = [
-        'alipay' => ['name' => '支付宝', 'icon' => 'zfb.png'],
-        'wxpay' => ['name' => '微信支付', 'icon' => 'wx.png'],
-        'qqpay' => ['name' => 'QQ钱包', 'icon' => 'qq.png']
-    ];
-    if(!empty($settings['payment_alipay_enabled'])) {
-        $payment_methods['alipay'] = $payment_map['alipay'];
-    }
-    if(!empty($settings['payment_wxpay_enabled'])) {
-        $payment_methods['wxpay'] = $payment_map['wxpay'];
-    }
-    if(!empty($settings['payment_qqpay_enabled'])) {
-        $payment_methods['qqpay'] = $payment_map['qqpay'];
-    }
 } catch (PDOException $e) {
     $feedback_msg = '无法加载您的数据，请稍后重试。';
     $feedback_type = 'error';
@@ -467,23 +452,7 @@ try {
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
-                    <div class="mt-4">
-                        <h5>选择支付方式</h5>
-                        <div class="row">
-                            <?php foreach($payment_methods as $method_key => $method_info): ?>
-                                <div class="col-md-6 mb-3">
-                                    <div class="card payment-method" data-method="<?php echo $method_key; ?>">
-                                        <div class="card-body d-flex align-items-center">
-                                            <img src="../../../common/payment/<?php echo $method_info['icon']; ?>" alt="<?php echo $method_info['name']; ?>" width="40" class="me-3">
-                                            <span><?php echo $method_info['name']; ?></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
                     <input type="hidden" name="plan_id" id="selected-plan-id">
-                    <input type="hidden" name="payment_method" id="selected-payment-method">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
@@ -590,27 +559,13 @@ document.addEventListener('DOMContentLoaded', function() {
         $('.plan-card').removeClass('border-primary');
         $(this).addClass('border-primary');
         $('#selected-plan-id').val($(this).data('plan-id'));
-        checkSelections();
+        $('#confirm-payment-btn').prop('disabled', false);
     });
-    $('.payment-method').click(function() {
-        $('.payment-method').removeClass('border-primary');
-        $(this).addClass('border-primary');
-        $('#selected-payment-method').val($(this).data('method'));
-        checkSelections();
-    });
-
-    function checkSelections() {
-        if ($('#selected-plan-id').val() && $('#selected-payment-method').val()) {
-            $('#confirm-payment-btn').prop('disabled', false);
-        } else {
-            $('#confirm-payment-btn').prop('disabled', true);
-        }
-    }
 
     $('#confirm-payment-btn').click(function(e) {
         e.preventDefault();
-        if (!$('#selected-plan-id').val() || !$('#selected-payment-method').val()) {
-            alert('请先选择充值方案和支付方式');
+        if (!$('#selected-plan-id').val()) {
+            alert('请先选择充值方案');
             return;
         }
         const btn = $(this);
@@ -620,8 +575,7 @@ document.addEventListener('DOMContentLoaded', function() {
             type: 'POST',
             dataType: 'json',
             data: {
-                plan_id: $('#selected-plan-id').val(),
-                payment_method: $('#selected-payment-method').val()
+                plan_id: $('#selected-plan-id').val()
             },
             success: function(response) {
                 if(response.success && response.payment_url) {
