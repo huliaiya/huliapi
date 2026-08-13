@@ -93,9 +93,9 @@ define('ROOT_PATH', $rootPath . '/');
 if (!file_exists(ROOT_PATH . 'config.php')) {
     die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
-require_once 'config.php';
+require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/avatar.php';
-require_once 'common/TemplateManager.php';
+require_once ROOT_PATH . 'common/TemplateManager.php';
 
 function checkUserLoginStatus() {
     if (!isset($_SESSION['user_id'])) {
