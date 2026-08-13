@@ -23,6 +23,9 @@ function huli_pconline_geo($ip) {
     if (json_last_error() !== JSON_ERROR_NONE) {
         $data = mb_convert_encoding($data, 'UTF-8', 'GBK');
         $decoded = json_decode($data, true);
+    } elseif (is_array($decoded) && !empty($decoded['pro'])) {
+        $converted = mb_convert_encoding($data, 'UTF-8', 'GBK');
+        $decoded = json_decode($converted, true) ?: $decoded;
     }
     return is_array($decoded) ? $decoded : null;
 }

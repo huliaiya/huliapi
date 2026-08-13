@@ -21,9 +21,10 @@ function huli_geo_lookup($ip, $pdo = null) {
         if (file_exists($geo_lib)) { require_once $geo_lib; }
     }
     $j = function_exists('huli_pconline_geo') ? huli_pconline_geo($ip) : null;
-    if ($j && !empty($j['addr'])) {
+    if ($j && !empty($j['addr']) && empty($j['err'])) {
         $pro = $j['pro'] ?? '';
         $city = $j['city'] ?? '';
+        $region = $j['region'] ?? '';
         $addr = $j['addr'] ?? '';
         $isp = '';
         $isp_parts = explode(' ', $addr);
@@ -31,7 +32,7 @@ function huli_geo_lookup($ip, $pdo = null) {
             $isp = end($isp_parts);
         }
         return [
-            'country' => $pro,
+            'country' => $region ?: '中国',
             'region' => $pro,
             'city' => $city,
             'isp' => $isp,
