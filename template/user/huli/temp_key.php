@@ -158,7 +158,23 @@ $site_name = $settings['site_name'];
                     <input type="email" id="email" name="email" class="form-control" placeholder="用于接收临时密钥" required>
                 </div>
             </div>
+            <?php if (huli_turnstile_enabled()): ?>
             <?php echo huli_turnstile_widget_html(); ?>
+            <?php else: ?>
+            <div class="mb-3">
+                <div class="row g-2">
+                    <div class="col-7">
+                        <div class="has-feedback">
+                            <span class="mdi mdi-shield-check" aria-hidden="true"></span>
+                            <input type="text" id="captcha" name="captcha" class="form-control" placeholder="验证码" autocomplete="off" required>
+                        </div>
+                    </div>
+                    <div class="col-5">
+                        <img src="../../../common/ajax/captcha.php?r=<?php echo time(); ?>" id="captcha_img" title="点击刷新" alt="captcha" class="img-fluid rounded" style="cursor:pointer;height:39px;width:100%;object-fit:cover;">
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
             <div class="mb-3 d-grid">
                 <button type="submit" class="btn btn-primary" id="submit-btn">
                     <span class="mdi mdi-send"></span> 发送临时密钥到邮箱
@@ -230,5 +246,17 @@ $site_name = $settings['site_name'];
         }
     });
     </script>
+    <?php if (!huli_turnstile_enabled()): ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var img = document.getElementById('captcha_img');
+        if (img) {
+            img.addEventListener('click', function() {
+                this.src = '../../../common/ajax/captcha.php?r=' + new Date().getTime();
+            });
+        }
+    });
+    </script>
+    <?php endif; ?>
 </body>
 </html>
