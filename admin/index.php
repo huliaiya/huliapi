@@ -173,7 +173,6 @@ try { @require_once '../common/email_broadcast_dispatcher.php'; huli_broadcast_w
                 <li> <a class="multitabs" href="update.php">更新检测</a> </li>
                 <li> <a class="multitabs" href="system_check.php">环境检测</a> </li>
                 <li> <a class="multitabs" href="login_logs.php">登录日志</a> </li>
-                <li> <a class="multitabs" href="push_settings.php">推送通知</a> </li>
               </ul>
             </li>
           </ul>

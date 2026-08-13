@@ -639,7 +639,7 @@ hr { border-color: rgba(119, 148, 188, .22); }
           <div class="form-group mb-4"><label class="form-label">管理员昵称</label><input class="form-control" type="text" name="admin_nickname" value="<?= htmlspecialchars($_SESSION['install_config']['admin_nickname'] ?? '管理员') ?>" required></div>
         </div>
         <div class="form-row">
-          <div class="form-group mb-4"><label class="form-label">管理员邮箱</label><input class="form-control" type="email" name="admin_email" value="<?= htmlspecialchars($_SESSION['install_config']['admin_email'] ?? '') ?>" required></div>
+          <div class="form-group mb-4"><label class="form-label">管理员邮箱</label><input class="form-control" type="email" name="admin_email" value="<?= htmlspecialchars($_SESSION['install_config']['admin_email'] ?? '') ?>" required placeholder="如 admin@example.com"><small class="text-muted">用于接收系统通知、推送提醒与找回密码，请填写可正常收信的邮箱</small></div>
           <div class="form-group mb-4"><label class="form-label">后台目录名</label><input class="form-control" type="text" name="admin_path" value="<?= htmlspecialchars($_SESSION['install_config']['admin_path'] ?? 'admin') ?>" required><small class="text-muted">安装后后台地址为 /此目录名/</small></div>
         </div>
         <div class="form-row">
