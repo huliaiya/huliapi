@@ -149,6 +149,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $feedback_msg = '个人资料已更新。'; $feedback_type = 'success';
             } catch (PDOException $e) { $feedback_msg = '出现错误！数据库操作失败。'; $feedback_type = 'error'; }
         }
+    } elseif ($type === 'username') {
+        $new_username = trim($_POST['new_username'] ?? '');
+        $current_pw = $_POST['current_password_for_username'] ?? '';
+        if ($new_username === '' || $current_pw === '') {
+            $feedback_msg = '新用户名与当前密码均为必填。'; $feedback_type = 'error';
+        } elseif (!preg_match('/^[A-Za-z0-9_]{2,32}$/', $new_username)) {
+            $feedback_msg = '新用户名需要 2-32 位字母、数字或下划线。'; $feedback_type = 'error';
+        } else {
+            try {
+                $stmt_chk = $pdo->prepare("SELECT password FROM huli_admins WHERE id = ?"); $stmt_chk->execute([$admin_id]);
+                $admin_pw_row = $stmt_chk->fetch();
+                if (!$admin_pw_row || !password_verify($current_pw, $admin_pw_row['password'])) {
+                    $feedback_msg = '当前密码不正确。'; $feedback_type = 'error';
+                } else {
+                    $stmt_exist = $pdo->prepare("SELECT id FROM huli_admins WHERE username = ? AND id <> ?"); $stmt_exist->execute([$new_username, $admin_id]);
+                    if ($stmt_exist->fetch()) {
+                        $feedback_msg = '该用户名已被占用，请换一个。'; $feedback_type = 'error';
+                    } else {
+                        $pdo->prepare("UPDATE huli_admins SET username = ? WHERE id = ?")->execute([$new_username, $admin_id]);
+                        $_SESSION['admin_username'] = $new_username;
+                        $username = htmlspecialchars($new_username);
+                        $feedback_msg = '管理员用户名已更新，下次请使用新用户名登录。'; $feedback_type = 'success';
+                    }
+                }
+            } catch (PDOException $e) { $feedback_msg = '出现错误！数据库操作失败。'; $feedback_type = 'error'; }
+        }
     }
     }
 }
@@ -259,6 +285,19 @@ function huli_render_channel_card($row) {
               <small class="text-muted">头像使用 QQ 官方 API 自动获取，不填则显示默认头像</small>
             </div>
             <button type="submit" class="btn btn-primary">保存</button>
+          </form>
+          <form method="POST" action="profile.php" class="site-form mb-4">
+            <input type="hidden" name="form_type" value="username">
+            <div class="mb-3">
+              <label for="new_username">管理员用户名</label>
+              <input type="text" class="form-control" name="new_username" id="new_username" value="<?php echo $username; ?>" pattern="[A-Za-z0-9_]{2,32}" title="2-32 位字母、数字或下划线" required>
+              <small class="text-muted">当前用户名：<code><?php echo $username; ?></code>　|　2-32 位字母、数字或下划线。修改后需使用新用户名重新登录。</small>
+            </div>
+            <div class="mb-3">
+              <label for="current_password_for_username">当前密码（验证身份）</label>
+              <input type="password" class="form-control" name="current_password_for_username" id="current_password_for_username" required>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="mdi mdi-account-edit-outline"></i> 更新用户名</button>
           </form>
           <hr class="my-4">
           <header class="card-header mb-3" style="background:transparent;padding:0;border:none;"><div class="card-title">推送通知</div></header>

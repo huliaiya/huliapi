@@ -6,6 +6,32 @@ if (file_exists(dirname(__DIR__) . '/config.php')) {
     require_once dirname(__DIR__) . '/config.php';
 }
 
+function huli_turnstile_enabled()
+{
+    static $enabled = null;
+    if ($enabled !== null) {
+        return $enabled;
+    }
+    $enabled = false;
+    if (!defined('DB_HOST') || !defined('DB_NAME') || !defined('DB_USER')) {
+        return $enabled;
+    }
+    try {
+        $pdo = new PDO(
+            'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . (defined('DB_CHARSET') ? DB_CHARSET : 'utf8mb4'),
+            DB_USER,
+            defined('DB_PASS') ? DB_PASS : ''
+        );
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $rows = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('turnstile_enabled','turnstile_site_key','turnstile_secret_key')")->fetchAll(PDO::FETCH_KEY_PAIR);
+        $enabled = isset($rows['turnstile_enabled']) && (string)$rows['turnstile_enabled'] === '1'
+            && !empty($rows['turnstile_site_key'])
+            && !empty($rows['turnstile_secret_key']);
+    } catch (Exception $e) {
+    }
+    return $enabled;
+}
+
 function huli_turnstile_keys()
 {
     static $keys = null;
@@ -23,19 +49,15 @@ function huli_turnstile_keys()
             defined('DB_PASS') ? DB_PASS : ''
         );
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $stmt = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('turnstile_site_key','turnstile_secret_key')");
-        $rows = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-        $keys['site_key'] = isset($rows['turnstile_site_key']) ? (string)$rows['turnstile_site_key'] : '';
-        $keys['secret_key'] = isset($rows['turnstile_secret_key']) ? (string)$rows['turnstile_secret_key'] : '';
+        $stmt = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'turnstile_site_key'");
+        $sk = $stmt->fetchColumn();
+        $stmt = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'turnstile_secret_key'");
+        $ss = $stmt->fetchColumn();
+        $keys['site_key'] = $sk !== false ? (string)$sk : '';
+        $keys['secret_key'] = $ss !== false ? (string)$ss : '';
     } catch (Exception $e) {
     }
     return $keys;
-}
-
-function huli_turnstile_enabled()
-{
-    $keys = huli_turnstile_keys();
-    return !empty($keys['site_key']) && !empty($keys['secret_key']);
 }
 
 function huli_turnstile_widget_html()
