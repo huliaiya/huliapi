@@ -141,8 +141,7 @@ function huli_turnstile_verify()
     }
     $post_data = array(
         'secret' => $keys['secret_key'],
-        'response' => $token,
-        'remoteip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''
+        'response' => $token
     );
     $body = http_build_query($post_data);
     $url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
