@@ -16,6 +16,7 @@ require_once ROOT_PATH . 'common/turnstile.php';
 require_once ROOT_PATH . 'common/login_helper.php';
 $favicon_url = ''; try{$fp=new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS);$favicon_url=$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:'';}catch(Exception $e){}
 $error_msg = '';
+$turnstile_reason = '';
 try {
     $pdo_check = new PDO(
         "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET,
@@ -32,8 +33,8 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
-    if (!huli_turnstile_verify()) {
-        $error_msg = '人机验证失败，请完成验证后重试';
+    if (!huli_turnstile_verify($turnstile_reason)) {
+        $error_msg = $turnstile_reason ?: '人机验证失败，请完成验证后重试';
     } elseif (empty($username) || empty($password)) {
         $error_msg = '用户名或密码不能为空。';
     } else {
@@ -174,5 +175,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 <script type="text/javascript" src="../../../assets/js/jquery.min.js"></script>
 <script type="text/javascript" src="../../../assets/js/bootstrap.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+    var turnstileSubmitting = false;
+    $('.signin-form').on('submit', function(e) {
+        if (turnstileSubmitting || typeof window.huliTurnstileEnsureToken !== 'function') {
+            return;
+        }
+        if (!$('.huli-turnstile').length) {
+            return;
+        }
+        e.preventDefault();
+        var $form = $(this);
+        var $btn = $form.find('button[type="submit"]');
+        var original = $btn.text();
+        $btn.prop('disabled', true).text('正在验证...');
+        window.huliTurnstileEnsureToken(function() {
+            turnstileSubmitting = true;
+            $btn.prop('disabled', false).text(original);
+            $form[0].submit();
+        }, function(message) {
+            $btn.prop('disabled', false).text(original);
+            var $alert = $('.turnstile-alert');
+            if (!$alert.length) {
+                $alert = $('<div class="alert alert-danger text-center turnstile-alert"></div>').insertBefore($form);
+            }
+            $alert.text(message);
+        });
+    });
+});
+</script>
 </body>
 </html>

@@ -26,8 +26,9 @@ if (isset($_SESSION['last_sent_time']) && time() - $_SESSION['last_sent_time'] <
     json_response(false, '请求过于频繁，请稍后再试。');
 }
 if ($type === 'friend_link' || $type === 'feedback') {
-    if (!huli_turnstile_verify()) {
-        json_response(false, '人机验证失败，请完成 Cloudflare 验证后重试');
+    $turnstile_reason = '';
+    if (!huli_turnstile_verify($turnstile_reason)) {
+        json_response(false, $turnstile_reason ?: '人机验证失败，请完成 Cloudflare 验证后重试');
     }
     if (!isset($_SESSION['user_email']) || $_SESSION['user_email'] !== $email) {
         json_response(false, '验证邮箱与登录账号不一致');

@@ -39,8 +39,9 @@ $email = filter_var(trim($_POST['email']), FILTER_VALIDATE_EMAIL);
 if (!$email) {
     json_response(false, '请输入有效的邮箱地址。');
 }
-if (!huli_turnstile_verify()) {
-    json_response(false, '人机验证失败，请完成 Cloudflare 验证后重试。');
+$turnstile_reason = '';
+if (!huli_turnstile_verify($turnstile_reason)) {
+    json_response(false, $turnstile_reason ?: '人机验证失败，请完成 Cloudflare 验证后重试。');
 }
 if (isset($_SESSION['last_temp_key_sent']) && time() - $_SESSION['last_temp_key_sent'] < 60) {
     json_response(false, '请求过于频繁，请稍后再试。');

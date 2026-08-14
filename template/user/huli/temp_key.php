@@ -174,13 +174,18 @@ $site_name = $settings['site_name'];
     <script src="../../../assets/js/bootstrap-notify.min.js"></script>
     <script>
     $(document).ready(function() {
-        function hasTurnstileResponse() {
-            return typeof window.huliGetTurnstileResponse === 'function' && window.huliGetTurnstileResponse();
+        function resetTurnstileWidget() {
+            if (typeof window.huliTurnstileConsumed === 'function') {
+                window.huliTurnstileConsumed();
+            }
         }
 
-        function resetTurnstileWidget() {
-            if (typeof window.huliResetTurnstiles === 'function') {
-                window.huliResetTurnstiles();
+        // 人机验证关闭时运行时脚本不会输出，这里保证提交流程仍然可用。
+        function ensureTurnstile(onReady, onFail) {
+            if (typeof window.huliTurnstileEnsureToken === 'function') {
+                window.huliTurnstileEnsureToken(onReady, onFail);
+            } else {
+                onReady('');
             }
         }
 
@@ -192,10 +197,16 @@ $site_name = $settings['site_name'];
                 showError('请输入您的邮箱地址');
                 return;
             }
-            if ($('.huli-turnstile').length && !hasTurnstileResponse()) {
-                showError('请先完成人机验证');
-                return;
-            }
+            $submitBtn.html('<span class="spinner-border spinner-border-sm" role="status"></span> 正在验证...').prop('disabled', true);
+            ensureTurnstile(function() {
+                submitTempKey($submitBtn);
+            }, function(message) {
+                $submitBtn.html('<span class="mdi mdi-send"></span> 发送临时密钥到邮箱').prop('disabled', false);
+                showError(message);
+            });
+        });
+
+        function submitTempKey($submitBtn) {
             $submitBtn.html('<span class="spinner-border spinner-border-sm" role="status"></span> 正在处理...').prop('disabled', true);
             $.ajax({
                 url: '../../../common/ajax/get_temp_key.php',
@@ -218,7 +229,7 @@ $site_name = $settings['site_name'];
                     $submitBtn.html('<span class="mdi mdi-send"></span> 发送临时密钥到邮箱').prop('disabled', false);
                 }
             });
-        });
+        }
 
         function showSuccess(message) {
             $('#result-area').html('<div class="alert alert-success animate__animated animate__fadeIn">' + message + '</div>');

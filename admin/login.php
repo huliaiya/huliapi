@@ -17,11 +17,12 @@ require_once __DIR__ . '/../common/login_helper.php';
     $favicon_url = '';
 try { $fp = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS); $settings['site_name'] = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='site_name'")->fetchColumn() ?: 'huliapi'; $favicon_url = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; $mail_forgot_enabled = ((int)$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='mail_admin_forgot_enabled'")->fetchColumn() === 1); } catch(Exception $e) {}
 $error_msg = '';
+$turnstile_reason = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
-    if (!huli_turnstile_verify()) {
-        $error_msg = '人机验证失败，请完成 Cloudflare 验证后重试';
+    if (!huli_turnstile_verify($turnstile_reason)) {
+        $error_msg = $turnstile_reason ?: '人机验证失败，请完成 Cloudflare 验证后重试';
     }
     if (!$error_msg && (empty($username) || empty($password))) {
         $error_msg = '账号或密码不能为空';
@@ -159,6 +160,7 @@ body {
 <script type="text/javascript" src="../assets/js/bootstrap.bundle.min.js"></script>
 <script type="text/javascript">
 $(document).ready(function() {
+    var turnstileSubmitting = false;
     $('.signin-form').on('submit', function(e) {
         if (this.checkValidity() === false) {
             e.preventDefault();
@@ -166,6 +168,29 @@ $(document).ready(function() {
             $(this).addClass('was-validated');
             return false;
         }
+        if (turnstileSubmitting || typeof window.huliTurnstileEnsureToken !== 'function') {
+            return;
+        }
+        if (!$('.huli-turnstile').length) {
+            return;
+        }
+        e.preventDefault();
+        var $form = $(this);
+        var $btn = $form.find('button[type="submit"]');
+        var original = $btn.text();
+        $btn.prop('disabled', true).text('正在验证...');
+        window.huliTurnstileEnsureToken(function() {
+            turnstileSubmitting = true;
+            $btn.prop('disabled', false).text(original);
+            $form[0].submit();
+        }, function(message) {
+            $btn.prop('disabled', false).text(original);
+            var $alert = $('.error-message');
+            if (!$alert.length) {
+                $alert = $('<div class="alert alert-danger error-message mb-3"></div>').prependTo($form);
+            }
+            $alert.text(message);
+        });
     });
 });
 </script>

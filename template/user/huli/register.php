@@ -24,6 +24,7 @@ require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/turnstile.php';
 $error_msg = '';
 $success_msg = '';
+$turnstile_reason = '';
 $settings = [];
 $registration_allowed = true;
 $mail_reg_enabled = false;
@@ -41,8 +42,8 @@ try {
         $confirm_password = trim($_POST['confirm_password'] ?? '');
         $qq = trim($_POST['qq'] ?? '');
         $code = trim($_POST['code'] ?? '');
-        if (!huli_turnstile_verify()) {
-            throw new Exception('人机验证失败，请完成验证后重试');
+        if (!huli_turnstile_verify($turnstile_reason)) {
+            throw new Exception($turnstile_reason ?: '人机验证失败，请完成验证后重试');
         }
         if (empty($username) || empty($email) || empty($password)) {
             throw new Exception('所有字段均为必填项');
@@ -213,13 +214,18 @@ try {
 <script type="text/javascript" src="../../../assets/js/bootstrap-notify.min.js"></script>
 <script type="text/javascript">
 $(document).ready(function() {
-    function hasTurnstileResponse() {
-        return typeof window.huliGetTurnstileResponse === 'function' && window.huliGetTurnstileResponse();
+    // 人机验证关闭时运行时脚本不会输出，这里保证提交流程仍然可用。
+    function ensureTurnstile(onReady, onFail) {
+        if (typeof window.huliTurnstileEnsureToken === 'function') {
+            window.huliTurnstileEnsureToken(onReady, onFail);
+        } else {
+            onReady('');
+        }
     }
 
     function resetTurnstileWidget() {
-        if (typeof window.huliResetTurnstiles === 'function') {
-            window.huliResetTurnstiles();
+        if (typeof window.huliTurnstileConsumed === 'function') {
+            window.huliTurnstileConsumed();
         }
     }
 
@@ -267,10 +273,16 @@ $(document).ready(function() {
         event.preventDefault();
         const $form = $(this);
         const $submitBtn = $('#submit-btn');
-        if ($('.huli-turnstile').length && !hasTurnstileResponse()) {
-            showError('请先完成人机验证');
-            return;
-        }
+        $submitBtn.html('<span class="spinner-border spinner-border-sm" role="status"></span> 正在验证...').prop('disabled', true);
+        ensureTurnstile(function() {
+            submitRegister($form, $submitBtn);
+        }, function(message) {
+            $submitBtn.text('立即注册').prop('disabled', false);
+            showError(message);
+        });
+    });
+
+    function submitRegister($form, $submitBtn) {
         $submitBtn.html('<span class="spinner-border spinner-border-sm" role="status"></span> 注册中...').prop('disabled', true);
         $.ajax({
             url: $form.attr('action'),
@@ -302,7 +314,7 @@ $(document).ready(function() {
                 $submitBtn.text('立即注册').prop('disabled', false);
             }
         });
-    });
+    }
 
     function showError(message) {
         $.notify({

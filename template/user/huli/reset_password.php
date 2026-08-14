@@ -25,6 +25,7 @@ require_once ROOT_PATH . 'common/turnstile.php';
 $email_from_get = isset($_GET['email']) ? trim($_GET['email']) : '';
 $error_msg = '';
 $success_msg = '';
+$turnstile_reason = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -33,8 +34,8 @@ try {
         $code = trim($_POST['code']);
         $password = trim($_POST['password']);
         $confirm_password = trim($_POST['confirm_password']);
-        if (!huli_turnstile_verify()) {
-            throw new Exception('人机验证失败，请完成 Cloudflare 验证后重试');
+        if (!huli_turnstile_verify($turnstile_reason)) {
+            throw new Exception($turnstile_reason ?: '人机验证失败，请完成 Cloudflare 验证后重试');
         }
         if (empty($email) || empty($code) || empty($password)) {
             throw new Exception('所有字段均为必填项');
@@ -173,13 +174,33 @@ try {
 <script type="text/javascript" src="../../../assets/js/bootstrap-notify.min.js"></script>
 <script type="text/javascript">
 $(document).ready(function() {
-    function hasTurnstileResponse() {
-        return typeof window.huliGetTurnstileResponse === 'function' && window.huliGetTurnstileResponse();
+    function notifyError(message) {
+        $.notify({
+            message: message,
+        },{
+            type: 'danger',
+            placement: { from: 'top', align: 'right' },
+            z_index: 10800,
+            delay: 2500,
+            animate: {
+                enter: 'animate__animated animate__shakeX',
+                exit: 'animate__animated animate__fadeOutDown'
+            }
+        });
     }
 
     function resetTurnstileWidget() {
-        if (typeof window.huliResetTurnstiles === 'function') {
-            window.huliResetTurnstiles();
+        if (typeof window.huliTurnstileConsumed === 'function') {
+            window.huliTurnstileConsumed();
+        }
+    }
+
+    // 人机验证关闭时运行时脚本不会输出，这里保证提交流程仍然可用。
+    function ensureTurnstile(onReady, onFail) {
+        if (typeof window.huliTurnstileEnsureToken === 'function') {
+            window.huliTurnstileEnsureToken(onReady, onFail);
+        } else {
+            onReady('');
         }
     }
 
@@ -269,21 +290,16 @@ $(document).ready(function() {
         event.preventDefault();
         const $form = $(this);
         const $submitBtn = $form.find('button[type="submit"]');
-        if ($('.huli-turnstile').length && !hasTurnstileResponse()) {
-            $.notify({
-                message: '请先完成人机验证',
-            },{
-                type: 'danger',
-                placement: { from: 'top', align: 'right' },
-                z_index: 10800,
-                delay: 1500,
-                animate: {
-                    enter: 'animate__animated animate__shakeX',
-                    exit: 'animate__animated animate__fadeOutDown'
-                }
-            });
-            return;
-        }
+        $submitBtn.html('正在验证...').prop('disabled', true);
+        ensureTurnstile(function() {
+            submitReset($form, $submitBtn);
+        }, function(message) {
+            $submitBtn.html('确认重置').prop('disabled', false);
+            notifyError(message);
+        });
+    });
+
+    function submitReset($form, $submitBtn) {
         $submitBtn.html('处理中...').prop('disabled', true);
         const loader = $submitBtn.lyearloading({ opacity: 0.2, spinnerSize: 'nm' });
         $.ajax({
@@ -314,41 +330,19 @@ $(document).ready(function() {
                         window.location.href = 'login.php';
                     }, 1500);
                 } else {
-                    $.notify({
-                        message: response.message || '密码重置失败',
-                    },{
-                        type: 'danger',
-                        placement: { from: 'top', align: 'right' },
-                        z_index: 10800,
-                        delay: 1500,
-                        animate: {
-                            enter: 'animate__animated animate__shakeX',
-                            exit: 'animate__animated animate__fadeOutDown'
-                        }
-                    });
+                    notifyError(response.message || '密码重置失败');
                 }
             },
             error: function(xhr, status, error) {
                 loader.destroy();
                 $submitBtn.html('确认重置').prop('disabled', false);
-                $.notify({
-                    message: '服务器错误: ' + error,
-                },{
-                    type: 'danger',
-                    placement: { from: 'top', align: 'right' },
-                    z_index: 10800,
-                    delay: 1500,
-                    animate: {
-                        enter: 'animate__animated animate__shakeX',
-                        exit: 'animate__animated animate__fadeOutDown'
-                    }
-                });
+                notifyError('服务器错误: ' + error);
             },
             complete: function() {
                 resetTurnstileWidget();
             }
         });
-    });
+    }
 });
 </script>
 </body>

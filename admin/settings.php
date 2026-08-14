@@ -5,6 +5,7 @@
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失。"); }
 require_once __DIR__ . '/../common/push.php';
+require_once __DIR__ . '/../common/turnstile.php';
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = ''; $feedback_type = ''; $page_title = '系统设置';
 $settings_keys = [
@@ -106,12 +107,17 @@ try {
         } else {
         $pdo->beginTransaction();
         $stmt = $pdo->prepare("UPDATE huli_settings SET setting_value = ? WHERE setting_key = ?");
+        $bool_keys = ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'enable_free_qps_limit', 'enable_member_qps_limit', 'enable_warn_notification', 'enable_daily_points', 'enable_daily_points_notification'];
+        // 未勾选的 checkbox 不会出现在 $_POST 中，只靠 array_key_exists 判断会导致开关永远关不掉。
+        // 各表单通过隐藏字段 checkbox_keys[] 声明本次提交包含哪些开关，未声明的开关不做改动。
+        $posted_checkbox_keys = (isset($_POST['checkbox_keys']) && is_array($_POST['checkbox_keys'])) ? $_POST['checkbox_keys'] : [];
         foreach ($settings_keys as $key) {
-            if (!array_key_exists($key, $_POST)) continue;
-            if(in_array($key, ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'enable_warn_notification', 'enable_daily_points', 'enable_daily_points_notification'])) {
+            if (in_array($key, $bool_keys, true)) {
+                if (!in_array($key, $posted_checkbox_keys, true)) continue;
                 $value = isset($_POST[$key]) ? '1' : '0';
             } else {
-                $value = isset($_POST[$key]) ? trim($_POST[$key]) : '';
+                if (!array_key_exists($key, $_POST)) continue;
+                $value = trim($_POST[$key]);
             }
             $stmt->execute([$value, $key]);
         }
@@ -279,6 +285,13 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
               </div>
               <div class="tab-pane fade" id="function" aria-labelledby="basic-function">
                 <form method="POST" action="settings.php" class="edit-form">
+                <input type="hidden" name="checkbox_keys[]" value="allow_registration">
+                <input type="hidden" name="checkbox_keys[]" value="allow_temp_key">
+                <input type="hidden" name="checkbox_keys[]" value="enable_free_qps_limit">
+                <input type="hidden" name="checkbox_keys[]" value="enable_member_qps_limit">
+                <input type="hidden" name="checkbox_keys[]" value="enable_warn_notification">
+                <input type="hidden" name="checkbox_keys[]" value="enable_daily_points">
+                <input type="hidden" name="checkbox_keys[]" value="enable_daily_points_notification">
                 <div class="mb-3">
                   <label class="form-label">允许用户注册</label>
                   <div class="form-check form-switch">
@@ -409,6 +422,8 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
               </div>
               <div class="tab-pane fade" id="mail" aria-labelledby="basic-mail">
                 <form method="POST" action="settings.php" class="edit-form">
+                <input type="hidden" name="checkbox_keys[]" value="mail_reg_enabled">
+                <input type="hidden" name="checkbox_keys[]" value="mail_forgot_enabled">
                 <div class="mb-3">
                   <label class="form-label">开启邮件验证码注册</label>
                   <div class="form-check form-switch">
@@ -456,6 +471,22 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
               </div>
               <div class="tab-pane fade" id="turnstile" aria-labelledby="basic-turnstile">
                 <form method="POST" action="settings.php" class="edit-form">
+                <input type="hidden" name="checkbox_keys[]" value="turnstile_enabled">
+                <?php
+                $ts_site = trim((string)($settings['turnstile_site_key'] ?? ''));
+                $ts_secret = trim((string)($settings['turnstile_secret_key'] ?? ''));
+                $ts_site_is_test = $ts_site !== '' && strpos(HULI_TURNSTILE_TEST_SITE_KEYS, '|' . $ts_site . '|') !== false;
+                $ts_secret_is_test = $ts_secret !== '' && strpos(HULI_TURNSTILE_TEST_SECRET_KEYS, '|' . $ts_secret . '|') !== false;
+                ?>
+                <?php if ($ts_site !== '' && $ts_secret !== '' && $ts_site_is_test !== $ts_secret_is_test): ?>
+                <div class="alert alert-danger mb-3">
+                  当前 Site Key 与 Secret Key 一个是 Cloudflare 测试密钥、一个是正式密钥。两者必须成对使用，否则校验必然返回 invalid-input-response。
+                </div>
+                <?php elseif ($ts_site_is_test && $ts_secret_is_test): ?>
+                <div class="alert alert-warning mb-3">
+                  当前使用的是 Cloudflare 官方测试密钥，仅用于本地联调，不具备任何防护能力。上线前请替换为自己的正式密钥。
+                </div>
+                <?php endif; ?>
                 <div class="mb-3 form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="turnstile_enabled" name="turnstile_enabled" value="1" <?php echo $settings['turnstile_enabled'] ? 'checked' : ''; ?>>
                   <label class="form-check-label" for="turnstile_enabled">启用人机验证 (Cloudflare Turnstile)</label>
@@ -469,7 +500,17 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   <label for="turnstile_secret_key" class="form-label">Turnstile Secret Key</label>
                   <input class="form-control" type="text" id="turnstile_secret_key" name="turnstile_secret_key" value="<?php echo htmlspecialchars($settings['turnstile_secret_key'] ?? ''); ?>" placeholder="0x4AAAAAA...">
                 </div>
-                <small class="form-text text-muted d-block mb-3">在 https://dash.cloudflare.com 创建 Turnstile 站点后获取。需先勾选启用开关并填写两个 Key，后台与用户端登录/注册/重置密码/申请临时密钥才会使用 Turnstile 校验。</small>
+                <div class="alert alert-info mb-3">
+                  <div class="fw-bold mb-2">配置要点</div>
+                  <ol class="mb-0 ps-3">
+                    <li>在 https://dash.cloudflare.com 的 Turnstile 中创建站点，Site Key 与 Secret Key 必须来自同一个站点。</li>
+                    <li>在该站点的 Hostname Management 中添加本站实际访问域名，否则前端会报错误码 110200。仅通过 IP 或未授权域名访问时验证一定失败。</li>
+                    <li>两个 Key 请直接粘贴，不要带空格或换行；保存后会自动去除首尾空白。</li>
+                    <li>校验令牌有效期 300 秒且只能使用一次，页面停留过久时组件会自动刷新，无需手动处理。</li>
+                    <li>失败时前端会显示 Cloudflare 返回的具体原因，服务端同时写入 PHP error_log，可据此排查。</li>
+                  </ol>
+                </div>
+                <small class="form-text text-muted d-block mb-3">需先勾选启用开关并填写两个 Key，后台与用户端登录/注册/重置密码/申请临时密钥才会使用 Turnstile 校验。</small>
                 <div>
                   <button type="submit" class="btn btn-primary me-1">保存设置</button>
                 </div>
