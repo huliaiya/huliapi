@@ -143,7 +143,7 @@ http://your-domain.com/install/
 
 安装完成后进入后台「系统设置」检查以下内容：
 
-- Turnstile Site Key 和 Secret Key。
+- Turnstile Site Key 和 Secret Key。两个 Key 必须来自同一个 Turnstile 站点，并在 Cloudflare 的 Hostname Management 中授权本站域名。
 - SMTP 主机、端口、账号、密码和加密方式。
 - 支付配置。
 - ICP 备案号和公安备案号。
@@ -223,4 +223,11 @@ http://your-domain.com/install/
 
 ### Turnstile 验证不通过怎么办？
 
-生产环境需要在后台替换为真实的 Cloudflare Turnstile Site Key 和 Secret Key。
+按以下顺序排查：
+
+1. 生产环境需要在后台替换为真实的 Cloudflare Turnstile Site Key 和 Secret Key。
+2. 两个 Key 必须来自同一个 Turnstile 站点。测试密钥与正式密钥混用时校验必然失败。
+3. 在 Cloudflare Turnstile 站点的 Hostname Management 中添加本站实际访问域名。未授权的域名或直接用 IP 访问都会被拒绝。
+4. 粘贴 Key 时不要带入空格或换行。
+
+验证失败时页面会显示 Cloudflare 返回的具体原因，服务端同时向 PHP error_log 写入 `[turnstile]` 前缀的日志，可据此定位。
