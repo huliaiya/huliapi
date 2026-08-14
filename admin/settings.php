@@ -8,6 +8,8 @@ require_once __DIR__ . '/../common/push.php';
 require_once __DIR__ . '/../common/turnstile.php';
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = ''; $feedback_type = ''; $page_title = '系统设置';
+$ts_feedback_msg = ''; $ts_feedback_type = '';
+$ts_e2e_msg = ''; $ts_e2e_ok = false; $ts_e2e_raw = '';
 $settings_keys = [
     'site_name', 'site_description', 'copyright_info', 'allow_registration', 'allow_temp_key',
     'temp_key_duration', 'temp_key_limit',
@@ -87,21 +89,36 @@ try {
             $keys = huli_turnstile_keys();
             $site = $keys['site_key'];
             $secret = $keys['secret_key'];
-            $push_feedback_type = 'danger';
+            $ts_feedback_type = 'danger';
             if ($site === '' || $secret === '') {
-                $push_feedback_msg = '请先填写 Turnstile Site Key 与 Secret Key 再测试。';
+                $ts_feedback_msg = '请先填写 Turnstile Site Key 与 Secret Key 再检测。';
             } elseif (huli_turnstile_key_pair_mismatch()) {
-                $push_feedback_msg = '检测失败：Site Key 与 Secret Key 一个是测试密钥、一个是正式密钥，两者必须成对使用。';
+                $ts_feedback_msg = '检测失败：Site Key 与 Secret Key 一个是测试密钥、一个是正式密钥，两者必须成对使用。Cloudflare 会直接返回 invalid-input-response。';
             } elseif (!preg_match('/^[0-9A-Za-z_-]{20,80}$/', $site)) {
-                $push_feedback_msg = '检测失败：Site Key 格式不合法，应为 Cloudflare 后台给出的字母数字串。';
+                $ts_feedback_msg = '检测失败：Site Key 格式不合法。Cloudflare Site Key 形如 "0x4AAAAAA..."，请重新复制。';
             } elseif (!preg_match('/^[0-9A-Za-z_-]{20,80}$/', $secret)) {
-                $push_feedback_msg = '检测失败：Secret Key 格式不合法，应为 Cloudflare 后台给出的字母数字串。';
+                $ts_feedback_msg = '检测失败：Secret Key 格式不合法。Cloudflare Secret Key 形如 "0x4AAAAAA..."，请重新复制（密钥首尾若带空格或换行请去除）。';
             } else {
                 $site_is_test = strpos(HULI_TURNSTILE_TEST_SITE_KEYS, '|' . $site . '|') !== false;
-                $push_feedback_type = 'success';
-                $push_feedback_msg = $site_is_test
-                    ? '配置校验通过（检测到 Cloudflare 官方测试密钥）。Cloudflare 不会做真实校验，登录可成功提交但无防护能力，上线前请替换为正式密钥。'
-                    : '配置校验通过：密钥成对且格式合法。前端组件需在已授权域名下访问，详见下方配置要点。';
+                $ts_feedback_type = 'success';
+                $ts_feedback_msg = $site_is_test
+                    ? '配置校验通过：检测到 Cloudflare 官方测试密钥。Cloudflare 不会做真实校验，仅供本地联调；上线前请替换为正式密钥。'
+                    : '配置校验通过：密钥成对、格式合法。域名授权需要在真实登录页验证——本工具从后台发起检测请求，域名通常未在 Cloudflare Hostname Management 授权，因此无法做端到端校验。';
+            }
+        } elseif (isset($_POST['test_turnstile_e2e'])) {
+            $reason = '';
+            $result = huli_turnstile_verify_token(isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '', $reason);
+            $ts_e2e_ok = !empty($result['ok']);
+            $ts_e2e_msg = $ts_e2e_ok
+                ? '端到端验证通过：Cloudflare 已接受本次 token。'
+                : ('端到端验证失败：' . ($reason ?: '未知错误'));
+            $ts_e2e_raw = json_encode($result['raw'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            if ($ts_e2e_ok) {
+                $ts_feedback_msg = $ts_e2e_msg;
+                $ts_feedback_type = 'success';
+            } else {
+                $ts_feedback_msg = $ts_e2e_msg;
+                $ts_feedback_type = 'danger';
             }
         } elseif (isset($_POST['channel'])) {
             $channel = $_POST['channel'];
@@ -498,6 +515,11 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 $ts_site_is_test = $ts_site !== '' && strpos(HULI_TURNSTILE_TEST_SITE_KEYS, '|' . $ts_site . '|') !== false;
                 $ts_secret_is_test = $ts_secret !== '' && strpos(HULI_TURNSTILE_TEST_SECRET_KEYS, '|' . $ts_secret . '|') !== false;
                 ?>
+                <?php if ($ts_feedback_msg): ?>
+                <div class="alert alert-<?php echo $ts_feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
+                  <?php echo htmlspecialchars($ts_feedback_msg); ?>
+                </div>
+                <?php endif; ?>
                 <?php if ($ts_site !== '' && $ts_secret !== '' && $ts_site_is_test !== $ts_secret_is_test): ?>
                 <div class="alert alert-danger mb-3">
                   当前 Site Key 与 Secret Key 一个是 Cloudflare 测试密钥、一个是正式密钥。两者必须成对使用，否则校验必然返回 invalid-input-response。
@@ -537,8 +559,31 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                     <i class="mdi mdi-shield-check-outline"></i> 检测密钥配置
                   </button>
                 </div>
-                <div class="form-text">检测项：密钥是否成对、格式是否合法、是否仍为 Cloudflare 官方测试密钥。域名授权需要在浏览器打开真实登录页验证，本工具仅检查密钥本身。
+                <div class="form-text mb-3">检测项：密钥是否成对、格式是否合法、是否仍为 Cloudflare 官方测试密钥。域名授权需要走端到端测试，本工具仅检查密钥本身。</div>
                 </form>
+                <hr class="my-4">
+                <div class="mb-2 fw-bold"><i class="mdi mdi-flask-outline"></i> 端到端测试</div>
+                <?php if ($ts_site === '' || $ts_secret === ''): ?>
+                <div class="alert alert-warning mb-3">请先填写并保存 Site Key 与 Secret Key。</div>
+                <?php else: ?>
+                <p class="text-muted small mb-2">完成下方 Cloudflare 验证后点击「提交验证」，服务端会用真实密钥调用 Cloudflare siteverify 接口并展示完整响应。这是最准确的诊断工具，能直接定位域名授权、密钥配对、token 生命周期等问题。</p>
+                <form method="POST" action="settings.php" class="edit-form" id="turnstile-e2e-form">
+                  <input type="hidden" name="checkbox_keys[]" value="turnstile_enabled">
+                  <?php echo huli_turnstile_widget_html(true); ?>
+                  <button type="submit" name="test_turnstile_e2e" value="1" class="btn btn-outline-primary">
+                    <i class="mdi mdi-send-check-outline"></i> 提交验证
+                  </button>
+                </form>
+                <?php if (!empty($ts_e2e_raw)): ?>
+                <div class="mt-3">
+                  <div class="alert alert-<?php echo $ts_e2e_ok ? 'success' : 'danger'; ?> mb-2">
+                    <?php echo htmlspecialchars($ts_e2e_msg); ?>
+                  </div>
+                  <div class="text-muted small mb-1">Cloudflare 原始响应：</div>
+                  <pre class="bg-light p-2 rounded small" style="max-height: 200px; overflow:auto;"><?php echo htmlspecialchars($ts_e2e_raw); ?></pre>
+                </div>
+                <?php endif; ?>
+                <?php endif; ?>
               </div>
             </div>
         </div>

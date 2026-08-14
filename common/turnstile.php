@@ -142,35 +142,37 @@ function huli_turnstile_siteverify_request($body)
 }
 
 /**
- * 服务端校验。返回 bool，失败原因可通过 $reason 或 huli_turnstile_last_error() 取回。
+ * 服务端校验单个 token。返回 ['ok'=>bool, 'reason'=>'', 'raw'=>[...]]。
+ * raw 始终包含 Cloudflare 的原始响应字段（success/error-codes/hostname 等）。
+ * 即使 Turnstile 未启用，也会返回 ok=true（无人机验证时不参与业务）。
  */
-function huli_turnstile_verify(&$reason = null)
+function huli_turnstile_verify_token($token, &$reason = null)
 {
     $reason = '';
     huli_turnstile_last_error('');
     if (!huli_turnstile_enabled()) {
-        return true;
+        return array('ok' => true, 'reason' => '', 'raw' => array('disabled' => true));
     }
     if (huli_turnstile_key_pair_mismatch()) {
         $reason = '人机验证配置有误：Site Key 与 Secret Key 一个是测试密钥、一个是正式密钥，两者必须成对使用';
         huli_turnstile_last_error($reason);
         error_log('[turnstile] 配置错误：测试密钥与正式密钥混用');
-        return false;
+        return array('ok' => false, 'reason' => $reason, 'raw' => array('config' => 'key_pair_mismatch'));
     }
-    $keys = huli_turnstile_keys();
-    $token = isset($_POST['cf-turnstile-response']) ? trim((string)$_POST['cf-turnstile-response']) : '';
+    $token = trim((string)$token);
     if ($token === '') {
         $reason = '未检测到人机验证结果，请等待验证组件加载完成并通过验证后再提交';
         huli_turnstile_last_error($reason);
         error_log('[turnstile] 未收到 cf-turnstile-response token');
-        return false;
+        return array('ok' => false, 'reason' => $reason, 'raw' => array('error-codes' => array('missing-input-response')));
     }
     if (strlen($token) > 2048) {
         $reason = '人机验证令牌格式异常，请刷新页面重试';
         huli_turnstile_last_error($reason);
         error_log('[turnstile] token 超过 2048 字符上限');
-        return false;
+        return array('ok' => false, 'reason' => $reason, 'raw' => array('error-codes' => array('invalid-input-response')));
     }
+    $keys = huli_turnstile_keys();
     $post_data = array(
         'secret' => $keys['secret_key'],
         'response' => $token,
@@ -178,16 +180,17 @@ function huli_turnstile_verify(&$reason = null)
     );
     $body = http_build_query($post_data);
     $data = null;
+    $raw_response = '';
     for ($attempt = 1; $attempt <= 2; $attempt++) {
-        $result = huli_turnstile_siteverify_request($body);
-        if ($result === false || $result === '') {
+        $raw_response = huli_turnstile_siteverify_request($body);
+        if ($raw_response === false || $raw_response === '') {
             error_log('[turnstile] siteverify 请求失败（无响应），第 ' . $attempt . ' 次');
             $data = array('success' => false, 'error-codes' => array('internal-error'));
             continue;
         }
-        $decoded = json_decode($result, true);
+        $decoded = json_decode($raw_response, true);
         if (!is_array($decoded)) {
-            error_log('[turnstile] siteverify 响应无法解析: ' . substr((string)$result, 0, 200));
+            error_log('[turnstile] siteverify 响应无法解析: ' . substr((string)$raw_response, 0, 200));
             $data = array('success' => false, 'error-codes' => array('internal-error'));
             continue;
         }
@@ -196,20 +199,24 @@ function huli_turnstile_verify(&$reason = null)
             break;
         }
         $codes = isset($data['error-codes']) ? (array)$data['error-codes'] : array();
-        // 仅 internal-error 值得重试；token 过期、密钥错误等重试无意义，
-        // 且 idempotency_key 相同可保证重试不会被判定为重复消费。
         if (!in_array('internal-error', $codes, true)) {
             break;
         }
     }
     if (!empty($data['success'])) {
-        return true;
+        return array('ok' => true, 'reason' => '', 'raw' => is_array($data) ? $data : array());
     }
     $codes = isset($data['error-codes']) ? (array)$data['error-codes'] : array();
     $reason = huli_turnstile_error_message($codes);
     huli_turnstile_last_error($reason);
     error_log('[turnstile] siteverify 验证失败 error-codes: ' . ($codes ? implode(',', $codes) : 'unknown'));
-    return false;
+    return array('ok' => false, 'reason' => $reason, 'raw' => is_array($data) ? $data : array('error-codes' => $codes));
+}
+
+function huli_turnstile_verify(&$reason = null)
+{
+    $result = huli_turnstile_verify_token(isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '', $reason);
+    return $result['ok'];
 }
 
 function huli_turnstile_uuid_v4()
@@ -232,12 +239,14 @@ function huli_turnstile_uuid_v4()
  * 1. token 超过 300 秒过期后仍被提交，导致 timeout-or-duplicate；
  * 2. 挑战尚未完成用户就点提交，导致后端收不到 token；
  * 3. 域名未授权、sitekey 无效等前端错误此前完全静默，无法定位。
+ *
+ * $force=true 时无视 Turnstile 启用状态也输出 widget，用于后台端到端测试。
  */
-function huli_turnstile_widget_html()
+function huli_turnstile_widget_html($force = false)
 {
     static $widget_index = 0;
     static $script_printed = false;
-    if (!huli_turnstile_enabled()) {
+    if (!$force && !huli_turnstile_enabled()) {
         return '';
     }
     $widget_index++;
@@ -326,7 +335,16 @@ syncInputs("");
 delete T.tokens[widgetId];
 syncInputs("");
 T.lastError=describeError(code);
-if(FATAL_ERRORS[String(code||"")]){T.fatal=true;}
+if(FATAL_ERRORS[String(code||"")]){
+T.fatal=true;
+var container=document.getElementById(widgetId);
+if(container&&container.parentNode&&!container.parentNode.querySelector(".huli-turnstile-fatal")){
+var banner=document.createElement("div");
+banner.className="alert alert-danger small mt-2 mb-2 huli-turnstile-fatal";
+banner.textContent=describeError(code);
+container.parentNode.insertBefore(banner,container);
+}
+}
 return true;
 }
 });
@@ -355,6 +373,16 @@ clearInterval(T.retryTimer);T.retryTimer=null;
 clearInterval(T.retryTimer);T.retryTimer=null;
 T.fatal=true;
 T.lastError="人机验证组件加载失败，请确认网络未拦截 challenges.cloudflare.com 后刷新重试";
+var pendingContainers=document.querySelectorAll(".huli-turnstile");
+if(pendingContainers.length){
+var first=pendingContainers[0];
+if(first.parentNode&&!first.parentNode.querySelector(".huli-turnstile-fatal")){
+var banner=document.createElement("div");
+banner.className="alert alert-danger small mt-2 mb-2 huli-turnstile-fatal";
+banner.textContent=T.lastError;
+first.parentNode.insertBefore(banner,first);
+}
+}
 }
 },250);
 };
