@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['admin_username'] = defined('ADMIN_NICKNAME') ? ADMIN_NICKNAME : ($admin['nickname'] ?: $username);
                     $updateStmt = $pdo->prepare("UPDATE huli_admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?");
                     $updateStmt->execute([$admin['id']]);
-                    try { huli_record_login($pdo, 'admin', (int)$admin['id'], $_SESSION['admin_username'], 'success'); } catch (Throwable $e) {}
+                    try { huli_record_login($pdo, 'admin', (int)$admin['id'], $_SESSION['admin_username'], 'success', ['email' => $admin['email'], 'notify' => true]); } catch (Throwable $e) {}
                     header('Location: index.php');
                     exit;
                 } else {

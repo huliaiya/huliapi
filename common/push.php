@@ -19,32 +19,38 @@ function huli_md_fields(array $fields, $title = '') {
 
 function huli_email_html_rows(array $fields) {
     $rows = '';
-    $i = 0;
     foreach ($fields as $k => $v) {
-        $bg = $i % 2 === 0 ? '#f6f8fb' : '#ffffff';
+        $v = (string)$v;
         $rows .= '<tr>'
-            . '<td style="padding:11px 16px;width:100px;background:' . $bg . ';color:#6b7a8c;font-weight:600;white-space:nowrap;border-bottom:1px solid #edf1f6;font-size:13px;">' . htmlspecialchars((string)$k) . '</td>'
-            . '<td style="padding:11px 16px;color:#1f2937;border-bottom:1px solid #edf1f6;word-break:break-all;font-size:14px;">' . htmlspecialchars((string)$v) . '</td>'
+            . '<td style="padding:13px 18px;width:32%;background:#f8fafc;color:#64748b;font-size:14px;border-bottom:1px solid #f1f5f9;vertical-align:top;">' . htmlspecialchars((string)$k) . '</td>'
+            . '<td style="padding:13px 18px;color:#1e293b;font-size:14px;font-weight:600;border-bottom:1px solid #f1f5f9;word-break:break-all;">' . htmlspecialchars($v) . '</td>'
             . '</tr>';
-        $i++;
     }
     return $rows;
 }
 
 function huli_email_html_template($title, $content, array $fields, $site_name = 'huliapi') {
-    $rows = $fields ? huli_email_html_rows($fields) : ('<tr><td style="padding:16px;color:#374151;font-size:14px;line-height:1.8;">' . nl2br(htmlspecialchars($content)) . '</td></tr>');
-    return '<div style="background:#f2f6fb;padding:28px 12px;">'
-        . '<div style="max-width:560px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;">'
-        . '<div style="background:linear-gradient(135deg,#2b7ac1,#6ba3e0);padding:24px 28px;border-radius:14px 14px 0 0;color:#ffffff;">'
-        . '<div style="font-size:19px;font-weight:700;letter-spacing:.5px;">' . htmlspecialchars($site_name) . '</div>'
-        . '<div style="font-size:14px;opacity:.9;margin-top:5px;">' . htmlspecialchars($title) . '</div>'
+    if (!empty($fields)) {
+        $rows = huli_email_html_rows($fields);
+        $body = '<table width="100%" cellpadding="0" cellspacing="0" style="border-radius:12px;overflow:hidden;border:1px solid #eef2f7;border-collapse:separate;">'
+            . $rows
+            . '</table>';
+    } else {
+        $body = '<p style="margin:0;color:#1e293b;font-size:15px;line-height:1.8;">' . nl2br(htmlspecialchars($content)) . '</p>';
+    }
+    return '<div style="background:#eef2f7;padding:32px 12px;">'
+        . '<div style="max-width:560px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,\'PingFang SC\',\'Microsoft YaHei\',sans-serif;">'
+        . '<div style="background:linear-gradient(135deg,#2563eb,#4f7cff);padding:26px 28px;border-radius:14px 14px 0 0;">'
+        . '<div style="color:#ffffff;font-size:16px;font-weight:600;opacity:.85;letter-spacing:1px;">' . htmlspecialchars($site_name) . '</div>'
+        . '<div style="color:#ffffff;font-size:20px;font-weight:700;margin-top:6px;">' . htmlspecialchars($title) . '</div>'
         . '</div>'
-        . '<div style="background:#ffffff;padding:20px 28px;border-left:1px solid #e3ecf5;border-right:1px solid #e3ecf5;font-size:14px;color:#374151;line-height:1.8;">'
-        . '<p style="margin:0 0 14px;color:#4b5563;">' . nl2br(htmlspecialchars($content)) . '</p>'
-        . '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' . $rows . '</table>'
+        . '<div style="background:#ffffff;padding:24px 28px;border-left:1px solid #e3ebf6;border-right:1px solid #e3ebf6;">'
+        . (!empty($fields) ? '<p style="margin:0 0 18px;color:#475569;font-size:14px;line-height:1.7;">检测到您的账号发生了一次新的登录行为，详情如下：</p>' : '')
+        . $body
+        . (!empty($fields) ? '<p style="margin:18px 0 0;color:#b45309;font-size:13px;line-height:1.7;">如非本人操作，请立即修改密码并检查账号安全，必要时联系管理员。</p>' : '')
         . '</div>'
-        . '<div style="background:#eef3f9;padding:15px 28px;border-radius:0 0 14px 14px;border:1px solid #e3ecf5;border-top:none;font-size:12px;color:#8595a6;line-height:1.7;">'
-        . '⚠ 如非本人操作，请立即修改您的登录密码。<br>本邮件由 ' . htmlspecialchars($site_name) . ' 系统自动发送，请勿直接回复。'
+        . '<div style="background:#f8fafc;padding:16px 28px;border-radius:0 0 14px 14px;border:1px solid #e3ebf6;border-top:none;font-size:12px;color:#94a3b8;line-height:1.7;">'
+        . '本邮件由 ' . htmlspecialchars($site_name) . ' 系统自动发送，请勿直接回复。'
         . '</div>'
         . '</div></div>';
 }
