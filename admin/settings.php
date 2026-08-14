@@ -230,9 +230,9 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
               <button class="nav-link" id="basic-turnstile" data-bs-toggle="tab" data-bs-target="#turnstile" type="button">人机验证</button>
             </li>
           </ul>
-          <form method="POST" action="settings.php" class="edit-form">
             <div class="tab-content">
               <div class="tab-pane fade show active" id="config" aria-labelledby="basic-config">
+                <form method="POST" action="settings.php" class="edit-form">
                 <?php if ($feedback_msg): ?>
                 <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
                   <?php echo htmlspecialchars($feedback_msg); ?>
@@ -277,8 +277,8 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 <?php endif; ?>
                 <?php foreach ($channels as $c) { echo huli_render_channel_card_settings($c); } ?>
               </div>
-              <form method="POST" action="settings.php" class="edit-form">
               <div class="tab-pane fade" id="function" aria-labelledby="basic-function">
+                <form method="POST" action="settings.php" class="edit-form">
                 <div class="mb-3">
                   <label class="form-label">允许用户注册</label>
                   <div class="form-check form-switch">
@@ -405,8 +405,10 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 <div>
                   <button type="submit" class="btn btn-primary me-1">保存设置</button>
                 </div>
+                </form>
               </div>
               <div class="tab-pane fade" id="mail" aria-labelledby="basic-mail">
+                <form method="POST" action="settings.php" class="edit-form">
                 <div class="mb-3">
                   <label class="form-label">开启邮件验证码注册</label>
                   <div class="form-check form-switch">
@@ -450,12 +452,14 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   <a href="mail_test.php" class="text-primary">发送测试邮件...</a>
                   <button type="submit" class="btn btn-primary me-1">保存设置</button>
                 </div>
+                </form>
               </div>
               <div class="tab-pane fade" id="turnstile" aria-labelledby="basic-turnstile">
+                <form method="POST" action="settings.php" class="edit-form">
                 <div class="mb-3 form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="turnstile_enabled" name="turnstile_enabled" value="1" <?php echo $settings['turnstile_enabled'] ? 'checked' : ''; ?>>
                   <label class="form-check-label" for="turnstile_enabled">启用人机验证 (Cloudflare Turnstile)</label>
-                  <div class="form-text">关闭时使用内置图形验证码；开启时需填写下方两个 Key，并使用 Cloudflare Turnstile 校验。</div>
+                  <div class="form-text">开启后需填写下方两个 Key，并使用 Cloudflare Turnstile 校验。</div>
                 </div>
                 <div class="mb-3">
                   <label for="turnstile_site_key" class="form-label">Turnstile Site Key</label>
@@ -465,13 +469,13 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   <label for="turnstile_secret_key" class="form-label">Turnstile Secret Key</label>
                   <input class="form-control" type="text" id="turnstile_secret_key" name="turnstile_secret_key" value="<?php echo htmlspecialchars($settings['turnstile_secret_key'] ?? ''); ?>" placeholder="0x4AAAAAA...">
                 </div>
-                <small class="form-text text-muted d-block mb-3">在 https://dash.cloudflare.com 创建 Turnstile 站点后获取。需先勾选启用开关并填写两个 Key，后台与用户端登录/注册/重置密码/申请临时密钥才会使用 Turnstile 校验；留空或未勾选则使用内置图形验证码。</small>
+                <small class="form-text text-muted d-block mb-3">在 https://dash.cloudflare.com 创建 Turnstile 站点后获取。需先勾选启用开关并填写两个 Key，后台与用户端登录/注册/重置密码/申请临时密钥才会使用 Turnstile 校验。</small>
                 <div>
                   <button type="submit" class="btn btn-primary me-1">保存设置</button>
                 </div>
+                </form>
               </div>
             </div>
-          </form>
         </div>
       </div>
     </div>

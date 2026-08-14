@@ -13,22 +13,15 @@ if (file_exists('../config.php')) {
 }
 require_once __DIR__ . '/../common/turnstile.php';
 require_once __DIR__ . '/../common/login_helper.php';
+    $settings = ['site_name' => 'huliapi'];
     $favicon_url = '';
-try { $fp = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS); $favicon_url = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; $mail_forgot_enabled = ((int)$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='mail_admin_forgot_enabled'")->fetchColumn() === 1); } catch(Exception $e) {}
+try { $fp = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS); $settings['site_name'] = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='site_name'")->fetchColumn() ?: 'huliapi'; $favicon_url = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; $mail_forgot_enabled = ((int)$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='mail_admin_forgot_enabled'")->fetchColumn() === 1); } catch(Exception $e) {}
 $error_msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
-    $has_turnstile = huli_turnstile_enabled();
-    if ($has_turnstile) {
-        if (!huli_turnstile_verify()) {
-            $error_msg = '人机验证失败，请完成 Cloudflare 验证后重试';
-        }
-    } else {
-        $captcha = strtolower(trim($_POST['captcha'] ?? ''));
-        if (empty($_SESSION['captcha_code']) || $captcha !== strtolower($_SESSION['captcha_code'])) {
-            $error_msg = '验证码不正确，请重新输入';
-        }
+    if (!huli_turnstile_verify()) {
+        $error_msg = '人机验证失败，请完成 Cloudflare 验证后重试';
     }
     if (!$error_msg && (empty($username) || empty($password))) {
         $error_msg = '账号或密码不能为空';
@@ -96,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     height: 36px;
     line-height: 36px;
     z-index: 4;
-    color: 
+    color: #9aa4b2;
     display: block;
     text-align: center;
     pointer-events: none;
@@ -109,8 +102,7 @@ body {
         radial-gradient(circle at 15% 15%, rgba(255, 220, 200, .30), transparent 32rem),
         radial-gradient(circle at 85% 85%, rgba(192, 224, 250, .32), transparent 30rem),
         radial-gradient(circle at 50% 50%, rgba(232, 244, 252, .28), transparent 40rem),
-        linear-gradient(135deg, 
-    background-color: 
+        linear-gradient(135deg, #f8fbff, #eef3fa);
     background-attachment: fixed;
     display: flex;
     justify-content: center;
@@ -125,12 +117,6 @@ body {
 .error-message {
     padding: 10px 15px;
     border-radius: 4px;
-}
-.captcha-img {
-    cursor: pointer;
-    height: 38px;
-    border-radius: 4px;
-    border: 1px solid 
 }
 </style>
 </head>
@@ -153,19 +139,7 @@ body {
       <span class="mdi mdi-lock" aria-hidden="true"></span>
       <input type="password" class="form-control" id="password" name="password" placeholder="密码" required>
     </div>
-    <?php if (huli_turnstile_enabled()): ?>
     <?php echo huli_turnstile_widget_html(); ?>
-    <?php else: ?>
-    <div class="mb-3 has-feedback row">
-      <div class="col-7">
-        <span class="mdi mdi-shield-check" aria-hidden="true"></span>
-        <input type="text" name="captcha" class="form-control" placeholder="验证码" required>
-      </div>
-      <div class="col-5 text-right">
-        <img src="../common/ajax/captcha.php?r=<?php echo time(); ?>" class="captcha-img" id="captcha" title="点击刷新" alt="captcha">
-      </div>
-    </div>
-    <?php endif; ?>
     <div class="mb-3">
       <div class="form-check">
         <input type="checkbox" class="form-check-input" id="remember" name="remember">
@@ -192,11 +166,7 @@ $(document).ready(function() {
             $(this).addClass('was-validated');
             return false;
         }
-    function refreshCaptcha() {
-        $('#captcha').attr('src', '../common/ajax/captcha.php?r=' + Math.random());
-    }
-    $('#captcha').on('click', refreshCaptcha);
-});
+    });
 });
 </script>
 </body>
