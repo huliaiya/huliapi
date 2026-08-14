@@ -133,6 +133,7 @@ try {
         foreach ($top_apis_today as &$api) {
             $api['name'] = $api_names[$api['api_id']] ?? '未知API';
         }
+        unset($api);
     }
 } catch (PDOException $e) {
     $db_error = "数据库连接错误: " . $e->getMessage();
