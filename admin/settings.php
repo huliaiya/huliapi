@@ -83,6 +83,26 @@ try {
                 $push_feedback_msg = '测试异常: ' . $e->getMessage();
                 $push_feedback_type = 'danger';
             }
+        } elseif (isset($_POST['test_turnstile'])) {
+            $keys = huli_turnstile_keys();
+            $site = $keys['site_key'];
+            $secret = $keys['secret_key'];
+            $push_feedback_type = 'danger';
+            if ($site === '' || $secret === '') {
+                $push_feedback_msg = '请先填写 Turnstile Site Key 与 Secret Key 再测试。';
+            } elseif (huli_turnstile_key_pair_mismatch()) {
+                $push_feedback_msg = '检测失败：Site Key 与 Secret Key 一个是测试密钥、一个是正式密钥，两者必须成对使用。';
+            } elseif (!preg_match('/^[0-9A-Za-z_-]{20,80}$/', $site)) {
+                $push_feedback_msg = '检测失败：Site Key 格式不合法，应为 Cloudflare 后台给出的字母数字串。';
+            } elseif (!preg_match('/^[0-9A-Za-z_-]{20,80}$/', $secret)) {
+                $push_feedback_msg = '检测失败：Secret Key 格式不合法，应为 Cloudflare 后台给出的字母数字串。';
+            } else {
+                $site_is_test = strpos(HULI_TURNSTILE_TEST_SITE_KEYS, '|' . $site . '|') !== false;
+                $push_feedback_type = 'success';
+                $push_feedback_msg = $site_is_test
+                    ? '配置校验通过（检测到 Cloudflare 官方测试密钥）。Cloudflare 不会做真实校验，登录可成功提交但无防护能力，上线前请替换为正式密钥。'
+                    : '配置校验通过：密钥成对且格式合法。前端组件需在已授权域名下访问，详见下方配置要点。';
+            }
         } elseif (isset($_POST['channel'])) {
             $channel = $_POST['channel'];
             $valid_channels = ['email', 'wecom', 'dingtalk', 'feishu', 'bark', 'webhook'];
@@ -511,9 +531,13 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   </ol>
                 </div>
                 <small class="form-text text-muted d-block mb-3">需先勾选启用开关并填写两个 Key，后台与用户端登录/注册/重置密码/申请临时密钥才会使用 Turnstile 校验。</small>
-                <div>
+                <div class="d-flex align-items-center mb-3">
                   <button type="submit" class="btn btn-primary me-1">保存设置</button>
+                  <button type="submit" name="test_turnstile" value="1" class="btn btn-outline-info ms-2">
+                    <i class="mdi mdi-shield-check-outline"></i> 检测密钥配置
+                  </button>
                 </div>
+                <div class="form-text">检测项：密钥是否成对、格式是否合法、是否仍为 Cloudflare 官方测试密钥。域名授权需要在浏览器打开真实登录页验证，本工具仅检查密钥本身。
                 </form>
               </div>
             </div>
