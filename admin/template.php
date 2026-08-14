@@ -175,7 +175,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                       <select class="form-select" name="home_template_id" required>
                         <?php foreach ($homeTemplates as $template): ?>
                           <option value="<?php echo $template['id']; ?>" <?php echo $template['is_active'] ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($template['name']); ?> (<?php echo htmlspecialchars($template['folder']); ?>)
+                            <?php echo htmlspecialchars($template['name']); ?>
                           </option>
                         <?php endforeach; ?>
                       </select>
@@ -245,7 +245,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                       <select class="form-select" name="user_template_id" required>
                         <?php foreach ($userTemplates as $template): ?>
                           <option value="<?php echo $template['id']; ?>" <?php echo $template['is_active'] ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($template['name']); ?> (<?php echo htmlspecialchars($template['folder']); ?>)
+                            <?php echo htmlspecialchars($template['name']); ?>
                           </option>
                         <?php endforeach; ?>
                       </select>
