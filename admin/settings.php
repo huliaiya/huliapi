@@ -575,12 +575,21 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
         }
         $('#ts-e2e-status').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">正在加载验证组件...</div>');
         var loadingTimer = setTimeout(function () {
-            $('#ts-e2e-status').html('<div class="alert alert-danger py-1 px-2 mb-0 small">Cloudflare 组件脚本加载超时，请确认服务器网络可访问 challenges.cloudflare.com，然后重新点击「按上方表单 Site Key 重载组件」。</div>');
-        }, 20000);
+            $('#ts-e2e-status').html('<div class="alert alert-warning py-1 px-2 mb-0 small">验证组件仍在加载中（已等待 35 秒）。若长时间无响应，请检查 challenges.cloudflare.com 可达性后点击「重载组件」重试。</div>');
+        }, 35000);
         window.huliTurnstileReady(function () {
             clearTimeout(loadingTimer);
             if (!(window.turnstile && typeof window.turnstile.render === 'function')) {
-                $('#ts-e2e-status').html('<div class="alert alert-danger py-1 px-2 mb-0 small">Cloudflare 组件脚本加载失败（challenges.cloudflare.com 可能被网络拦截或缓存损坏），已自动重试。请稍候再点「重载组件」，或刷新页面。</div>');
+                var diag = (window.huliSdkDiagnostics && window.huliSdkDiagnostics()) || {};
+                var detail = '';
+                if (diag.networkError > 0) {
+                    detail = '检测到浏览器请求 challenges.cloudflare.com 连续失败（网络拦截）。请在浏览器新标签页直接访问 https://challenges.cloudflare.com 验证可达性，并检查代理/VPN 或防火墙设置。';
+                } else if (diag.loadedOnce) {
+                    detail = 'api.js 已下载但脚本初始化异常（可能是缓存损坏或被浏览器扩展拦截），建议强制刷新页面（Ctrl+Shift+R）后再试。';
+                } else {
+                    detail = '在 3 次自动重试内未就绪。请在浏览器新标签页直接访问 https://challenges.cloudflare.com，确认网络可达后刷新本页。';
+                }
+                $('#ts-e2e-status').html('<div class="alert alert-danger py-1 px-2 mb-0 small">' + detail + '</div>');
                 return;
             }
             if (window.__huliE2EWidget) {
