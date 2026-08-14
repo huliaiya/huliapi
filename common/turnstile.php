@@ -359,7 +359,7 @@ var CLIENT_ERRORS={
 var FATAL_ERRORS={"110100":1,"110110":1,"110200":1,"200100":1,"400020":1,"400070":1};
 var SDK_URL="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=huliOnTurnstileLoad";
 var SDK_MAX_RELOADS=3;
-var T={widgets:{},pending:{},tokens:{},readyCallbacks:[],lastError:"",fatal:false,sdkFailed:false,sdkReloads:0,sdkTimer:null,sdkNetworkError:0,sdkLoadedOnce:false};
+var T={widgets:{},pending:{},tokens:{},readyCallbacks:[],lastError:"",fatal:false,sdkFailed:false,sdkReloads:0,sdkTimer:null,sdkNetworkError:0,sdkLoadedOnce:false,sdkExecError:0,sdkExecErrorMsg:""};
 window.huliTurnstile=T;
 function sdkReady(){return !!(window.turnstile&&typeof window.turnstile.render==="function");}
 function flushReadyCallbacks(){
@@ -399,8 +399,19 @@ if(old){old.remove();}
 loadSdkScript(true);
 },8000);
 }
-window.huliReloadTurnstileSdk=function(){if(T.sdkTimer){clearInterval(T.sdkTimer);T.sdkTimer=null;}T.sdkFailed=false;T.sdkReloads=0;T.sdkNetworkError=0;T.sdkLoadedOnce=false;var old=document.querySelector('script[data-huli-sdk="1"],script[src^="https://challenges.cloudflare.com/turnstile/"]');if(old){old.remove();}loadSdkScript(false);ensureSdkLoaded();};
-window.huliSdkDiagnostics=function(){return {ready:sdkReady(),attempts:T.sdkReloads,networkError:T.sdkNetworkError||0,loadedOnce:!!T.sdkLoadedOnce,failed:!!T.sdkFailed};};
+window.huliReloadTurnstileSdk=function(){if(T.sdkTimer){clearInterval(T.sdkTimer);T.sdkTimer=null;}T.sdkFailed=false;T.sdkReloads=0;T.sdkNetworkError=0;T.sdkLoadedOnce=false;T.sdkExecError=0;var old=document.querySelector('script[data-huli-sdk="1"],script[src^="https://challenges.cloudflare.com/turnstile/"]');if(old){old.remove();}loadSdkScript(false);ensureSdkLoaded();};
+window.huliSdkDiagnostics=function(){
+var ts=window.turnstile;
+var keys=[];
+try{keys=Object.keys(ts||{});}catch(e){}
+return {ready:sdkReady(),attempts:T.sdkReloads,networkError:T.sdkNetworkError||0,loadedOnce:!!T.sdkLoadedOnce,failed:!!T.sdkFailed,execError:T.sdkExecError||0,tsType:typeof ts,tsKeys:keys};
+};
+window.addEventListener('error',function(ev){
+if(ev&&ev.target&&ev.target.tagName==='SCRIPT'&&String(ev.target.src||'').indexOf('challenges.cloudflare.com/turnstile/')!==-1){
+T.sdkExecError=(T.sdkExecError||0)+1;
+T.sdkExecErrorMsg=String(ev.message||'');
+}
+},true);
 function describeError(code){
 code=String(code||"");
 if(CLIENT_ERRORS[code]){return CLIENT_ERRORS[code];}

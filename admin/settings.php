@@ -582,10 +582,12 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             if (!(window.turnstile && typeof window.turnstile.render === 'function')) {
                 var diag = (window.huliSdkDiagnostics && window.huliSdkDiagnostics()) || {};
                 var detail = '';
-                if (diag.networkError > 0) {
+                if (diag.execError > 0) {
+                    detail = 'api.js 已下载但在浏览器中执行时报错（' + (diag.execErrorMsg || '未知错误') + '）。这通常是浏览器扩展（广告拦截/安全插件）或页面临时注入脚本干扰所致，请尝试：关闭浏览器扩展后刷新、或换一个浏览器/无痕窗口测试。';
+                } else if (diag.networkError > 0) {
                     detail = '检测到浏览器请求 challenges.cloudflare.com 连续失败（网络拦截）。请在浏览器新标签页直接访问 https://challenges.cloudflare.com 验证可达性，并检查代理/VPN 或防火墙设置。';
                 } else if (diag.loadedOnce) {
-                    detail = 'api.js 已下载但脚本初始化异常（可能是缓存损坏或被浏览器扩展拦截），建议强制刷新页面（Ctrl+Shift+R）后再试。';
+                    detail = 'api.js 已下载执行但 window.turnstile 未初始化（当前状态：' + (diag.tsType || 'undefined') + '，含方法：' + ((diag.tsKeys && diag.tsKeys.join(',')) || '无') + '）。多为缓存损坏或扩展静默拦截，建议 Ctrl+Shift+R 强制刷新后再试。';
                 } else {
                     detail = '在 3 次自动重试内未就绪。请在浏览器新标签页直接访问 https://challenges.cloudflare.com，确认网络可达后刷新本页。';
                 }
