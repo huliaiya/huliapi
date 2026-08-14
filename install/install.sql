@@ -17,8 +17,8 @@ CREATE TABLE `huli_site_home_templates` (
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='首页模板管理表';
 
 INSERT INTO `huli_site_home_templates` (`id`,`name`,`folder`,`is_active`,`thumbnail`,`description`,`created_at`,`updated_at`) VALUES
-(1,'默认首页模板','1',0,'','系统默认首页模板','2026-04-04 00:00:00','2026-04-04 07:52:27'),
-(2,'huliUI首页模板','2',1,'','huliUI首页模板','2026-04-04 00:00:00','2026-04-04 07:53:00');
+(1,'默认首页模板','default',0,'','系统默认首页模板','2026-04-04 00:00:00','2026-04-04 07:52:27'),
+(2,'huliUI首页模板','huli',1,'','huliUI首页模板','2026-04-04 00:00:00','2026-04-04 07:53:00');
 
 DROP TABLE IF EXISTS `huli_site_user_templates`;
 CREATE TABLE `huli_site_user_templates` (

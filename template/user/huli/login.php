@@ -77,6 +77,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_username'] = $user['username'];
                     $_SESSION['user_email'] = $user['email'];
                     try { huli_record_login($pdo, 'user', (int)$user['id'], $user['username'], 'success', ['email' => $user['email'], 'notify' => true]); } catch (Throwable $e) {}
+                    try {
+                        $ip_api = $pdo->prepare("SELECT id FROM huli_apis WHERE endpoint = 'ip' LIMIT 1");
+                        $ip_api->execute();
+                        $ip_api_id = $ip_api->fetchColumn();
+                        if ($ip_api_id) {
+                            $login_ip = huli_get_client_ip();
+                            $pdo->prepare("UPDATE huli_apis SET total_calls = total_calls + 1 WHERE id = ?")->execute([$ip_api_id]);
+                            $pdo->prepare("UPDATE huli_users SET call_count = call_count + 1 WHERE id = ?")->execute([$user['id']]);
+                            $pdo->prepare("INSERT INTO huli_api_logs (api_id, user_id, ip_address, response_code, is_success, billing_type, billing_amount) VALUES (?, ?, ?, 200, 1, 'free', 0)")->execute([$ip_api_id, $user['id'], $login_ip]);
+                        }
+                    } catch (Throwable $e) {}
                     header('Location: index.php'); exit;
                 } else {
                     $error_msg = '您的账户已被封禁或正在审核中。';

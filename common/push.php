@@ -297,6 +297,7 @@ function huli_load_user_push_settings($pdo, $user_id) {
 }
 
 function huli_ensure_user_push_defaults($pdo, $user_id) {
+    $sys_set = huli_load_push_settings($pdo);
     $defaults = [
         'email'    => ['name' => '邮件通知',     'enabled' => 1, 'config' => '{}',                                            'events' => ['login.notify']],
         'wecom'    => ['name' => '企业微信',     'enabled' => 0, 'config' => '{"webhook":""}',                                 'events' => ['login.notify']],
@@ -306,6 +307,7 @@ function huli_ensure_user_push_defaults($pdo, $user_id) {
         'webhook'  => ['name' => '自定义 Webhook','enabled' => 0, 'config' => '{"url":"","method":"POST","headers":""}',       'events' => ['login.notify']],
     ];
     foreach ($defaults as $channel => $d) {
+        if (!isset($sys_set[$channel]) || !$sys_set[$channel]['enabled']) { continue; }
         try {
             $stmt = $pdo->prepare("INSERT IGNORE INTO huli_user_push_settings (user_id, channel, name, enabled, config, events) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->execute([(int)$user_id, $channel, $d['name'], $d['enabled'], $d['config'], json_encode($d['events'], JSON_UNESCAPED_UNICODE)]);

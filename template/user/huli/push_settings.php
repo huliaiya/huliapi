@@ -10,7 +10,6 @@ require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/push.php';
 
 $user_id = (int)$_SESSION['user_id'];
-$username = $_SESSION['user_username'] ?? '';
 
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
@@ -66,40 +65,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $channel = $_POST['channel'] ?? '';
         $valid = ['email','wecom','dingtalk','feishu','bark','webhook'];
         if (in_array($channel, $valid, true)) {
-            $config_input = $_POST['config'] ?? [];
-            $enabled = isset($_POST['enabled']) ? 1 : 0;
-            $events = isset($_POST['events']) && is_array($_POST['events']) ? array_values(array_intersect($_POST['events'], ['login.notify'])) : [];
-            $cfg = [];
-            switch ($channel) {
-                case 'email':
-                    $cfg = [];
-                    break;
-                case 'wecom':
-                    $cfg = ['webhook' => trim($config_input['webhook'] ?? '')];
-                    break;
-                case 'dingtalk':
-                    $cfg = ['webhook' => trim($config_input['webhook'] ?? ''), 'secret' => trim($config_input['secret'] ?? '')];
-                    break;
-                case 'feishu':
-                    $cfg = ['webhook' => trim($config_input['webhook'] ?? ''), 'secret' => trim($config_input['secret'] ?? '')];
-                    break;
-                case 'bark':
-                    $cfg = ['server' => trim($config_input['server'] ?? 'https://api.day.app'), 'device_key' => trim($config_input['device_key'] ?? '')];
-                    break;
-                case 'webhook':
-                    $cfg = ['url' => trim($config_input['url'] ?? ''), 'method' => in_array(strtoupper($config_input['method'] ?? 'POST'), ['POST','GET','PUT'], true) ? strtoupper($config_input['method']) : 'POST', 'headers' => trim($config_input['headers'] ?? '')];
-                    break;
+            $sys_channels = huli_load_push_settings($pdo);
+            if (!isset($sys_channels[$channel]) || !$sys_channels[$channel]['enabled']) {
+                $feedback_msg = '该通道尚未被管理员启用，无法配置。'; $feedback_type = 'warning';
+            } else {
+                $config_input = $_POST['config'] ?? [];
+                $enabled = isset($_POST['enabled']) ? 1 : 0;
+                $events = isset($_POST['events']) && is_array($_POST['events']) ? array_values(array_intersect($_POST['events'], ['login.notify'])) : [];
+                $cfg = [];
+                switch ($channel) {
+                    case 'email':
+                        $cfg = [];
+                        break;
+                    case 'wecom':
+                        $cfg = ['webhook' => trim($config_input['webhook'] ?? '')];
+                        break;
+                    case 'dingtalk':
+                        $cfg = ['webhook' => trim($config_input['webhook'] ?? ''), 'secret' => trim($config_input['secret'] ?? '')];
+                        break;
+                    case 'feishu':
+                        $cfg = ['webhook' => trim($config_input['webhook'] ?? ''), 'secret' => trim($config_input['secret'] ?? '')];
+                        break;
+                    case 'bark':
+                        $cfg = ['server' => trim($config_input['server'] ?? 'https://api.day.app'), 'device_key' => trim($config_input['device_key'] ?? '')];
+                        break;
+                    case 'webhook':
+                        $cfg = ['url' => trim($config_input['url'] ?? ''), 'method' => in_array(strtoupper($config_input['method'] ?? 'POST'), ['POST','GET','PUT'], true) ? strtoupper($config_input['method']) : 'POST', 'headers' => trim($config_input['headers'] ?? '')];
+                        break;
+                }
+                $stmt = $pdo->prepare("UPDATE huli_user_push_settings SET enabled = ?, config = ?, events = ? WHERE user_id = ? AND channel = ?");
+                $stmt->execute([$enabled, json_encode($cfg, JSON_UNESCAPED_UNICODE), json_encode($events, JSON_UNESCAPED_UNICODE), $user_id, $channel]);
+                $feedback_msg = '推送通道已保存。'; $feedback_type = 'success';
             }
-            $stmt = $pdo->prepare("UPDATE huli_user_push_settings SET enabled = ?, config = ?, events = ? WHERE user_id = ? AND channel = ?");
-            $stmt->execute([$enabled, json_encode($cfg, JSON_UNESCAPED_UNICODE), json_encode($events, JSON_UNESCAPED_UNICODE), $user_id, $channel]);
-            $feedback_msg = '推送通道已保存。'; $feedback_type = 'success';
         }
     }
 }
 
-$channels = $pdo->prepare("SELECT channel, name, enabled, config, events FROM huli_user_push_settings WHERE user_id = ? ORDER BY id ASC");
-$channels->execute([$user_id]);
-$channels = $channels->fetchAll(PDO::FETCH_ASSOC);
+$sys_channels = huli_load_push_settings($pdo);
+$stmt = $pdo->prepare("SELECT channel, name, enabled, config, events FROM huli_user_push_settings WHERE user_id = ? ORDER BY id ASC");
+$stmt->execute([$user_id]);
+$user_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$channels = [];
+foreach ($user_rows as $r) {
+    if (isset($sys_channels[$r['channel']]) && $sys_channels[$r['channel']]['enabled']) {
+        $channels[] = $r;
+    }
+}
 $sys_mail = huli_load_system_mail_config($pdo);
 $mail_cfg_ok = !empty($sys_mail['smtp_host']) && !empty($sys_mail['smtp_user']) && !empty($sys_mail['smtp_pass']);
 
@@ -110,11 +121,18 @@ function user_channel_card($row, $mail_cfg_ok) {
     $ch = $row['channel'];
     $h = '<div class="push-card">';
     $h .= '<div class="push-card-head"><div class="push-icon">';
-    $icons = ['email'=>'M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6zm-2 0l-8 5-8-5h16zm0 12H4V8l8 5 8-5v10z','wecom'=>'M9.5 4C5.36 4 2 6.69 2 10c0 1.85 1.05 3.49 2.69 4.55L4 17l2.86-1.43c.81.21 1.69.34 2.61.34.2 0 .39-.01.58-.02-.18-.61-.3-1.25-.3-1.89 0-3.87 3.58-7 8-7 .34 0 .67.02 1 .05C17.71 5.13 13.97 4 9.5 4zM22 14c0-2.76-3.13-5-7-5s-7 2.24-7 5 3.13 5 7 5c.74 0 1.45-.1 2.11-.28L18 20l-.5-1.62C20.36 17.62 22 15.93 22 14z','dingtalk'=>'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z','feishu'=>'M19.5 3.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2v14H4v2h2v3h2v-3h8v3h2v-3h2v-2h-2V2l-1.5 1.5zM18 16H6V5h12v11z','bark'=>'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z','webhook'=>'M17 7h-4v2h4c1.65 0 3 1.35 3 3s-1.35 3-3 3h-4v2h4c2.76 0 5-2.24 5-5s-2.24-5-5-5zm-6 8H7c-1.65 0-3-1.35-3-3s1.35-3 3-3h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-2zm-3-4h8v2H8v-2z'];
-    $svg = $icons[$ch] ?? $icons['webhook'];
-    $h .= '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="' . $svg . '"/></svg></div>';
-    $h .= '<div><div class="push-name">' . htmlspecialchars($row['name']) . '</div>';
-    $h .= '<div class="push-status">' . ($enabled ? '<span class="badge-on">已启用</span>' : '<span class="badge-off">未启用</span>') . '</div></div></div>';
+    $icons = [
+        'email' => '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6zm-2 0l-8 5-8-5h16zm0 12H4V8l8 5 8-5v10z"/></svg>',
+        'wecom' => '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 1c6.075 0 11 4.925 11 11s-4.925 11-11 11S1 18.075 1 12S5.925 1 12 1m3.52 15.49a.35.35 0 0 0-.24.1c-.14.13-.16.34.02.53l.07.07c.44.44.74.99.85 1.57c0 .02.04.23.04.23c.05.19.15.37.29.5c.21.21.51.34.82.34c.3 0 .59-.12.8-.33c.44-.44.44-1.16 0-1.61c-.15-.15-.34-.26-.53-.3l-.15-.03c-.61-.11-1.17-.41-1.62-.86c-.03-.03-.07-.07-.1-.11c-.06-.074-.16-.1-.25-.1M11 4.75c-2.117 0-4.264.77-5.75 2.31C4.111 8.246 3.5 9.72 3.5 11.24c0 1.06.3 2.12.88 3.06c.47.695.993 1.371 1.66 1.89l-.384 1.624a.6.6 0 0 0 .856.673L8.64 17.41c.53.166 1.08.234 1.63.3a8.3 8.3 0 0 0 1.7-.03l.38-.05q.283-.046.564-.112a2.33 2.33 0 0 1-.92-1.605l-.254.037c-.62.067-1.232.03-1.85-.04c-.43-.057-.838-.185-1.25-.31l-1.02.5l.23-.67l-.74-.6c-.513-.401-.917-.934-1.28-1.47c-.4-.65-.61-1.38-.61-2.11c0-1.08.456-2.119 1.26-2.97c1.158-1.198 2.854-1.78 4.5-1.78c1.54 0 3.108.513 4.24 1.58c.365.365.707.75.95 1.21c.177.354.338.722.424 1.107a2.34 2.34 0 0 1 1.811.123c-.075-.716-.33-1.4-.665-2.04c-.329-.62-.776-1.155-1.27-1.65c-1.468-1.38-3.471-2.08-5.47-2.08m9.37 9.77a1.136 1.136 0 0 0-1.1.86l-.03.15a3.1 3.1 0 0 1-.86 1.63c-.04.03-.07.07-.11.1c-.14.13-.14.35 0 .49c.07.06.17.1.26.1h.01c.07 0 .15-.02.26-.13l.07-.07c.44-.44.99-.74 1.57-.85c.023 0 .227-.04.23-.04c.2-.06.37-.16.5-.3c.44-.44.44-1.17 0-1.61c-.21-.21-.5-.33-.8-.33m-4.21-1.07c-.08 0-.16.03-.27.14l-.07.07c-.44.44-.99.74-1.57.85c-.02 0-.23.04-.23.04c-.2.06-.37.16-.5.3c-.44.44-.44 1.17 0 1.61c.21.21.51.34.82.34c.3 0 .59-.12.8-.33c.15-.16.25-.34.29-.53a.4.4 0 0 0 .03-.16c.11-.61.41-1.18.86-1.63c.03-.03.06-.06.1-.09c.146-.115.13-.36 0-.49a.34.34 0 0 0-.26-.12m1.18-1.97c-.3 0-.59.12-.8.33c-.44.44-.44 1.16 0 1.61c.15.15.34.26.53.3c.054.006.144.029.15.03c.61.12 1.17.41 1.62.86c.03.03.07.07.1.11c.08.08.16.1.25.1c.1 0 .16-.04.23-.11c.12-.13.14-.32-.02-.52l-.08-.08c-.44-.44-.74-.99-.85-1.57c0-.02-.04-.23-.04-.23c-.05-.19-.15-.37-.29-.5c-.21-.21-.5-.33-.8-.33"/></svg>',
+        'dingtalk' => '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path fill-rule="evenodd" d="M6.802 2.02a1 1 0 0 1 .849.22l9.751 8.359a2 2 0 0 1 .235 2.799l-1.06 1.272l.87.436a1 1 0 0 1 .134 1.708l-7 5a1 1 0 0 1-1.539-1.101l1.21-4.034c-2.363-.9-3.747-3.055-4.233-5.483A1 1 0 0 1 7.01 10c-.474-.703-.86-1.42-1.134-2.149c-.649-1.73-.658-3.523.23-5.298a1 1 0 0 1 .696-.533"/></svg>',
+        'feishu' => '<svg viewBox="0 0 48 48" width="20" height="20" fill="currentColor"><path fill-rule="evenodd" d="M41.072 5.994L3.31 16.52l9.075 9.294l8.414.146l9.683-9.44q-.384-.787-.384-1.318c0-.794.311-1.422.796-1.868q1.244-1.145 2.994-.342zm1.03.734L31.578 44.49l-9.294-9.075L22.137 27l9.375-9.518a2.54 2.54 0 0 0 1.664.495c.902-.05 1.485-.596 1.759-.917a2.35 2.35 0 0 0 .567-1.649a2.57 2.57 0 0 0-.52-1.464z"/></svg>',
+        'bark' => '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>',
+        'webhook' => '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17 7h-4v2h4c1.65 0 3 1.35 3 3s-1.35 3-3 3h-4v2h4c2.76 0 5-2.24 5-5s-2.24-5-5-5zm-6 8H7c-1.65 0-3-1.35-3-3s1.35-3 3-3h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-2zm-3-4h8v2H8v-2z"/></svg>',
+    ];
+    $h .= ($icons[$ch] ?? $icons['webhook']) . '</div>';
+    $h .= '<div class="push-info"><div class="push-name">' . htmlspecialchars($row['name']) . '</div>';
+    $h .= '<div class="push-meta">' . ($enabled ? '<span class="push-badge on">已启用</span>' : '<span class="push-badge off">未启用</span>') . '<span class="push-key">' . $ch . '</span></div></div></div>';
+    $h .= '<div class="push-card-body">';
     $h .= '<form method="post" class="push-form">';
     $h .= '<input type="hidden" name="channel" value="' . htmlspecialchars($ch) . '">';
     if ($ch === 'email') {
@@ -124,32 +142,36 @@ function user_channel_card($row, $mail_cfg_ok) {
     } elseif ($ch === 'wecom') {
         $h .= '<label>机器人 Webhook URL</label><input type="text" name="config[webhook]" value="' . htmlspecialchars($cfg['webhook'] ?? '') . '" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx">';
     } elseif ($ch === 'dingtalk') {
-        $h .= '<label>机器人 Webhook URL</label><input type="text" name="config[webhook]" value="' . htmlspecialchars($cfg['webhook'] ?? '') . '" placeholder="https://oapi.dingtalk.com/robot/send?access_token=xxx">';
-        $h .= '<label>加签密钥（可选）</label><input type="text" name="config[secret]" value="' . htmlspecialchars($cfg['secret'] ?? '') . '" placeholder="SEC...">';
+        $h .= '<div class="form-row">';
+        $h .= '<div><label>机器人 Webhook URL</label><input type="text" name="config[webhook]" value="' . htmlspecialchars($cfg['webhook'] ?? '') . '" placeholder="https://oapi.dingtalk.com/robot/send?access_token=xxx"></div>';
+        $h .= '<div><label>加签密钥（可选）</label><input type="text" name="config[secret]" value="' . htmlspecialchars($cfg['secret'] ?? '') . '" placeholder="SEC..."></div>';
+        $h .= '</div>';
     } elseif ($ch === 'feishu') {
-        $h .= '<label>机器人 Webhook URL</label><input type="text" name="config[webhook]" value="' . htmlspecialchars($cfg['webhook'] ?? '') . '" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx">';
-        $h .= '<label>签名校验（可选）</label><input type="text" name="config[secret]" value="' . htmlspecialchars($cfg['secret'] ?? '') . '">';
+        $h .= '<div class="form-row">';
+        $h .= '<div><label>机器人 Webhook URL</label><input type="text" name="config[webhook]" value="' . htmlspecialchars($cfg['webhook'] ?? '') . '" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx"></div>';
+        $h .= '<div><label>签名校验（可选）</label><input type="text" name="config[secret]" value="' . htmlspecialchars($cfg['secret'] ?? '') . '"></div>';
+        $h .= '</div>';
     } elseif ($ch === 'bark') {
-        $h .= '<label>Bark 服务地址</label><input type="text" name="config[server]" value="' . htmlspecialchars($cfg['server'] ?? 'https://api.day.app') . '">';
-        $h .= '<label>Device Key</label><input type="text" name="config[device_key]" value="' . htmlspecialchars($cfg['device_key'] ?? '') . '">';
+        $h .= '<div class="form-row">';
+        $h .= '<div><label>Bark 服务地址</label><input type="text" name="config[server]" value="' . htmlspecialchars($cfg['server'] ?? 'https://api.day.app') . '"></div>';
+        $h .= '<div><label>Device Key</label><input type="text" name="config[device_key]" value="' . htmlspecialchars($cfg['device_key'] ?? '') . '"></div>';
+        $h .= '</div>';
     } elseif ($ch === 'webhook') {
-        $h .= '<label>回调地址 URL</label><input type="text" name="config[url]" value="' . htmlspecialchars($cfg['url'] ?? '') . '" placeholder="https://example.com/notify">';
-        $h .= '<label>请求方法</label><select name="config[method]"><option ' . (($cfg['method'] ?? 'POST') === 'POST' ? 'selected' : '') . '>POST</option><option ' . (($cfg['method'] ?? '') === 'GET' ? 'selected' : '') . '>GET</option><option ' . (($cfg['method'] ?? '') === 'PUT' ? 'selected' : '') . '>PUT</option></select>';
+        $h .= '<div class="form-row triple">';
+        $h .= '<div><label>回调地址 URL</label><input type="text" name="config[url]" value="' . htmlspecialchars($cfg['url'] ?? '') . '" placeholder="https://example.com/notify"></div>';
+        $h .= '<div><label>请求方法</label><select name="config[method]"><option ' . (($cfg['method'] ?? 'POST') === 'POST' ? 'selected' : '') . '>POST</option><option ' . (($cfg['method'] ?? '') === 'GET' ? 'selected' : '') . '>GET</option><option ' . (($cfg['method'] ?? '') === 'PUT' ? 'selected' : '') . '>PUT</option></select></div>';
+        $h .= '</div>';
         $h .= '<label>自定义请求头（每行一个）</label><textarea name="config[headers]" rows="2">' . htmlspecialchars($cfg['headers'] ?? '') . '</textarea>';
     }
-    $h .= '<div class="events-row"><label class="evt-label">订阅事件</label>';
+    $h .= '<div class="events-row"><span class="evt-label">触发事件</span>';
     $h .= '<label class="evt-check"><input type="checkbox" name="events[]" value="login.notify"' . (in_array('login.notify', $events) ? ' checked' : '') . '> 登录提醒</label></div>';
-    $h .= '<div class="d-flex gap-2 align-items-center mt-2">';
-    $h .= '<label class="toggle"><input type="checkbox" name="enabled"' . ($enabled ? ' checked' : '') . '><span>启用此通道</span></label>';
+    $h .= '<div class="push-actions">';
+    $h .= '<label class="evt-check"><input type="checkbox" name="enabled"' . ($enabled ? ' checked' : '') . '> 启用此通道</label>';
     $h .= '<button type="submit" class="btn-save ms-auto">保存配置</button>';
-    $h .= '</div></form>';
-    if ($ch === 'email') {
-        $h .= '<hr><form method="post" class="test-form"><input type="hidden" name="test_channel" value="email">';
-        $h .= '<input type="email" name="test_recipient" placeholder="测试收件邮箱（默认发送到您的注册邮箱）">';
-        $h .= '<button type="submit" class="btn-test">发送测试邮件</button></form>';
-    } else {
-        $h .= '<hr><form method="post" class="test-form"><input type="hidden" name="test_channel" value="' . htmlspecialchars($ch) . '">';
-        $h .= '<button type="submit" class="btn-test">发送测试消息</button></form>';
+    $h .= '</div></form></div>';
+    if ($ch !== 'email') {
+        $h .= '<div class="test-form"><form method="post" style="display:flex;gap:8px;flex:1;align-items:center;"><input type="hidden" name="test_channel" value="' . htmlspecialchars($ch) . '">';
+        $h .= '<button type="submit" class="btn-test">发送测试消息</button></form></div>';
     }
     $h .= '</div>';
     return $h;
@@ -163,105 +185,69 @@ function user_channel_card($row, $mail_cfg_ok) {
 <title>推送通知 - <?php echo htmlspecialchars($site_name); ?></title>
 <?php if (!empty($settings['favicon_url'])): ?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($settings['favicon_url']); ?>"><?php endif; ?>
 <style>
-:root{--primary-color:#3b82f6;--primary-light:#eff6ff;--bg-color:#eef5fb;--text-dark:#1f2937;--text-normal:#374151;--text-light:#6b7280;--border-color:#e5e7eb;}
+:root{--primary:#4f6ef7;--primary-light:#eef1ff;--primary-bg:linear-gradient(135deg,#4f6ef7,#6c8cff);--bg:#f4f6fb;--card-bg:rgba(255,255,255,.82);--text:#1e293b;--text-secondary:#64748b;--text-muted:#94a3b8;--border:#e2e8f0;--radius:14px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04);}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:radial-gradient(circle at 18% 12%,rgba(186,224,255,.45),transparent 28rem),radial-gradient(circle at 82% 88%,rgba(196,232,240,.38),transparent 30rem),linear-gradient(135deg,#eef5fb,#f5fafd 50%,#eaf3fb);background-attachment:fixed;color:var(--text-normal);min-height:100vh;line-height:1.6;}
-#page-container{display:flex;min-height:100vh;}
-#sidebar{width:240px;background:rgba(255,255,255,.7);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-right:1px solid var(--border-color);display:flex;flex-direction:column;flex-shrink:0;}
-.sidebar-header{padding:24px;border-bottom:1px solid var(--border-color);}
-.sidebar-logo{font-size:22px;font-weight:700;color:var(--text-dark);text-decoration:none;}
-.user-info-panel{padding:20px;text-align:center;border-bottom:1px solid var(--border-color);}
-.user-info-panel .avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#60a5fa);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;margin:0 auto 10px;}
-.user-info-panel .username{font-size:16px;font-weight:600;color:var(--text-dark);}
-.sidebar-nav{padding:16px;flex-grow:1;}
-.nav-link{display:flex;align-items:center;padding:12px 14px;border-radius:10px;text-decoration:none;color:var(--text-normal);font-weight:500;margin-bottom:6px;transition:all .2s;}
-.nav-link:hover{background:var(--primary-light);color:var(--primary-color);transform:translateX(2px);}
-.nav-link.active{background:linear-gradient(135deg,var(--primary-color),#60a5fa);color:#fff;}
-.nav-link svg{margin-right:10px;flex-shrink:0;}
-.sidebar-footer{padding:20px;border-top:1px solid var(--border-color);}
-.btn-logout{display:block;width:100%;text-align:center;padding:12px;border-radius:10px;background:linear-gradient(135deg,#ef4444,#f87171);color:#fff;text-decoration:none;font-weight:600;transition:all .2s;}
-.btn-logout:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(239,68,68,.25);}
-#main-content{flex:1;display:flex;flex-direction:column;min-width:0;}
-.main-header{display:flex;justify-content:space-between;align-items:center;padding:16px 32px;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border-color);}
-.content-wrapper{padding:28px 32px;max-width:1100px;margin:0 auto;width:100%;}
-.page-header{margin-bottom:24px;}
-.page-header h1{font-size:28px;font-weight:800;color:var(--text-dark);margin:0;}
-.page-header .subtitle{color:var(--text-light);font-size:14px;margin-top:6px;}
-.feedback{padding:14px 18px;border-radius:12px;margin-bottom:20px;font-size:14px;font-weight:500;}
-.feedback.success{background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.25);}
-.feedback.warning{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25);}
-.feedback.danger{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);}
-.push-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;padding:0;}
+.content-wrapper{padding:24px 28px;max-width:1100px;margin:0 auto;width:100%;}
+.page-header{margin-bottom:20px;}
+.page-header h1{font-size:24px;font-weight:700;color:var(--text);margin:0;}
+.page-header .subtitle{color:var(--text-muted);font-size:13px;margin-top:4px;}
+.feedback{padding:12px 16px;border-radius:12px;margin-bottom:18px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;}
+.feedback.success{background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;}
+.feedback.warning{background:#fffbeb;color:#d97706;border:1px solid #fde68a;}
+.feedback.danger{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;}
+.push-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 @media(max-width:900px){.push-grid{grid-template-columns:1fr;}}
-.push-card{background:rgba(255,255,255,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:18px;border:1px solid rgba(255,255,255,.6);box-shadow:0 8px 28px rgba(64,120,180,.12);padding:22px;transition:all .3s;}
-.push-card:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(64,120,180,.18);}
-.push-card-head{display:flex;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border-color);}
-.push-icon{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#60a5fa);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.push-name{font-size:17px;font-weight:700;color:var(--text-dark);}
-.push-status{margin-top:4px;font-size:12px;}
-.badge-on{display:inline-block;padding:3px 9px;border-radius:8px;background:rgba(16,185,129,.12);color:#10b981;font-weight:600;}
-.badge-off{display:inline-block;padding:3px 9px;border-radius:8px;background:rgba(107,114,128,.12);color:#6b7280;font-weight:600;}
-.push-form label{display:block;font-size:13px;font-weight:600;color:var(--text-dark);margin:10px 0 6px;}
-.push-form input[type=text],.push-form input[type=email],.push-form select,.push-form textarea{width:100%;padding:9px 12px;border:1px solid var(--border-color);border-radius:10px;font-size:14px;font-family:inherit;background:rgba(255,255,255,.85);transition:all .2s;}
-.push-form input:focus,.push-form select:focus,.push-form textarea:focus{outline:none;border-color:var(--primary-color);box-shadow:0 0 0 3px rgba(59,130,246,.15);}
-.push-form .events-row{display:flex;align-items:center;gap:14px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border-color);}
-.evt-label{font-size:13px;font-weight:600;color:var(--text-dark);margin:0;}
-.evt-check{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;}
-.evt-check input{width:16px;height:16px;}
-.toggle{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer;}
-.toggle input{width:18px;height:18px;}
-.btn-save{padding:9px 20px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--primary-color),#60a5fa);color:#fff;font-weight:600;cursor:pointer;transition:all .2s;}
-.btn-save:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(59,130,246,.35);}
-.test-form{display:flex;gap:10px;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--border-color);}
-.test-form input[type=email]{flex:1;padding:8px 12px;border:1px solid var(--border-color);border-radius:10px;font-size:13px;background:rgba(255,255,255,.85);}
-.btn-test{padding:8px 16px;border:1px solid var(--primary-color);border-radius:10px;background:rgba(59,130,246,.1);color:var(--primary-color);font-weight:600;cursor:pointer;font-size:13px;transition:all .2s;}
-.btn-test:hover{background:var(--primary-color);color:#fff;}
-.alert{padding:10px 14px;border-radius:8px;font-size:13px;margin:10px 0;}
-.alert-info{background:rgba(59,130,246,.1);color:#1e40af;border:1px solid rgba(59,130,246,.2);}
-.text-success{color:#10b981;}
-.text-warning{color:#f59e0b;}
-.mobile-toggle{display:none;background:none;border:none;font-size:24px;color:var(--text-dark);cursor:pointer;}
-@media(max-width:900px){#sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .3s;z-index:99;}#sidebar.open{transform:translateX(0);}.mobile-toggle{display:block;}.push-grid{grid-template-columns:1fr;}}
+.push-card{background:var(--card-bg);backdrop-filter:blur(12px);border-radius:var(--radius);border:1px solid rgba(255,255,255,.5);box-shadow:var(--shadow);padding:0;overflow:hidden;transition:box-shadow .2s;}
+.push-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);}
+.push-card-head{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border);}
+.push-icon{width:40px;height:40px;border-radius:10px;background:var(--primary-bg);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.push-info{flex:1;min-width:0;}
+.push-name{font-size:15px;font-weight:600;color:var(--text);}
+.push-meta{display:flex;align-items:center;gap:8px;margin-top:2px;}
+.push-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;}
+.push-badge.on{background:#ecfdf5;color:#059669;}
+.push-badge.off{background:#f1f5f9;color:#94a3b8;}
+.push-key{font-size:11px;color:var(--text-muted);font-weight:500;}
+.push-card-body{padding:16px 18px;}
+.push-form label{display:block;font-size:13px;font-weight:600;color:var(--text);margin:10px 0 5px;}
+.push-form input[type=text],.push-form input[type=email],.push-form select,.push-form textarea{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;background:#fff;transition:border-color .2s,box-shadow .2s;color:var(--text);}
+.push-form input:focus,.push-form select:focus,.push-form textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,110,247,.12);}
+.push-form .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.push-form .form-row.triple{grid-template-columns:1fr 1fr 1fr;}
+@media(max-width:600px){.push-form .form-row,.push-form .form-row.triple{grid-template-columns:1fr;}}
+.push-form .events-row{display:flex;align-items:center;gap:12px;padding-top:12px;margin-top:12px;border-top:1px dashed var(--border);}
+.evt-label{font-size:13px;font-weight:600;color:var(--text);}
+.evt-check{display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;color:var(--text-secondary);}
+.evt-check input[type=checkbox]{width:15px;height:15px;accent-color:var(--primary);}
+.push-actions{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+.btn-save{padding:8px 18px;border:none;border-radius:9px;background:var(--primary-bg);color:#fff;font-weight:600;font-size:13px;cursor:pointer;transition:opacity .2s,transform .1s;}
+.btn-save:hover{opacity:.9;}
+.btn-save:active{transform:scale(.97);}
+.ms-auto{margin-left:auto;}
+.test-form{display:flex;gap:8px;align-items:center;padding:12px 18px 16px;border-top:1px solid var(--border);}
+.test-form input[type=email]{flex:1;padding:7px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#fff;transition:border-color .2s;}
+.test-form input[type=email]:focus{outline:none;border-color:var(--primary);}
+.btn-test{padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--text-secondary);font-weight:600;font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-test:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light);}
+.push-card .alert{border-radius:9px;font-size:13px;line-height:1.5;}
+.push-card .alert-info{background:var(--primary-light);color:#4f6ef7;border:1px solid rgba(79,110,247,.15);padding:10px 12px;}
+.push-card .text-success{color:#059669;font-weight:500;}
+.push-card .text-warning{color:#d97706;font-weight:500;}
 </style>
 </head>
 <body>
-<div id="page-container">
-<aside id="sidebar">
-    <div class="sidebar-header"><a href="index.php" class="sidebar-logo"><?php echo htmlspecialchars($site_name); ?></a></div>
-    <div class="user-info-panel">
-        <div class="avatar"><?php echo mb_strtoupper(mb_substr($username ?: 'U', 0, 1)); ?></div>
-        <div class="username"><?php echo htmlspecialchars($username ?: '用户'); ?></div>
+<div class="content-wrapper">
+    <div class="page-header">
+        <h1>推送通知</h1>
+        <div class="subtitle">配置登录提醒等事件的通知渠道，启用后将在对应事件触发时推送通知</div>
     </div>
-    <nav class="sidebar-nav">
-        <a href="index.php" class="nav-link"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7A1 1 0 003 11h1v6a2 2 0 002 2h2a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h2a2 2 0 002-2v-6h1a1 1 0 00.707-1.707l-7-7z"/></svg>用户中心</a>
-        <a href="login_logs.php" class="nav-link"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>我的登录日志</a>
-        <a href="push_settings.php" class="nav-link active"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>推送通知</a>
-    </nav>
-    <div class="sidebar-footer"><a href="logout.php" class="btn-logout">安全退出</a></div>
-</aside>
-<div id="main-content">
-    <header class="main-header">
-        <button class="mobile-toggle" id="mobile-menu-btn" aria-label="menu">☰</button>
-        <div style="font-size:14px;color:var(--text-light);">推送通知 / 安全提醒</div>
-    </header>
-    <div class="content-wrapper">
-        <div class="page-header">
-            <h1>推送通知</h1>
-            <div class="subtitle">配置登录提醒等事件的通知渠道，启用后将在对应事件触发时推送通知</div>
-        </div>
-        <?php if ($feedback_msg): ?>
-            <div class="feedback <?php echo htmlspecialchars($feedback_type); ?>"><?php echo htmlspecialchars($feedback_msg); ?></div>
-        <?php endif; ?>
-        <div class="push-grid">
-            <?php foreach ($channels as $c) { echo user_channel_card($c, $mail_cfg_ok); } ?>
-        </div>
+    <?php if ($feedback_msg): ?>
+        <div class="feedback <?php echo htmlspecialchars($feedback_type); ?>"><?php echo htmlspecialchars($feedback_msg); ?></div>
+    <?php endif; ?>
+    <div class="push-grid">
+        <?php foreach ($channels as $c) { echo user_channel_card($c, $mail_cfg_ok); } ?>
     </div>
 </div>
-</div>
-<script>
-document.getElementById('mobile-menu-btn').addEventListener('click', function() {
-    document.getElementById('sidebar').classList.toggle('open');
-});
-</script>
 </body>
 </html>

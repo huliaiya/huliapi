@@ -285,7 +285,7 @@ try {
                                 <div class="col-md-8">
                                     <div class="card">
                                         <div class="card-body">
-                                            <form method="POST" action="index.php" class="mb-3">
+                                            <form method="POST" action="main.php" class="mb-3">
                                                 <input type="hidden" name="update_qq" value="1">
                                                 <div class="mb-3">
                                                     <label class="form-label">QQ号</label>

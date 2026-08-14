@@ -1,4 +1,4 @@
 <?php
 @session_start();
-header('Location: profile.php');
+header('Location: settings.php');
 exit;

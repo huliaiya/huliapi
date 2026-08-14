@@ -17,99 +17,10 @@ try {
     $admin_email = $admin['email'] ?? '';
     $nickname = htmlspecialchars($admin['nickname'] ?? $username);
 } catch (PDOException $e) { $nickname = $username; $admin_email = ''; }
-$channels = [];
-try {
-    $channels = $pdo->query("SELECT channel, name, enabled, config, events FROM huli_push_settings ORDER BY id ASC")->fetchAll();
-} catch (Throwable $e) {}
-$mail_cfg_hint = '';
-try {
-    $sys_mail = huli_load_system_mail_config($pdo);
-    if (empty($sys_mail['smtp_host']) || empty($sys_mail['smtp_user']) || empty($sys_mail['smtp_pass'])) {
-        $mail_cfg_hint = '<br><span class="text-warning small"><i class="mdi mdi-alert-outline"></i> 系统邮件 SMTP 当前尚未配置，启用通道前请先在【系统设置】中完善。</span>';
-    } else {
-        $mail_cfg_hint = '<br><span class="text-success small"><i class="mdi mdi-check-circle-outline"></i> 系统邮件已配置（' . htmlspecialchars($sys_mail['smtp_host']) . ' / ' . htmlspecialchars($sys_mail['smtp_user']) . '）</span>';
-    }
-} catch (Throwable $e) {}
 $feedback_msg = ''; $feedback_type = '';
-$push_feedback_msg = ''; $push_feedback_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['test_channel'])) {
-        $valid_channels = ['email', 'wecom', 'dingtalk', 'feishu', 'bark', 'webhook'];
-        $test_channel = $_POST['test_channel'];
-        $test_recipient = trim($_POST['test_recipient'] ?? '');
-        $title = '【huliapi 推送测试】';
-        $fields = [
-            '测试通道' => $test_channel,
-            '测试时间' => date('Y-m-d H:i:s'),
-            '用途' => '验证推送通道是否配置正确',
-        ];
-        $content = "这是一条来自 huliapi 的测试消息，用于验证「" . $test_channel . "」推送通道是否配置正确。";
-        try {
-            $set = huli_load_push_settings($pdo);
-            if (!in_array($test_channel, $valid_channels, true) || empty($set[$test_channel]) || !$set[$test_channel]['enabled']) {
-                $push_feedback_msg = '请先启用并保存此通道后再测试。';
-                $push_feedback_type = 'warning';
-            } else {
-                $cfg = $set[$test_channel]['config'];
-                if ($test_channel === 'email') { $cfg = huli_load_system_mail_config($pdo); }
-                $r = ['ok' => false];
-                switch ($test_channel) {
-                    case 'email':
-                        if (!$test_recipient) { $push_feedback_msg = '邮件测试需要填写收件人邮箱。'; $push_feedback_type = 'warning'; break; }
-                        if (empty($cfg['smtp_host']) || empty($cfg['smtp_user']) || empty($cfg['smtp_pass'])) { $push_feedback_msg = '系统邮件服务未配置，请先在系统设置中填写 SMTP 信息。'; $push_feedback_type = 'warning'; break; }
-                        $r = huli_push_email($cfg, $test_recipient, $title, $content, $fields); break;
-                    case 'wecom':    $r = huli_push_wecom($cfg, $title, $content, $fields); break;
-                    case 'dingtalk': $r = huli_push_dingtalk($cfg, $title, $content, $fields); break;
-                    case 'feishu':   $r = huli_push_feishu($cfg, $title, $content, $fields); break;
-                    case 'bark':     $r = huli_push_bark($cfg, $title, $content, $fields); break;
-                    case 'webhook':  $r = huli_push_webhook($cfg, $title, $content, $fields); break;
-                }
-                if (empty($push_feedback_msg)) {
-                    $push_feedback_msg = $r['ok'] ? ('测试发送成功（HTTP ' . ($r['code'] ?? '200') . '）') : ('测试发送失败：' . ($r['err'] ?? 'HTTP ' . ($r['code'] ?? 'N/A')));
-                    $push_feedback_type = $r['ok'] ? 'success' : 'danger';
-                }
-            }
-        } catch (Throwable $e) {
-            $push_feedback_msg = '测试异常: ' . $e->getMessage();
-            $push_feedback_type = 'danger';
-        }
-    } else {
         $type = $_POST['form_type'] ?? '';
-        if ($type === 'push') {
-            $channel = $_POST['channel'] ?? '';
-                $valid_channels = ['email', 'wecom', 'dingtalk', 'feishu', 'bark', 'webhook'];
-                if (in_array($channel, $valid_channels, true)) {
-                    $config_input = $_POST['config'] ?? [];
-                    $enabled = isset($_POST['enabled']) ? 1 : 0;
-                    $events = isset($_POST['events']) && is_array($_POST['events']) ? array_values(array_intersect($_POST['events'], ['login.notify'])) : [];
-                    $cfg = [];
-                    switch ($channel) {
-                        case 'email':
-                            $cfg = [];
-                            break;
-                        case 'wecom':
-                            $cfg = ['webhook' => trim($config_input['webhook'] ?? '')];
-                            break;
-                        case 'dingtalk':
-                            $cfg = ['webhook' => trim($config_input['webhook'] ?? ''), 'secret' => trim($config_input['secret'] ?? '')];
-                            break;
-                        case 'feishu':
-                            $cfg = ['webhook' => trim($config_input['webhook'] ?? ''), 'secret' => trim($config_input['secret'] ?? '')];
-                            break;
-                        case 'bark':
-                            $cfg = ['server' => trim($config_input['server'] ?? 'https://api.day.app'), 'device_key' => trim($config_input['device_key'] ?? '')];
-                            break;
-                        case 'webhook':
-                            $cfg = ['url' => trim($config_input['url'] ?? ''), 'method' => in_array(strtoupper($config_input['method'] ?? 'POST'), ['POST','GET','PUT'], true) ? strtoupper($config_input['method']) : 'POST', 'headers' => trim($config_input['headers'] ?? '')];
-                            break;
-                    }
-                $stmt = $pdo->prepare("INSERT INTO huli_push_settings (channel, enabled, config, events) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE enabled = VALUES(enabled), config = VALUES(config), events = VALUES(events)");
-                $stmt->execute([$channel, $enabled, json_encode($cfg, JSON_UNESCAPED_UNICODE), json_encode($events, JSON_UNESCAPED_UNICODE)]);
-                $push_feedback_msg = '推送通道已保存。';
-                $push_feedback_type = 'success';
-                $channels = $pdo->query("SELECT channel, name, enabled, config, events FROM huli_push_settings ORDER BY id ASC")->fetchAll();
-            }
-        } elseif ($type === 'password') {
+        if ($type === 'password') {
         $current_password = $_POST['current_password']; $new_password = $_POST['new_password']; $confirm_password = $_POST['confirm_password'];
         if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
             $feedback_msg = '所有字段均为必填项。'; $feedback_type = 'error';
@@ -181,64 +92,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } catch (PDOException $e) { $feedback_msg = '出现错误！数据库操作失败。'; $feedback_type = 'error'; }
         }
     }
-    }
 }
 $current_page_script = basename($_SERVER['PHP_SELF']);
-
-function huli_render_channel_card($row) {
-    $cfg = json_decode($row['config'], true) ?: [];
-    $events = json_decode($row['events'], true) ?: [];
-    $enabled = (int)$row['enabled'] === 1;
-    $ch = $row['channel'];
-    $h = '<div class="card shadow-sm mb-3"><div class="card-body">';
-    $h .= '<div class="d-flex align-items-center justify-content-between mb-3">';
-    $h .= '<div class="d-flex align-items-center">';
-    $icons = ['email'=>'mdi-email-outline','wecom'=>'mdi-wechat','dingtalk'=>'mdi-message-text-outline','feishu'=>'mdi-cloud-outline','bark'=>'mdi-bell-ring-outline','webhook'=>'mdi-webhook'];
-    $h .= '<div class="me-3 d-flex align-items-center justify-content-center rounded" style="width:48px;height:48px;background:rgba(108,182,255,.16);color:#2879ba;font-size:24px;"><i class="mdi ' . ($icons[$ch] ?? 'mdi-bell-outline') . '"></i></div>';
-    $h .= '<div><div class="fw-bold fs-5">' . htmlspecialchars($row['name']) . ' <small class="text-muted">(' . $ch . ')</small></div>';
-    $h .= '<small class="text-muted">' . ($enabled ? '<span class="badge bg-success">已启用</span>' : '<span class="badge bg-secondary">未启用</span>') . '</small></div>';
-    $h .= '</div></div>';
-    $h .= '<form method="post" class="row g-3">';
-    $h .= '<input type="hidden" name="form_type" value="push">';
-    $h .= '<input type="hidden" name="channel" value="' . htmlspecialchars($ch) . '">';
-    if ($ch === 'email') {
-        $h .= '<div class="col-md-12"><div class="alert alert-info mb-0 py-2"><i class="mdi mdi-information-outline me-1"></i>邮件通道使用系统统一邮件配置（管理员后台 → 系统设置 → 邮件设置），无需在此填写 SMTP 信息。启用本通道后，登录提醒将发送到管理员邮箱。';
-        try {
-            if (isset($GLOBALS['mail_cfg_hint'])) { $h .= $GLOBALS['mail_cfg_hint']; }
-        } catch (Throwable $e) {}
-        $h .= '</div></div>';
-    } elseif ($ch === 'wecom') {
-        $h .= '<div class="col-md-12"><label class="form-label">机器人 Webhook URL</label><input type="text" name="config[webhook]" class="form-control" value="' . htmlspecialchars($cfg['webhook'] ?? '') . '" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx"></div>';
-    } elseif ($ch === 'dingtalk') {
-        $h .= '<div class="col-md-8"><label class="form-label">机器人 Webhook URL</label><input type="text" name="config[webhook]" class="form-control" value="' . htmlspecialchars($cfg['webhook'] ?? '') . '" placeholder="https://oapi.dingtalk.com/robot/send?access_token=xxx"></div>';
-        $h .= '<div class="col-md-4"><label class="form-label">加签密钥（可选）</label><input type="text" name="config[secret]" class="form-control" value="' . htmlspecialchars($cfg['secret'] ?? '') . '" placeholder="SEC..."></div>';
-    } elseif ($ch === 'feishu') {
-        $h .= '<div class="col-md-8"><label class="form-label">机器人 Webhook URL</label><input type="text" name="config[webhook]" class="form-control" value="' . htmlspecialchars($cfg['webhook'] ?? '') . '" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx"></div>';
-        $h .= '<div class="col-md-4"><label class="form-label">签名校验（可选）</label><input type="text" name="config[secret]" class="form-control" value="' . htmlspecialchars($cfg['secret'] ?? '') . '"></div>';
-    } elseif ($ch === 'bark') {
-        $h .= '<div class="col-md-6"><label class="form-label">Bark 服务地址</label><input type="text" name="config[server]" class="form-control" value="' . htmlspecialchars($cfg['server'] ?? 'https://api.day.app') . '"></div>';
-        $h .= '<div class="col-md-6"><label class="form-label">Device Key</label><input type="text" name="config[device_key]" class="form-control" value="' . htmlspecialchars($cfg['device_key'] ?? '') . '"></div>';
-    } elseif ($ch === 'webhook') {
-        $h .= '<div class="col-md-9"><label class="form-label">回调地址 URL</label><input type="text" name="config[url]" class="form-control" value="' . htmlspecialchars($cfg['url'] ?? '') . '" placeholder="https://example.com/notify"></div>';
-        $h .= '<div class="col-md-3"><label class="form-label">请求方法</label><select name="config[method]" class="form-select"><option ' . (($cfg['method'] ?? 'POST') === 'POST' ? 'selected' : '') . '>POST</option><option ' . (($cfg['method'] ?? '') === 'GET' ? 'selected' : '') . '>GET</option><option ' . (($cfg['method'] ?? '') === 'PUT' ? 'selected' : '') . '>PUT</option></select></div>';
-        $h .= '<div class="col-md-12"><label class="form-label">自定义请求头（每行一个，例如 Authorization: Bearer xxx）</label><textarea name="config[headers]" class="form-control" rows="2">' . htmlspecialchars($cfg['headers'] ?? '') . '</textarea></div>';
-    }
-    $h .= '<div class="col-md-12"><label class="form-label d-block">订阅事件</label>';
-    $h .= '<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="events[]" value="login.notify" id="evt_' . $ch . '_login"' . (in_array('login.notify', $events) ? ' checked' : '') . '><label class="form-check-label" for="evt_' . $ch . '_login">登录提醒（管理员 / 用户登录时触发）</label></div>';
-    $h .= '</div>';
-    $h .= '<div class="col-md-12 d-flex gap-2 align-items-center">';
-    $h .= '<div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="enabled" id="en_' . $ch . '"' . ($enabled ? ' checked' : '') . '><label class="form-check-label" for="en_' . $ch . '">启用此通道</label></div>';
-    $h .= '<button type="submit" class="btn btn-primary ms-auto"><i class="mdi mdi-content-save-outline"></i> 保存配置</button>';
-    $h .= '</div>';
-    $h .= '</form>';
-    if ($ch === 'email') {
-        $h .= '<hr><form method="post" class="row g-2 align-items-end"><input type="hidden" name="test_channel" value="email"><div class="col-md-7"><label class="form-label small">测试收件邮箱</label><input type="email" name="test_recipient" class="form-control form-control-sm" placeholder="to@example.com"></div><div class="col-md-3"><button class="btn btn-outline-primary btn-sm w-100" type="submit"><i class="mdi mdi-send-outline"></i> 发送测试邮件</button></div></form>';
-    } else {
-        $h .= '<hr><form method="post" class="row g-2 align-items-end"><input type="hidden" name="test_channel" value="' . htmlspecialchars($ch) . '"><div class="col-md-7"><small class="text-muted">已启用后即可发送测试消息到 ' . htmlspecialchars($ch) . ' 通道</small></div><div class="col-md-3"><button class="btn btn-outline-primary btn-sm w-100" type="submit"><i class="mdi mdi-send-outline"></i> 发送测试消息</button></div></form>';
-    }
-    $h .= '</div></div>';
-    return $h;
-}
 ?>
 
 <!DOCTYPE html>
@@ -324,14 +179,6 @@ function huli_render_channel_card($row) {
             <button type="submit" class="btn btn-primary">更新密码</button>
           </form>
           <hr class="my-4">
-          <header class="card-header mb-3" style="background:transparent;padding:0;border:none;"><div class="card-title">推送通知</div></header>
-          <p class="text-muted small mb-3">配置邮件 / 企业微信 / 钉钉 / 飞书 / Bark / 自定义 Webhook 通道，在登录提醒等事件触发时推送通知</p>
-          <?php if ($push_feedback_msg): ?>
-          <div class="alert alert-<?php echo $push_feedback_type === 'success' ? 'success' : ($push_feedback_type === 'warning' ? 'warning' : 'danger'); ?> mb-3">
-            <?php echo htmlspecialchars($push_feedback_msg); ?>
-          </div>
-          <?php endif; ?>
-          <?php foreach ($channels as $c) { echo huli_render_channel_card($c); } ?>
         </div>
       </div>
     </div>

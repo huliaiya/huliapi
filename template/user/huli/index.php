@@ -173,6 +173,12 @@ if ($currentTemplate !== $activeTemplate) {
                 <span>我的登录日志</span>
               </a>
             </li>
+            <li class="nav-item">
+              <a class="multitabs" href="<?= $userTemplateBaseUrl ?>push_settings.php">
+                <i class="mdi mdi-bell-ring-outline"></i>
+                <span>推送通知</span>
+              </a>
+            </li>
           </ul>
         </nav>
         <div class="sidebar-footer">
