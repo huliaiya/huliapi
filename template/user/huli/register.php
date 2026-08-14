@@ -213,6 +213,16 @@ try {
 <script type="text/javascript" src="../../../assets/js/bootstrap-notify.min.js"></script>
 <script type="text/javascript">
 $(document).ready(function() {
+    function hasTurnstileResponse() {
+        return typeof window.huliGetTurnstileResponse === 'function' && window.huliGetTurnstileResponse();
+    }
+
+    function resetTurnstileWidget() {
+        if (typeof window.huliResetTurnstiles === 'function') {
+            window.huliResetTurnstiles();
+        }
+    }
+
     $('#send-code-btn').on('click', function() {
         const email = $('#email').val().trim();
         if (!email) {
@@ -257,6 +267,10 @@ $(document).ready(function() {
         event.preventDefault();
         const $form = $(this);
         const $submitBtn = $('#submit-btn');
+        if ($('.huli-turnstile').length && !hasTurnstileResponse()) {
+            showError('请先完成人机验证');
+            return;
+        }
         $submitBtn.html('<span class="spinner-border spinner-border-sm" role="status"></span> 注册中...').prop('disabled', true);
         $.ajax({
             url: $form.attr('action'),
@@ -284,6 +298,7 @@ $(document).ready(function() {
                 showError('服务器错误: ' + getErrorMessage(xhr));
             },
             complete: function() {
+                resetTurnstileWidget();
                 $submitBtn.text('立即注册').prop('disabled', false);
             }
         });

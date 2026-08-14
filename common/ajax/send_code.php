@@ -45,6 +45,7 @@ try {
     }
     if ($type === 'admin_reset') {
         $stmt_admin = $pdo->prepare("SELECT setting_value FROM huli_settings WHERE setting_key = 'mail_admin_forgot_enabled'");
+        $stmt_admin->execute();
         if ((int)$stmt_admin->fetchColumn() !== 1) { json_response(false, '管理员已关闭找回密码功能。'); }
         $stmt_check = $pdo->prepare("SELECT id FROM huli_admins WHERE email = ?");
         $stmt_check->execute([$email]);

@@ -62,12 +62,71 @@ function huli_turnstile_keys()
 
 function huli_turnstile_widget_html()
 {
+    static $widget_index = 0;
+    static $script_printed = false;
     if (!huli_turnstile_enabled()) {
         return '';
     }
-    $site_key = htmlspecialchars(huli_turnstile_keys()['site_key'], ENT_QUOTES);
-    return '<div class="cf-turnstile mb-3" data-sitekey="' . $site_key . '"></div>'
-        . '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>';
+    $widget_index++;
+    $widget_id = 'huli-turnstile-' . $widget_index;
+    $site_key = huli_turnstile_keys()['site_key'];
+    $html = '<input type="hidden" name="cf-turnstile-response" id="' . $widget_id . '-response">'
+        . '<div id="' . $widget_id . '" class="huli-turnstile mb-3"></div>'
+        . '<script>'
+        . '(function(){'
+        . 'window.huliTurnstileWidgets=window.huliTurnstileWidgets||{};'
+        . 'window.huliTurnstileInputs=window.huliTurnstileInputs||{};'
+        . 'window.huliTurnstilePending=window.huliTurnstilePending||{};'
+        . 'window.huliGetTurnstileResponse=window.huliGetTurnstileResponse||function(){'
+        . 'for(var widgetId in window.huliTurnstileInputs){'
+        . 'if(!Object.prototype.hasOwnProperty.call(window.huliTurnstileInputs,widgetId)){continue;}'
+        . 'var input=document.getElementById(window.huliTurnstileInputs[widgetId]);'
+        . 'if(input&&input.value){return input.value;}'
+        . '}'
+        . 'return "";'
+        . '};'
+        . 'window.huliResetTurnstiles=window.huliResetTurnstiles||function(){'
+        . 'for(var widgetId in window.huliTurnstileWidgets){'
+        . 'if(!Object.prototype.hasOwnProperty.call(window.huliTurnstileWidgets,widgetId)){continue;}'
+        . 'var inputId=window.huliTurnstileInputs[widgetId];'
+        . 'var input=inputId?document.getElementById(inputId):null;'
+        . 'if(input){input.value="";}'
+        . 'if(window.turnstile&&window.huliTurnstileWidgets[widgetId]!==undefined){window.turnstile.reset(window.huliTurnstileWidgets[widgetId]);}'
+        . '}'
+        . '};'
+        . 'window.huliRenderOneTurnstile=window.huliRenderOneTurnstile||function(widgetId,siteKey){'
+        . 'if(!window.turnstile||window.huliTurnstileWidgets[widgetId]!==undefined){return;}'
+        . 'window.huliTurnstileWidgets[widgetId]=window.turnstile.render("#"+widgetId,{'
+        . 'sitekey:siteKey,'
+        . '"response-field":false,'
+        . 'callback:function(token){var inputId=window.huliTurnstileInputs[widgetId];var input=inputId?document.getElementById(inputId):null;if(input){input.value=token;}},'
+        . '"expired-callback":function(){var inputId=window.huliTurnstileInputs[widgetId];var input=inputId?document.getElementById(inputId):null;if(input){input.value="";}},'
+        . '"timeout-callback":function(){var inputId=window.huliTurnstileInputs[widgetId];var input=inputId?document.getElementById(inputId):null;if(input){input.value="";}},'
+        . '"error-callback":function(){var inputId=window.huliTurnstileInputs[widgetId];var input=inputId?document.getElementById(inputId):null;if(input){input.value="";}}'
+        . '});'
+        . '};'
+        . 'window.huliTryRenderTurnstiles=window.huliTryRenderTurnstiles||function(){'
+        . 'if(!window.turnstile){return;}'
+        . 'for(var widgetId in window.huliTurnstilePending){'
+        . 'if(!Object.prototype.hasOwnProperty.call(window.huliTurnstilePending,widgetId)){continue;}'
+        . 'window.huliRenderOneTurnstile(widgetId,window.huliTurnstilePending[widgetId]);'
+        . '}'
+        . '};'
+        . 'window.huliOnTurnstileLoad=window.huliOnTurnstileLoad||function(){window.huliTryRenderTurnstiles();};'
+        . 'window.huliRenderTurnstile=window.huliRenderTurnstile||function(widgetId,siteKey){'
+        . 'window.huliTurnstilePending[widgetId]=siteKey;'
+        . 'var tryRender=function(){window.huliTryRenderTurnstiles();};'
+        . 'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",tryRender,{once:true});}else{tryRender();}'
+        . '};'
+        . 'window.huliTurnstileInputs[' . json_encode($widget_id) . ']=' . json_encode($widget_id . '-response') . ';'
+        . 'window.huliRenderTurnstile(' . json_encode($widget_id) . ',' . json_encode($site_key) . ');'
+        . '})();'
+        . '</script>';
+    if (!$script_printed) {
+        $html .= '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=huliOnTurnstileLoad" async defer></script>';
+        $script_printed = true;
+    }
+    return $html;
 }
 
 function huli_turnstile_verify()

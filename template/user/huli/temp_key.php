@@ -174,6 +174,16 @@ $site_name = $settings['site_name'];
     <script src="../../../assets/js/bootstrap-notify.min.js"></script>
     <script>
     $(document).ready(function() {
+        function hasTurnstileResponse() {
+            return typeof window.huliGetTurnstileResponse === 'function' && window.huliGetTurnstileResponse();
+        }
+
+        function resetTurnstileWidget() {
+            if (typeof window.huliResetTurnstiles === 'function') {
+                window.huliResetTurnstiles();
+            }
+        }
+
         $('#temp-key-form').on('submit', function(e) {
             e.preventDefault();
             const email = $('#email').val().trim();
@@ -182,11 +192,15 @@ $site_name = $settings['site_name'];
                 showError('请输入您的邮箱地址');
                 return;
             }
+            if ($('.huli-turnstile').length && !hasTurnstileResponse()) {
+                showError('请先完成人机验证');
+                return;
+            }
             $submitBtn.html('<span class="spinner-border spinner-border-sm" role="status"></span> 正在处理...').prop('disabled', true);
             $.ajax({
                 url: '../../../common/ajax/get_temp_key.php',
                 type: 'POST',
-                data: $('form').serialize(),
+                data: $('#temp-key-form').serialize(),
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
@@ -200,6 +214,7 @@ $site_name = $settings['site_name'];
                     showError('请求失败: ' + getErrorMessage(xhr));
                 },
                 complete: function() {
+                    resetTurnstileWidget();
                     $submitBtn.html('<span class="mdi mdi-send"></span> 发送临时密钥到邮箱').prop('disabled', false);
                 }
             });

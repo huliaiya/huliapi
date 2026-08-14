@@ -173,6 +173,16 @@ try {
 <script type="text/javascript" src="../../../assets/js/bootstrap-notify.min.js"></script>
 <script type="text/javascript">
 $(document).ready(function() {
+    function hasTurnstileResponse() {
+        return typeof window.huliGetTurnstileResponse === 'function' && window.huliGetTurnstileResponse();
+    }
+
+    function resetTurnstileWidget() {
+        if (typeof window.huliResetTurnstiles === 'function') {
+            window.huliResetTurnstiles();
+        }
+    }
+
     $('#send-code-btn').click(function() {
         const email = $('#email').val().trim();
         if (!email) {
@@ -259,6 +269,21 @@ $(document).ready(function() {
         event.preventDefault();
         const $form = $(this);
         const $submitBtn = $form.find('button[type="submit"]');
+        if ($('.huli-turnstile').length && !hasTurnstileResponse()) {
+            $.notify({
+                message: '请先完成人机验证',
+            },{
+                type: 'danger',
+                placement: { from: 'top', align: 'right' },
+                z_index: 10800,
+                delay: 1500,
+                animate: {
+                    enter: 'animate__animated animate__shakeX',
+                    exit: 'animate__animated animate__fadeOutDown'
+                }
+            });
+            return;
+        }
         $submitBtn.html('处理中...').prop('disabled', true);
         const loader = $submitBtn.lyearloading({ opacity: 0.2, spinnerSize: 'nm' });
         $.ajax({
@@ -318,6 +343,9 @@ $(document).ready(function() {
                         exit: 'animate__animated animate__fadeOutDown'
                     }
                 });
+            },
+            complete: function() {
+                resetTurnstileWidget();
             }
         });
     });
