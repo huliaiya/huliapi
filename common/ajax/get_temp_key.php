@@ -39,12 +39,6 @@ $email = filter_var(trim($_POST['email']), FILTER_VALIDATE_EMAIL);
 if (!$email) {
     json_response(false, '请输入有效的邮箱地址。');
 }
-if (!huli_turnstile_enabled()) {
-    $captcha = strtolower(trim($_POST['captcha'] ?? ''));
-    if (empty($_SESSION['captcha_code']) || $captcha !== strtolower($_SESSION['captcha_code'])) {
-        json_response(false, '验证码不正确，请重新输入。');
-    }
-}
 if (!huli_turnstile_verify()) {
     json_response(false, '人机验证失败，请完成 Cloudflare 验证后重试。');
 }
