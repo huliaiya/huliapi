@@ -137,6 +137,7 @@ function huli_turnstile_verify()
     $keys = huli_turnstile_keys();
     $token = isset($_POST['cf-turnstile-response']) ? trim((string)$_POST['cf-turnstile-response']) : '';
     if ($token === '') {
+        error_log('[turnstile] 未收到 cf-turnstile-response token');
         return false;
     }
     $post_data = array(
@@ -153,6 +154,9 @@ function huli_turnstile_verify()
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         $result = curl_exec($ch);
+        if ($result === false) {
+            error_log('[turnstile] siteverify 网络错误: ' . curl_error($ch));
+        }
         curl_close($ch);
     } else {
         $context = stream_context_create(array('http' => array(
@@ -164,8 +168,14 @@ function huli_turnstile_verify()
         $result = @file_get_contents($url, false, $context);
     }
     if ($result === false) {
+        error_log('[turnstile] siteverify 请求失败（无响应）');
         return false;
     }
     $data = json_decode($result, true);
-    return isset($data['success']) && (bool)$data['success'];
+    $success = isset($data['success']) && (bool)$data['success'];
+    if (!$success) {
+        $codes = isset($data['error-codes']) ? implode(',', (array)$data['error-codes']) : 'unknown';
+        error_log('[turnstile] siteverify 验证失败 error-codes: ' . $codes);
+    }
+    return $success;
 }
