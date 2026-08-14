@@ -18,7 +18,7 @@ CREATE TABLE `huli_site_home_templates` (
 
 INSERT INTO `huli_site_home_templates` (`id`,`name`,`folder`,`is_active`,`thumbnail`,`description`,`created_at`,`updated_at`) VALUES
 (1,'默认首页模板','1',0,'','系统默认首页模板','2026-04-04 00:00:00','2026-04-04 07:52:27'),
-(2,'光年UI首页模板','2',1,'','光年UI首页模板','2026-04-04 00:00:00','2026-04-04 07:53:00');
+(2,'huliUI首页模板','2',1,'','huliUI首页模板','2026-04-04 00:00:00','2026-04-04 07:53:00');
 
 DROP TABLE IF EXISTS `huli_site_user_templates`;
 CREATE TABLE `huli_site_user_templates` (
