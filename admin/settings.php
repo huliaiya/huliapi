@@ -8,8 +8,6 @@ require_once __DIR__ . '/../common/push.php';
 require_once __DIR__ . '/../common/turnstile.php';
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = ''; $feedback_type = ''; $page_title = '系统设置';
-$ts_feedback_msg = ''; $ts_feedback_type = '';
-$ts_e2e_msg = ''; $ts_e2e_ok = false; $ts_e2e_raw = '';
 $settings_keys = [
     'site_name', 'site_description', 'copyright_info', 'allow_registration', 'allow_temp_key',
     'temp_key_duration', 'temp_key_limit',
@@ -84,41 +82,6 @@ try {
             } catch (Throwable $e) {
                 $push_feedback_msg = '测试异常: ' . $e->getMessage();
                 $push_feedback_type = 'danger';
-            }
-        } elseif (isset($_POST['test_turnstile'])) {
-            $keys = huli_turnstile_keys();
-            $site = $keys['site_key'];
-            $secret = $keys['secret_key'];
-            $ts_feedback_type = 'danger';
-            if ($site === '' || $secret === '') {
-                $ts_feedback_msg = '请先填写 Turnstile Site Key 与 Secret Key 再检测。';
-            } elseif (huli_turnstile_key_pair_mismatch()) {
-                $ts_feedback_msg = '检测失败：Site Key 与 Secret Key 一个是测试密钥、一个是正式密钥，两者必须成对使用。Cloudflare 会直接返回 invalid-input-response。';
-            } elseif (!preg_match('/^[0-9A-Za-z_-]{20,80}$/', $site)) {
-                $ts_feedback_msg = '检测失败：Site Key 格式不合法。Cloudflare Site Key 形如 "0x4AAAAAA..."，请重新复制。';
-            } elseif (!preg_match('/^[0-9A-Za-z_-]{20,80}$/', $secret)) {
-                $ts_feedback_msg = '检测失败：Secret Key 格式不合法。Cloudflare Secret Key 形如 "0x4AAAAAA..."，请重新复制（密钥首尾若带空格或换行请去除）。';
-            } else {
-                $site_is_test = strpos(HULI_TURNSTILE_TEST_SITE_KEYS, '|' . $site . '|') !== false;
-                $ts_feedback_type = 'success';
-                $ts_feedback_msg = $site_is_test
-                    ? '配置校验通过：检测到 Cloudflare 官方测试密钥。Cloudflare 不会做真实校验，仅供本地联调；上线前请替换为正式密钥。'
-                    : '配置校验通过：密钥成对、格式合法。域名授权需要在真实登录页验证——本工具从后台发起检测请求，域名通常未在 Cloudflare Hostname Management 授权，因此无法做端到端校验。';
-            }
-        } elseif (isset($_POST['test_turnstile_e2e'])) {
-            $reason = '';
-            $result = huli_turnstile_verify_token(isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '', $reason);
-            $ts_e2e_ok = !empty($result['ok']);
-            $ts_e2e_msg = $ts_e2e_ok
-                ? '端到端验证通过：Cloudflare 已接受本次 token。'
-                : ('端到端验证失败：' . ($reason ?: '未知错误'));
-            $ts_e2e_raw = json_encode($result['raw'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-            if ($ts_e2e_ok) {
-                $ts_feedback_msg = $ts_e2e_msg;
-                $ts_feedback_type = 'success';
-            } else {
-                $ts_feedback_msg = $ts_e2e_msg;
-                $ts_feedback_type = 'danger';
             }
         } elseif (isset($_POST['channel'])) {
             $channel = $_POST['channel'];
@@ -515,11 +478,6 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 $ts_site_is_test = $ts_site !== '' && strpos(HULI_TURNSTILE_TEST_SITE_KEYS, '|' . $ts_site . '|') !== false;
                 $ts_secret_is_test = $ts_secret !== '' && strpos(HULI_TURNSTILE_TEST_SECRET_KEYS, '|' . $ts_secret . '|') !== false;
                 ?>
-                <?php if ($ts_feedback_msg): ?>
-                <div class="alert alert-<?php echo $ts_feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
-                  <?php echo htmlspecialchars($ts_feedback_msg); ?>
-                </div>
-                <?php endif; ?>
                 <?php if ($ts_site !== '' && $ts_secret !== '' && $ts_site_is_test !== $ts_secret_is_test): ?>
                 <div class="alert alert-danger mb-3">
                   当前 Site Key 与 Secret Key 一个是 Cloudflare 测试密钥、一个是正式密钥。两者必须成对使用，否则校验必然返回 invalid-input-response。
@@ -553,37 +511,31 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   </ol>
                 </div>
                 <small class="form-text text-muted d-block mb-3">需先勾选启用开关并填写两个 Key，后台与用户端登录/注册/重置密码/申请临时密钥才会使用 Turnstile 校验。</small>
-                <div class="d-flex align-items-center mb-3">
+                <div class="d-flex align-items-center mb-2">
                   <button type="submit" class="btn btn-primary me-1">保存设置</button>
-                  <button type="submit" name="test_turnstile" value="1" class="btn btn-outline-info ms-2">
+                  <button type="button" id="ts-test-keys-btn" class="btn btn-outline-info ms-2">
                     <i class="mdi mdi-shield-check-outline"></i> 检测密钥配置
                   </button>
                 </div>
-                <div class="form-text mb-3">检测项：密钥是否成对、格式是否合法、是否仍为 Cloudflare 官方测试密钥。域名授权需要走端到端测试，本工具仅检查密钥本身。</div>
+                <div class="mb-3" id="ts-test-result"></div>
+                <div class="form-text mb-3">检测项：密钥是否成对、格式是否合法、是否仍为 Cloudflare 官方测试密钥。检测使用上方表单中当前填写的密钥（无需先保存），结果直接显示在下方。</div>
                 </form>
                 <hr class="my-4">
                 <div class="mb-2 fw-bold"><i class="mdi mdi-flask-outline"></i> 端到端测试</div>
-                <?php if ($ts_site === '' || $ts_secret === ''): ?>
-                <div class="alert alert-warning mb-3">请先填写并保存 Site Key 与 Secret Key。</div>
-                <?php else: ?>
-                <p class="text-muted small mb-2">完成下方 Cloudflare 验证后点击「提交验证」，服务端会用真实密钥调用 Cloudflare siteverify 接口并展示完整响应。这是最准确的诊断工具，能直接定位域名授权、密钥配对、token 生命周期等问题。</p>
-                <form method="POST" action="settings.php" class="edit-form" id="turnstile-e2e-form">
-                  <input type="hidden" name="checkbox_keys[]" value="turnstile_enabled">
-                  <?php echo huli_turnstile_widget_html(true); ?>
-                  <button type="submit" name="test_turnstile_e2e" value="1" class="btn btn-outline-primary">
+                <p class="text-muted small mb-2">完成下方 Cloudflare 验证后点击「提交验证」，服务端会用上方表单中当前填写的真实密钥调用 Cloudflare siteverify 接口并展示完整响应。这是最准确的诊断工具，能直接定位域名授权、密钥配对、token 生命周期等问题。</p>
+                <div class="mb-2" id="ts-e2e-widget"></div>
+                <div class="mb-2" id="ts-e2e-status"></div>
+                <input type="hidden" id="ts-e2e-token" value="">
+                <div class="d-flex align-items-center mb-3">
+                  <button type="button" id="ts-e2e-reload-btn" class="btn btn-outline-secondary me-2">
+                    <i class="mdi mdi-refresh"></i> 按上方表单 Site Key 重载组件
+                  </button>
+                  <button type="button" id="ts-e2e-submit-btn" class="btn btn-outline-primary">
                     <i class="mdi mdi-send-check-outline"></i> 提交验证
                   </button>
-                </form>
-                <?php if (!empty($ts_e2e_raw)): ?>
-                <div class="mt-3">
-                  <div class="alert alert-<?php echo $ts_e2e_ok ? 'success' : 'danger'; ?> mb-2">
-                    <?php echo htmlspecialchars($ts_e2e_msg); ?>
-                  </div>
-                  <div class="text-muted small mb-1">Cloudflare 原始响应：</div>
-                  <pre class="bg-light p-2 rounded small" style="max-height: 200px; overflow:auto;"><?php echo htmlspecialchars($ts_e2e_raw); ?></pre>
                 </div>
-                <?php endif; ?>
-                <?php endif; ?>
+                <div class="mb-3" id="ts-e2e-result"></div>
+                <?php echo huli_turnstile_assets_html(); ?>
               </div>
             </div>
         </div>
@@ -595,5 +547,112 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
 <script type="text/javascript" src="../assets/js/popper.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="../assets/js/main.min.js"></script>
+<script type="text/javascript">
+(function () {
+    var AJAX_URL = '../common/ajax/turnstile_test.php';
+    function esc(s) {
+        return $('<div>').text(s == null ? '' : String(s)).html();
+    }
+    function showResult(selector, ok, message, raw) {
+        var html = '<div class="alert ' + (ok ? 'alert-success' : 'alert-danger') + ' mb-2">' + esc(message) + '</div>';
+        if (raw) {
+            html += '<div class="text-muted small mb-1">Cloudflare 原始响应：</div>';
+            html += '<pre class="bg-light p-2 rounded small" style="max-height: 220px; overflow:auto;">' + esc(JSON.stringify(raw, null, 2)) + '</pre>';
+        }
+        $(selector).html(html);
+    }
+    function loadE2EWidget() {
+        var siteKey = $.trim($('#turnstile_site_key').val());
+        if (!siteKey) {
+            $('#ts-e2e-status').html('<div class="alert alert-warning py-1 px-2 mb-0 small">请先在上方填写 Turnstile Site Key 再加载测试组件。</div>');
+            return;
+        }
+        $('#ts-e2e-status').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">正在加载验证组件...</div>');
+        var loadingTimer = setTimeout(function () {
+            $('#ts-e2e-status').html('<div class="alert alert-danger py-1 px-2 mb-0 small">Cloudflare 组件脚本加载超时，请确认服务器网络可访问 challenges.cloudflare.com，然后重新点击「按上方表单 Site Key 重载组件」。</div>');
+        }, 20000);
+        window.huliTurnstileReady(function () {
+            clearTimeout(loadingTimer);
+            if (window.__huliE2EWidget) {
+                try { window.turnstile.remove(window.__huliE2EWidget); } catch (e) {}
+                window.__huliE2EWidget = null;
+            }
+            $('#ts-e2e-widget').html('<div class="huli-turnstile"></div>');
+            $('#ts-e2e-token').val('');
+            var el = $('#ts-e2e-widget .huli-turnstile').get(0);
+            try {
+                window.__huliE2EWidget = window.turnstile.render(el, {
+                    sitekey: siteKey,
+                    callback: function (token) {
+                        $('#ts-e2e-token').val(token);
+                        $('#ts-e2e-status').html('<div class="alert alert-success py-1 px-2 mb-0 small">验证组件已完成，可点击「提交验证」。</div>');
+                    },
+                    'expired-callback': function () {
+                        $('#ts-e2e-token').val('');
+                        $('#ts-e2e-status').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">验证已过期，请重新完成验证。</div>');
+                    },
+                    'error-callback': function (code) {
+                        $('#ts-e2e-token').val('');
+                        $('#ts-e2e-status').html('<div class="alert alert-danger py-1 px-2 mb-0 small">验证组件错误：' + esc(code) + '。常见错误码 110200 表示当前域名未在 Cloudflare Hostname Management 中授权。</div>');
+                    }
+                });
+            } catch (err) {
+                $('#ts-e2e-status').html('<div class="alert alert-danger py-1 px-2 mb-0 small">组件渲染失败：' + esc(err && err.message ? err.message : err) + '</div>');
+                return;
+            }
+            $('#ts-e2e-status').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">组件已加载，请完成验证。</div>');
+        });
+    }
+    $('#ts-test-keys-btn').on('click', function () {
+        var siteKey = $.trim($('#turnstile_site_key').val());
+        var secretKey = $.trim($('#turnstile_secret_key').val());
+        $('#ts-test-result').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">正在检测...</div>');
+        $.post(AJAX_URL, { mode: 'keys', site_key: siteKey, secret_key: secretKey }, function (res) {
+            if (res && res.success) {
+                showResult('#ts-test-result', true, res.message, null);
+            } else {
+                showResult('#ts-test-result', false, (res && res.message) ? res.message : '检测失败，请重试。', null);
+            }
+        }).fail(function () {
+            $('#ts-test-result').html('<div class="alert alert-danger py-1 px-2 mb-0 small">请求失败，请检查网络连接后重试。</div>');
+        });
+    });
+    $('#ts-e2e-reload-btn').on('click', loadE2EWidget);
+    $('#ts-e2e-submit-btn').on('click', function () {
+        var token = $.trim($('#ts-e2e-token').val());
+        var siteKey = $.trim($('#turnstile_site_key').val());
+        var secretKey = $.trim($('#turnstile_secret_key').val());
+        if (!token) {
+            $('#ts-e2e-result').html('<div class="alert alert-warning py-1 px-2 mb-0 small">请先完成上方验证组件再提交。</div>');
+            return;
+        }
+        $('#ts-e2e-result').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">正在向 Cloudflare 验证令牌...</div>');
+        $.post(AJAX_URL, { mode: 'e2e', site_key: siteKey, secret_key: secretKey, 'cf-turnstile-response': token }, function (res) {
+            if (res && res.success) {
+                showResult('#ts-e2e-result', true, res.message, res.raw || null);
+            } else {
+                showResult('#ts-e2e-result', false, (res && res.message) ? res.message : '验证失败，请重试。', (res && res.raw) ? res.raw : null);
+            }
+            loadE2EWidget();
+        }).fail(function () {
+            $('#ts-e2e-result').html('<div class="alert alert-danger py-1 px-2 mb-0 small">请求失败，请检查网络连接后重试。</div>');
+        });
+    });
+    document.querySelectorAll('[data-bs-toggle="tab"]').forEach(function (el) {
+        el.addEventListener('shown.bs.tab', function (ev) {
+            var target = ev.target.getAttribute('data-bs-target');
+            if (target && target.charAt(0) === '#') { history.replaceState(null, '', target); }
+        });
+    });
+    if (location.hash === '#turnstile') {
+        var turnstileTab = document.getElementById('basic-turnstile');
+        if (turnstileTab) {
+            var tab = new bootstrap.Tab(turnstileTab);
+            tab.show();
+        }
+    }
+    loadE2EWidget();
+})();
+</script>
 </body>
 </html>

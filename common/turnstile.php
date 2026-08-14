@@ -235,6 +235,87 @@ function huli_turnstile_uuid_v4()
 }
 
 /**
+ * 使用调用方传入的 secret 与 token 调用 siteverify，返回 Cloudflare 原始 JSON 解码结果。
+ * 与 huli_turnstile_verify_token 的区别：不读取数据库密钥，用于后台端到端测试（表单可能未保存）。
+ */
+function huli_turnstile_siteverify_raw($secret, $token)
+{
+    $secret = trim((string)$secret);
+    $token = trim((string)$token);
+    $post_data = array(
+        'secret' => $secret,
+        'response' => $token,
+        'idempotency_key' => huli_turnstile_uuid_v4()
+    );
+    $body = http_build_query($post_data);
+    $data = null;
+    for ($attempt = 1; $attempt <= 2; $attempt++) {
+        $raw_response = huli_turnstile_siteverify_request($body);
+        if ($raw_response === false || $raw_response === '') {
+            $data = array('success' => false, 'error-codes' => array('internal-error'));
+            continue;
+        }
+        $decoded = json_decode($raw_response, true);
+        if (!is_array($decoded)) {
+            $data = array('success' => false, 'error-codes' => array('internal-error'));
+            continue;
+        }
+        $data = $decoded;
+        if (!empty($data['success'])) {
+            break;
+        }
+        $codes = isset($data['error-codes']) ? (array)$data['error-codes'] : array();
+        if (!in_array('internal-error', $codes, true)) {
+            break;
+        }
+    }
+    return is_array($data) ? $data : array('success' => false, 'error-codes' => array('internal-error'));
+}
+
+/**
+ * 检查一组密钥（不读数据库，用于后台检测表单当前填写的值）。
+ * 返回 array('ok'=>bool, 'msg'=>string, 'site_is_test'=>bool, 'secret_is_test'=>bool)。
+ */
+function huli_turnstile_check_keys($site, $secret)
+{
+    $site = trim((string)$site);
+    $secret = trim((string)$secret);
+    if ($site === '' || $secret === '') {
+        return array('ok' => false, 'msg' => '请先填写 Site Key 与 Secret Key 再检测。', 'site_is_test' => false, 'secret_is_test' => false);
+    }
+    $site_is_test = strpos(HULI_TURNSTILE_TEST_SITE_KEYS, '|' . $site . '|') !== false;
+    $secret_is_test = strpos(HULI_TURNSTILE_TEST_SECRET_KEYS, '|' . $secret . '|') !== false;
+    if (!preg_match('/^[0-9A-Za-z_-]{20,80}$/', $site)) {
+        return array('ok' => false, 'msg' => '检测失败：Site Key 格式不合法。Cloudflare Site Key 形如 "0x4AAAAAA..."，请从 Cloudflare 后台重新复制。', 'site_is_test' => $site_is_test, 'secret_is_test' => $secret_is_test);
+    }
+    if (!preg_match('/^[0-9A-Za-z_-]{20,80}$/', $secret)) {
+        return array('ok' => false, 'msg' => '检测失败：Secret Key 格式不合法。Cloudflare Secret Key 形如 "0x4AAAAAA..."，请从 Cloudflare 后台重新复制（密钥首尾不要带空格或换行）。', 'site_is_test' => $site_is_test, 'secret_is_test' => $secret_is_test);
+    }
+    if ($site_is_test !== $secret_is_test) {
+        return array('ok' => false, 'msg' => '检测失败：Site Key 与 Secret Key 一个是测试密钥、一个是正式密钥，两者必须成对使用。Cloudflare 会直接返回 invalid-input-response。', 'site_is_test' => $site_is_test, 'secret_is_test' => $secret_is_test);
+    }
+    $msg = $site_is_test
+        ? '配置校验通过：检测到 Cloudflare 官方测试密钥。Cloudflare 不会做真实校验，仅供本地联调；上线前请替换为正式密钥。'
+        : '配置校验通过：密钥成对、格式合法。最终能否通过验证还取决于当前访问域名是否已在 Cloudflare 的 Hostname Management 中授权，请用下方「端到端测试」确认。';
+    return array('ok' => true, 'msg' => $msg, 'site_is_test' => $site_is_test, 'secret_is_test' => $secret_is_test);
+}
+
+/**
+ * 仅输出 Turnstile 运行时脚本与 api.js（不渲染任何 widget），且全局只输出一次。
+ * 用于后台端到端测试等需要在浏览器端手动控制渲染的场景。
+ */
+function huli_turnstile_assets_html()
+{
+    static $script_printed = false;
+    if ($script_printed) {
+        return '';
+    }
+    $script_printed = true;
+    return '<script>' . huli_turnstile_runtime_js() . '</script>'
+        . '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=huliOnTurnstileLoad" async defer></script>';
+}
+
+/**
  * 渲染 widget。使用显式渲染并接管 token 生命周期，解决三类线上问题：
  * 1. token 超过 300 秒过期后仍被提交，导致 timeout-or-duplicate；
  * 2. 挑战尚未完成用户就点提交，导致后端收不到 token；
@@ -245,7 +326,6 @@ function huli_turnstile_uuid_v4()
 function huli_turnstile_widget_html($force = false)
 {
     static $widget_index = 0;
-    static $script_printed = false;
     if (!$force && !huli_turnstile_enabled()) {
         return '';
     }
@@ -253,11 +333,7 @@ function huli_turnstile_widget_html($force = false)
     $widget_id = 'huli-turnstile-' . $widget_index;
     $site_key = huli_turnstile_keys()['site_key'];
     $html = '<div id="' . $widget_id . '" class="huli-turnstile mb-3"></div>';
-    if (!$script_printed) {
-        $html .= '<script>' . huli_turnstile_runtime_js() . '</script>'
-            . '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=huliOnTurnstileLoad" async defer></script>';
-        $script_printed = true;
-    }
+    $html .= huli_turnstile_assets_html();
     $html .= '<script>window.huliRenderTurnstile(' . json_encode($widget_id) . ',' . json_encode($site_key) . ');</script>';
     return $html;
 }
@@ -281,7 +357,7 @@ var CLIENT_ERRORS={
 "400070":"人机验证配置有误：该 Site Key 已被停用，请在 Cloudflare 后台检查"
 };
 var FATAL_ERRORS={"110100":1,"110110":1,"110200":1,"200100":1,"400020":1,"400070":1};
-var T={widgets:{},pending:{},tokens:{},lastError:"",fatal:false};
+var T={widgets:{},pending:{},tokens:{},readyCallbacks:[],lastError:"",fatal:false};
 window.huliTurnstile=T;
 function describeError(code){
 code=String(code||"");
@@ -358,7 +434,8 @@ for(var id in T.pending){
 if(Object.prototype.hasOwnProperty.call(T.pending,id)){window.huliRenderOneTurnstile(id,T.pending[id]);}
 }
 };
-window.huliOnTurnstileLoad=function(){window.huliTryRenderTurnstiles();};
+window.huliOnTurnstileLoad=function(){window.huliTryRenderTurnstiles();for(var i=0;i<T.readyCallbacks.length;i++){try{T.readyCallbacks[i]();}catch(e){}}T.readyCallbacks=[];};
+window.huliTurnstileReady=function(cb){if(typeof cb!=="function"){return;}if(window.turnstile){try{cb();}catch(e){}}else{T.readyCallbacks.push(cb);}};
 window.huliRenderTurnstile=function(widgetId,siteKey){
 T.pending[widgetId]=siteKey;
 window.huliTryRenderTurnstiles();
