@@ -84,9 +84,10 @@ try {
     $stats['today_income'] = $pdo->query("SELECT SUM(amount) FROM huli_orders WHERE status = 'paid' AND DATE(created_at) = CURDATE()")->fetchColumn() ?: 0;
     $server_info['mysql_version'] = $pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
     $chart_query = $pdo->query("
-        SELECT stat_date, call_count
-        FROM huli_daily_stats
-        WHERE stat_date >= CURDATE() - INTERVAL 30 DAY
+        SELECT DATE(request_time) AS stat_date, COUNT(*) AS call_count
+        FROM huli_api_logs
+        WHERE request_time >= CURDATE() - INTERVAL 30 DAY
+        GROUP BY DATE(request_time)
         ORDER BY stat_date ASC
     ");
     $chart_raw_data = $chart_query->fetchAll(PDO::FETCH_ASSOC);
