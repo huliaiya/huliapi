@@ -500,6 +500,12 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   <label for="turnstile_secret_key" class="form-label">Turnstile Secret Key</label>
                   <input class="form-control" type="text" id="turnstile_secret_key" name="turnstile_secret_key" value="<?php echo htmlspecialchars($settings['turnstile_secret_key'] ?? ''); ?>" placeholder="0x4AAAAAA...">
                 </div>
+                <div class="alert alert-light border small mb-3">
+                  <div class="fw-bold mb-1">当前数据库已保存的密钥（仅后台管理员可见，用于核对线上实际生效的值）</div>
+                  <div class="mb-1">Site Key：<code class="text-break"><?php echo htmlspecialchars($settings['turnstile_site_key'] ?? ''); ?></code></div>
+                  <div>Secret Key：<code class="text-break"><?php echo htmlspecialchars($settings['turnstile_secret_key'] ?? ''); ?></code></div>
+                  <div class="text-muted mt-1">如果此处的值与你在上面表单中填写的不一致，说明改动尚未保存生效；请点击「保存设置」后再核对。</div>
+                </div>
                 <div class="alert alert-info mb-3">
                   <div class="fw-bold mb-2">配置要点</div>
                   <ol class="mb-0 ps-3">
@@ -512,7 +518,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 </div>
                 <small class="form-text text-muted d-block mb-3">需先勾选启用开关并填写两个 Key，后台与用户端登录/注册/重置密码/申请临时密钥才会使用 Turnstile 校验。</small>
                 <div class="d-flex align-items-center mb-2">
-                  <button type="submit" class="btn btn-primary me-1">保存设置</button>
+                  <button type="submit" class="btn btn-primary me-1" onclick="location.hash='#turnstile'">保存设置</button>
                   <button type="button" id="ts-test-keys-btn" class="btn btn-outline-info ms-2">
                     <i class="mdi mdi-shield-check-outline"></i> 检测密钥配置
                   </button>
