@@ -579,6 +579,10 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
         }, 20000);
         window.huliTurnstileReady(function () {
             clearTimeout(loadingTimer);
+            if (!(window.turnstile && typeof window.turnstile.render === 'function')) {
+                $('#ts-e2e-status').html('<div class="alert alert-danger py-1 px-2 mb-0 small">Cloudflare 组件脚本加载失败（challenges.cloudflare.com 可能被网络拦截或缓存损坏），已自动重试。请稍候再点「重载组件」，或刷新页面。</div>');
+                return;
+            }
             if (window.__huliE2EWidget) {
                 try { window.turnstile.remove(window.__huliE2EWidget); } catch (e) {}
                 window.__huliE2EWidget = null;

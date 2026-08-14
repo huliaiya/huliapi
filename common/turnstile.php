@@ -357,8 +357,52 @@ var CLIENT_ERRORS={
 "400070":"人机验证配置有误：该 Site Key 已被停用，请在 Cloudflare 后台检查"
 };
 var FATAL_ERRORS={"110100":1,"110110":1,"110200":1,"200100":1,"400020":1,"400070":1};
-var T={widgets:{},pending:{},tokens:{},readyCallbacks:[],lastError:"",fatal:false};
+var SDK_URL="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=huliOnTurnstileLoad";
+var SDK_MAX_RELOADS=3;
+var T={widgets:{},pending:{},tokens:{},readyCallbacks:[],lastError:"",fatal:false,sdkFailed:false,sdkReloads:0,sdkTimer:null};
 window.huliTurnstile=T;
+function sdkReady(){return !!(window.turnstile&&typeof window.turnstile.render==="function");}
+function flushReadyCallbacks(){
+var cbs=T.readyCallbacks;T.readyCallbacks=[];
+for(var i=0;i<cbs.length;i++){try{cbs[i]();}catch(e){}}
+}
+function loadSdkScript(cacheBust){
+var src=cacheBust?(SDK_URL+"&cb="+Date.now()):SDK_URL;
+var sc=document.createElement("script");
+sc.src=src;sc.async=true;sc.defer=true;
+sc.onerror=function(){T.sdkFailed=true;};
+(document.head||document.documentElement).appendChild(sc);
+}
+function ensureSdkLoaded(){
+if(sdkReady()){return;}
+var hasScript=document.querySelector('script[data-huli-sdk="1"],script[src^="https://challenges.cloudflare.com/turnstile/"]');
+if(!hasScript){
+var sc=document.createElement("script");
+sc.src=SDK_URL;sc.async=true;sc.defer=true;sc.setAttribute("data-huli-sdk","1");
+sc.onerror=function(){T.sdkFailed=true;};
+(document.head||document.documentElement).appendChild(sc);
+}
+if(T.sdkTimer){return;}
+T.sdkTimer=setInterval(function(){
+if(sdkReady()){
+clearInterval(T.sdkTimer);T.sdkTimer=null;
+window.huliTryRenderTurnstiles();
+flushReadyCallbacks();
+return;
+}
+if(T.sdkFailed||T.sdkReloads>=SDK_MAX_RELOADS){
+clearInterval(T.sdkTimer);T.sdkTimer=null;
+if(!T.sdkFailed){T.sdkFailed=true;}
+flushReadyCallbacks();
+return;
+}
+T.sdkReloads++;
+var old=document.querySelector('script[data-huli-sdk="1"],script[src^="https://challenges.cloudflare.com/turnstile/"]');
+if(old){old.remove();}
+loadSdkScript(true);
+},8000);
+}
+window.huliReloadTurnstileSdk=function(){if(T.sdkTimer){clearInterval(T.sdkTimer);T.sdkTimer=null;}T.sdkFailed=false;T.sdkReloads=0;var old=document.querySelector('script[data-huli-sdk="1"],script[src^="https://challenges.cloudflare.com/turnstile/"]');if(old){old.remove();}loadSdkScript(false);ensureSdkLoaded();};
 function describeError(code){
 code=String(code||"");
 if(CLIENT_ERRORS[code]){return CLIENT_ERRORS[code];}
@@ -384,7 +428,7 @@ return token;
 };
 window.huliTurnstileError=function(){return T.lastError;};
 window.huliRenderOneTurnstile=function(widgetId,siteKey){
-if(!window.turnstile||T.widgets[widgetId]!==undefined){return;}
+if(!sdkReady()||T.widgets[widgetId]!==undefined){return;}
 var container=document.getElementById(widgetId);
 if(!container){return;}
 try{
@@ -429,39 +473,20 @@ T.lastError="人机验证组件初始化失败，请刷新页面重试";
 }
 };
 window.huliTryRenderTurnstiles=function(){
-if(!window.turnstile){return;}
+if(!sdkReady()){return;}
 for(var id in T.pending){
 if(Object.prototype.hasOwnProperty.call(T.pending,id)){window.huliRenderOneTurnstile(id,T.pending[id]);}
 }
 };
-window.huliOnTurnstileLoad=function(){window.huliTryRenderTurnstiles();for(var i=0;i<T.readyCallbacks.length;i++){try{T.readyCallbacks[i]();}catch(e){}}T.readyCallbacks=[];};
-window.huliTurnstileReady=function(cb){if(typeof cb!=="function"){return;}if(window.turnstile){try{cb();}catch(e){}}else{T.readyCallbacks.push(cb);}};
+window.huliOnTurnstileLoad=function(){window.huliTryRenderTurnstiles();flushReadyCallbacks();};
+window.huliTurnstileReady=function(cb){
+if(typeof cb!=="function"){return;}
+if(sdkReady()){try{cb();}catch(e){}}else{T.readyCallbacks.push(cb);ensureSdkLoaded();}
+};
 window.huliRenderTurnstile=function(widgetId,siteKey){
 T.pending[widgetId]=siteKey;
 window.huliTryRenderTurnstiles();
-if(T.retryTimer){return;}
-var attempts=0;
-T.retryTimer=setInterval(function(){
-attempts++;
-if(window.turnstile){
-window.huliTryRenderTurnstiles();
-clearInterval(T.retryTimer);T.retryTimer=null;
-}else if(attempts>=40){
-clearInterval(T.retryTimer);T.retryTimer=null;
-T.fatal=true;
-T.lastError="人机验证组件加载失败，请确认网络未拦截 challenges.cloudflare.com 后刷新重试";
-var pendingContainers=document.querySelectorAll(".huli-turnstile");
-if(pendingContainers.length){
-var first=pendingContainers[0];
-if(first.parentNode&&!first.parentNode.querySelector(".huli-turnstile-fatal")){
-var banner=document.createElement("div");
-banner.className="alert alert-danger small mt-2 mb-2 huli-turnstile-fatal";
-banner.textContent=T.lastError;
-first.parentNode.insertBefore(banner,first);
-}
-}
-}
-},250);
+if(!sdkReady()){ensureSdkLoaded();}
 };
 /**
  * 提交守卫：保证提交时携带的 token 一定是新鲜且未使用过的。
@@ -472,7 +497,7 @@ if(!document.querySelector(".huli-turnstile")){onReady("");return;}
 var token=window.huliGetTurnstileResponse();
 if(token){onReady(token);return;}
 if(T.fatal){onFail(T.lastError||"人机验证组件加载失败，请刷新页面重试");return;}
-if(window.turnstile){
+if(sdkReady()){
 for(var id in T.widgets){
 if(!Object.prototype.hasOwnProperty.call(T.widgets,id)){continue;}
 try{
@@ -498,7 +523,7 @@ onFail(T.lastError||"人机验证尚未完成，请点击验证组件完成验�
 window.huliTurnstileConsumed=function(){
 T.tokens={};
 syncInputs("");
-if(!window.turnstile){return;}
+if(!sdkReady()){return;}
 for(var id in T.widgets){
 if(!Object.prototype.hasOwnProperty.call(T.widgets,id)){continue;}
 try{window.turnstile.reset(T.widgets[id]);}catch(e){}
