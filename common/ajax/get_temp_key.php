@@ -1,7 +1,7 @@
 <?php
 @session_start();
-@error_reporting(0);
-@ini_set('display_errors', '0');
+error_reporting(E_ALL);
+ini_set('display_errors', 'On');
 header('Content-Type: application/json; charset=utf-8');
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -111,14 +111,12 @@ try {
     require $phpmailer_path;
     require __DIR__ . '/../PHPMailer/src/PHPMailer.php';
     require __DIR__ . '/../PHPMailer/src/SMTP.php';
-        $mail = new PHPMailer(true);
-        try {
-            $mail->SMTPDebug = 0;
-            $mail->Debugoutput = function($str, $level) {
-                if ($level <= 1) {
-                    error_log('PHPMailer: ' . $str);
-                }
-            };
+    $mail = new PHPMailer(true);
+    try {
+        $mail->SMTPDebug = 2;
+        $mail->Debugoutput = function($str, $level) {
+            error_log('PHPMailer Debug: ' . $str);
+        };
         $mail->isSMTP();
         $mail->Host       = $settings['mail_smtp_host'];
         $mail->SMTPAuth   = true;
@@ -186,7 +184,6 @@ try {
     if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    error_log('[get_temp_key] 申请失败：' . $e->getMessage());
-    json_response(false, '申请失败，请稍后重试。');
+    json_response(false, '申请失败，请稍后重试。错误：' . $e->getMessage());
 }
 ?>

@@ -1,10 +1,10 @@
 <?php
-@error_reporting(0);
-@ini_set('display_errors', '0');
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 $configFile = __DIR__ . '/config.php';
 if (!file_exists($configFile)) {
     header('Content-Type: application/json');
-    die(json_encode(['错误' => '系统配置丢失'], JSON_UNESCAPED_UNICODE));
+    die(json_encode(['错误' => '系统配置丢失', '详情' => "配置文件路径: $configFile"], JSON_UNESCAPED_UNICODE));
 }
 require_once $configFile;
 $format = isset($_GET['type']) ? strtolower($_GET['type']) : 'text';
@@ -90,15 +90,15 @@ try {
         echo $output;
     }
 } catch (PDOException $e) {
-    error_log('[api.php] 数据库错误: ' . $e->getMessage());
     header('Content-Type: text/plain; charset=utf-8');
     echo "╔错误信息╗\n";
     echo "╟数据库连接错误\n";
+    echo "╟详情: " . $e->getMessage() . "\n";
     echo "╚请检查配置后重试\n";
 } catch (Exception $e) {
-    error_log('[api.php] 系统错误: ' . $e->getMessage());
     header('Content-Type: text/plain; charset=utf-8');
     echo "╔错误信息╗\n";
     echo "╟系统错误\n";
+    echo "╟详情: " . $e->getMessage() . "\n";
     echo "╚请稍后重试\n";
 }

@@ -1,11 +1,6 @@
 <?php
-@session_start();
-if (empty($_SESSION['admin_id'])) {
-    header('HTTP/1.1 403 Forbidden');
-    die('Forbidden: admin access required.');
-}
-@error_reporting(0);
-@ini_set('display_errors', '0');
+error_reporting(E_ALL);
+ini_set('display_errors', 'On');
 $log_file = __DIR__ . '/notify_log.txt';
 function log_message($message) {
     global $log_file;

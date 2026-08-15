@@ -253,7 +253,6 @@ if ($type === 'register') {
     $mail->send();
     json_response(true, '验证码已成功发送到您的邮箱，请注意查收。');
 } catch (Exception $e) {
-    error_log('[send_code] 邮件发送失败: ' . $e->getMessage() . ' PHPMailer ErrorInfo: ' . $mail->ErrorInfo);
-    json_response(false, '邮件发送失败，请稍后重试或联系管理员。');
+    json_response(false, "邮件发送失败: " . $mail->ErrorInfo);
 }
 ?>
