@@ -176,16 +176,41 @@ try {
     <link rel="stylesheet" type="text/css" href="../../../assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="../../../assets/css/style.min.css">
     <style>
+        body {
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(93, 177, 255, 0.35), transparent 45%),
+                radial-gradient(circle at 90% 80%, rgba(38, 208, 194, 0.25), transparent 48%),
+                radial-gradient(circle at 50% 50%, rgba(113, 132, 255, 0.18), transparent 50%),
+                linear-gradient(135deg, #f5f8fc 0%, #eef3fa 100%) !important;
+            background-attachment: fixed !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.45) !important;
+            backdrop-filter: blur(25px) saturate(200%) !important;
+            -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.35) !important;
+            border-radius: 20px !important;
+            box-shadow: 0 15px 50px rgba(10, 25, 50, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+        }
+        .card-header {
+            background: transparent !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+        }
         .api-key-box {
-            background-color: transparent;
+            background: rgba(255, 255, 255, 0.4) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 12px;
             font-family: 'Courier New', monospace;
             word-break: break-all;
             margin-bottom: 15px;
         }
         .stat-card {
             margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.35) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 16px;
         }
         .stat-value {
             font-size: 28px;
@@ -208,8 +233,19 @@ try {
             background-color: #fee2e2;
             color: #991b1b;
         }
+        .nav-tabs {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+        }
+        .nav-tabs .nav-link {
+            border: none !important;
+            color: #4a5568 !important;
+            transition: all 0.2s ease;
+        }
         .nav-tabs .nav-link.active {
+            background: rgba(40, 121, 186, 0.12) !important;
+            color: #2879ba !important;
             font-weight: 600;
+            border-radius: 8px 8px 0 0;
         }
         .card-title {
             font-weight: 600;
@@ -223,18 +259,35 @@ try {
             background-color: #dbeafe;
             color: #1e40af;
         }
+        .form-control {
+            background: rgba(255, 255, 255, 0.55) !important;
+            border: 1px solid rgba(255, 255, 255, 0.45) !important;
+            backdrop-filter: blur(5px);
+            border-radius: 12px;
+            color: #2c3e50 !important;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.85) !important;
+            border-color: #2879ba !important;
+            box-shadow: 0 0 15px rgba(40, 121, 186, 0.2) !important;
+        }
         .plan-card {
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
+            background: rgba(255, 255, 255, 0.4) !important;
+            border: 1px solid rgba(255, 255, 255, 0.25) !important;
+            border-radius: 16px !important;
         }
         .plan-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+            background: rgba(255, 255, 255, 0.6) !important;
         }
         .plan-card.border-primary {
-            border: 2px solid #0d6efd;
-            background-color: rgba(13, 110, 253, 0.05);
+            border: 2px solid #2879ba !important;
+            background-color: rgba(40, 121, 186, 0.08) !important;
         }
         .plan-badge-default {
             position: absolute;
@@ -251,9 +304,29 @@ try {
         }
         .payment-method {
             cursor: pointer;
+            background: rgba(255, 255, 255, 0.35) !important;
+            border: 1px solid rgba(255, 255, 255, 0.25) !important;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+        .payment-method:hover {
+            background: rgba(255, 255, 255, 0.55) !important;
         }
         .payment-method.border-primary {
-            border: 2px solid #0d6efd;
+            border: 2px solid #2879ba !important;
+            background: rgba(40, 121, 186, 0.05) !important;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2879ba 0%, #2cb4e1 100%) !important;
+            border: none !important;
+            border-radius: 12px !important;
+            box-shadow: 0 8px 25px rgba(40, 121, 186, 0.3) !important;
+            transition: all 0.3s ease !important;
+            font-weight: 600 !important;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(40, 121, 186, 0.4) !important;
         }
     </style>
 </head>

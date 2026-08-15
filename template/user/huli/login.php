@@ -114,25 +114,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="stylesheet" type="text/css" href="../../../assets/css/animate.min.css">
 <link rel="stylesheet" type="text/css" href="../../../assets/css/style.min.css">
 <style>
+body {
+    background: 
+        radial-gradient(circle at 10% 20%, rgba(93, 177, 255, 0.52), transparent 45%),
+        radial-gradient(circle at 90% 80%, rgba(38, 208, 194, 0.38), transparent 48%),
+        radial-gradient(circle at 50% 50%, rgba(113, 132, 255, 0.28), transparent 50%),
+        linear-gradient(135deg, #f5f8fc 0%, #eef3fa 100%);
+    background-attachment: fixed;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.glass-card {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(25px) saturate(200%);
+    -webkit-backdrop-filter: blur(25px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 24px;
+    box-shadow: 0 28px 75px rgba(10, 25, 50, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    padding: 3.5rem !important;
+}
 .signin-form .has-feedback {
     position: relative;
 }
 .signin-form .has-feedback .form-control {
-    padding-left: 36px;
+    padding-left: 38px;
 }
 .signin-form .has-feedback .mdi {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: auto;
-    width: 36px;
-    height: 36px;
-    line-height: 36px;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 12px;
     z-index: 4;
-    color: #9aa4b2;
-    display: block;
-    text-align: center;
+    color: #61718c;
     pointer-events: none;
+}
+.form-control {
+    background: rgba(255, 255, 255, 0.55) !important;
+    border: 1px solid rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(5px);
+    border-radius: 12px;
+    color: #2c3e50 !important;
+    min-height: 46px;
+    transition: all 0.3s ease;
+}
+.form-control:focus {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-color: #2879ba !important;
+    box-shadow: 0 0 15px rgba(40, 121, 186, 0.2) !important;
+}
+.btn-primary {
+    background: linear-gradient(135deg, #2879ba 0%, #2cb4e1 100%) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 25px rgba(40, 121, 186, 0.3) !important;
+    transition: all 0.3s ease !important;
+    font-weight: 600 !important;
+    min-height: 46px;
+}
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(40, 121, 186, 0.4) !important;
+}
+.btn-primary:active {
+    transform: translateY(0);
 }
 .form-link {
     font-size: 13px;
@@ -140,10 +187,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     text-decoration: none;
     font-weight: 500;
 }
+.error-message {
+    padding: 10px 15px;
+    border-radius: 8px;
+    background: rgba(220, 84, 117, 0.15) !important;
+    border: 1px solid rgba(220, 84, 117, 0.25) !important;
+    color: #dc5475 !important;
+}
 </style>
 </head>
-<body class="center-vh" style="background-image: url(https://api.ipojie.com/API/ksxjj.php?apikey=31a3477d8396e9a6f606e2c09c386b9b0bb472e21a32cf0d35f2b1af0177ceff); background-size: cover;">
-<div class="card card-shadowed p-5 mb-0 mr-2 ml-2">
+<body>
+<div class="glass-card mb-0 mr-2 ml-2" style="max-width: 450px; width: 100%;">
   <div class="text-center mb-3">
     <a href="./"> <img alt="logo" src="../../../assets/images/logo-sidebar.png"> </a>
   </div>

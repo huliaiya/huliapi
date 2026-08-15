@@ -208,6 +208,57 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
     border-color: #4096ff;
     box-shadow: 0 0 0 3px rgba(64, 150, 255, 0.1);
 }
+body {
+    background: 
+        radial-gradient(circle at 5% 5%, rgba(93, 177, 255, 0.35), transparent 35%),
+        radial-gradient(circle at 95% 95%, rgba(38, 208, 194, 0.3), transparent 40%),
+        radial-gradient(circle at 50% 10%, rgba(113, 132, 255, 0.22), transparent 45%),
+        linear-gradient(135deg, #f5f8fc 0%, #eef3fa 100%) !important;
+    background-attachment: fixed !important;
+}
+.lyear-layout-sidebar {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(25px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+.lyear-layout-header {
+    background: rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(25px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.02) !important;
+}
+.lyear-layout-content {
+    background: transparent !important;
+}
+.sidebar-header {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+.user-info-panel {
+    border-bottom-color: rgba(255, 255, 255, 0.2) !important;
+}
+.recent-announcements {
+    border-bottom-color: rgba(255, 255, 255, 0.2) !important;
+}
+.nav-drawer a {
+    color: #4a5568 !important;
+    transition: all 0.2s ease !important;
+}
+.nav-drawer li.active a, .nav-drawer li.active a:hover {
+    background: rgba(40, 121, 186, 0.15) !important;
+    color: #2879ba !important;
+    border-radius: 10px;
+}
+.nav-drawer li a:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border-radius: 10px;
+}
+.sidebar-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: transparent !important;
+}
 </style>
 </head>
 <body class="lyear-index">
