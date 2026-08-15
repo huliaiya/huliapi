@@ -6,11 +6,11 @@ define('DB_PASS', 'huliapi');
 define('DB_CHARSET', 'utf8mb4');
 define('ADMIN_PATH', 'admin');
 
-// 防御 CSRF 跨站请求伪造：校验 POST 请求 of Origin and Referer
+ 
 if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $current_host = $_SERVER['HTTP_HOST'] ?? '';
     if ($current_host) {
-        // 剥离端口以防反向代理或自定义端口不一致引起的误杀
+         
         $current_hostname = explode(':', $current_host)[0];
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
         $referer = $_SERVER['HTTP_REFERER'] ?? '';

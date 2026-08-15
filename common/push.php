@@ -1,8 +1,8 @@
 <?php
 if (!defined('HULI_PUSH_LIB')) { define('HULI_PUSH_LIB', 1); }
 
-/* ======================= 结构化推送内容工具 ======================= */
-// $fields = ['标签' => '值', ...] 各通道据此渲染自己的富文本格式
+ 
+ 
 
 function huli_md_fields(array $fields, $title = '') {
     $lines = [];
@@ -82,8 +82,8 @@ function huli_curl_err($r) {
     return isset($map[$code]) ? $map[$code] : ('HTTP ' . ($code ? $code : '连接失败'));
 }
 
-/* ======================= 各推送通道 ======================= */
-// 第4个可选参数 $fields：结构化字段数组，配置后各通道以自身支持的富文本渲染；缺省则用 $content 纯文本降级
+ 
+ 
 
 function huli_push_wecom($cfg, $title, $content, $fields = null) {
     $url = $cfg['webhook'] ?? '';
@@ -133,7 +133,7 @@ function huli_push_feishu($cfg, $title, $content, $fields = null) {
     if ($secret) {
         $timestamp = round((microtime(true) * 1000));
         $string_to_sign = $timestamp . "\n" . $secret;
-        $hmac = hash_hmac('sha256', '', $string_to_sign, true);
+        $hmac = hash_hmac('sha256', $string_to_sign, $secret, true);
         $sign = base64_encode($hmac);
         $url .= (strpos($url, '?') === false ? '?' : '&') . 'timestamp=' . $timestamp . '&sign=' . urlencode($sign);
     }
@@ -239,7 +239,7 @@ function huli_push_email($cfg, $to, $title, $content, $fields = null, $site_name
     }
 }
 
-/* ======================= 配置加载 ======================= */
+ 
 
 function huli_load_system_mail_config($pdo) {
     static $cache = null;
@@ -315,7 +315,7 @@ function huli_ensure_user_push_defaults($pdo, $user_id) {
     }
 }
 
-/* ======================= 分发入口 ======================= */
+ 
 
 function huli_send_by_channel($channel, $cfg, $title, $content, $recipient = '', $fields = null, $site_name = 'huliapi') {
     $r = ['channel' => $channel, 'ok' => false];

@@ -58,7 +58,7 @@ try {
         '今日成功订单' => formatNumber($rawStats['success_orders']),
         '今日失败订单' => formatNumber($rawStats['failed_orders']),
         '待处理订单' => formatNumber($rawStats['pending_orders']),
-        // 友情链接统计
+         
         '友链总数' => formatNumber($rawStats['friend_links']),
         '待审核友链' => formatNumber($rawStats['pending_links']),
         '已拒绝友链' => formatNumber($rawStats['rejected_links']),

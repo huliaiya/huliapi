@@ -58,7 +58,7 @@ try {
             throw new Exception('两次输入的密码不一致');
         }
         if ($mail_reg_enabled) {
-            if (empty($code) || !isset($_SESSION['reg_code']) || strtolower($code) != strtolower($_SESSION['reg_code']) || strtolower($email) != strtolower($_SESSION['reg_email'])) {
+            if (empty($code) || !isset($_SESSION['reg_code']) || !isset($_SESSION['reg_code_expire']) || time() > $_SESSION['reg_code_expire'] || strtolower($code) != strtolower($_SESSION['reg_code']) || strtolower($email) != strtolower($_SESSION['reg_email'])) {
                 throw new Exception('邮箱验证码不正确或已过期');
             }
         }
@@ -268,7 +268,7 @@ body {
 <script type="text/javascript" src="../../../assets/js/bootstrap-notify.min.js"></script>
 <script type="text/javascript">
 $(document).ready(function() {
-    // 人机验证关闭时运行时脚本不会输出，这里保证提交流程仍然可用。
+
     function ensureTurnstile(onReady, onFail) {
         if (typeof window.huliTurnstileEnsureToken === 'function') {
             window.huliTurnstileEnsureToken(onReady, onFail);

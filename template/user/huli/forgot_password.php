@@ -15,7 +15,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $stmt = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'mail_forgot_enabled'");
     $mail_forgot_enabled = ($stmt->fetchColumn() == 1);
-} catch (Exception $e) { /* silent fail */ }
+} catch (Exception $e) {   }
 ?>
 
 <!DOCTYPE html>

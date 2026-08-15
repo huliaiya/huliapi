@@ -45,7 +45,7 @@ function checkApiRateLimit($pdo, $settings, $scope, $identifier, $limit, $window
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM huli_api_logs WHERE user_id = ? AND request_time >= FROM_UNIXTIME(?)");
     }
     $stmt->execute([$identifier, time() - $window]);
-    return (int)$stmt->fetchColumn() >= $limit;
+    return (int)$stmt->fetchColumn() > $limit;
 }
 
 function sendDailyPointsNotification($pdo, $settings, $email, $points) {
@@ -482,10 +482,12 @@ try {
         $pdo->commit();
     } catch (Exception $e) {
         $pdo->rollBack();
-        api_error_exit(500, '内部服务器错误: ' . $e->getMessage());
+        error_log('huliapi API计费入账异常: ' . $e->getMessage());
+        api_error_exit(500, '内部服务器错误');
     }
 } catch (Exception $e) {
-    api_error_exit(500, '内部服务器错误: ' . $e->getMessage());
+    error_log('huliapi API网关异常: ' . $e->getMessage());
+    api_error_exit(500, '内部服务器错误');
 }
 ob_end_flush();
 ?>

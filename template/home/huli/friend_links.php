@@ -1,19 +1,19 @@
 <?php
-// 基础初始化 & Session 加固
+ 
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 ini_set('display_errors', 'Off');
 
-// Session 安全配置
+ 
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_samesite', 'Lax');
 ini_set('session.use_trans_sid', 0);
 session_start();
 
-// 路径定义
+ 
 $rootPath = dirname(__DIR__, 3);
 define('ROOT_PATH', $rootPath . '/');
 
-// 检测配置文件
+ 
 if (!file_exists(ROOT_PATH . 'config.php')) {
     die("系统错误：配置文件丢失。路径: " . ROOT_PATH . 'config.php');
 }
@@ -21,7 +21,7 @@ require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
 require_once ROOT_PATH . 'common/mail.php';
 
-// 全局单例PDO 复用数据库连接
+ 
 function getDb()
 {
     static $pdo = null;
@@ -33,7 +33,7 @@ function getDb()
     return $pdo;
 }
 
-// 登录状态检测
+ 
 function checkUserLoginStatus()
 {
     if (!isset($_SESSION['user_id'])) {
@@ -54,12 +54,12 @@ function checkUserLoginStatus()
         error_log("登录状态检查错误: " . $e->getMessage());
     }
 
-    // 清空无效会话
+     
     unset($_SESSION['user_id'], $_SESSION['user_username'], $_SESSION['user_email']);
     return false;
 }
 
-// 生成CSRF令牌
+ 
 function createCsrfToken()
 {
     if (empty($_SESSION['csrf_token'])) {
@@ -68,13 +68,13 @@ function createCsrfToken()
     return $_SESSION['csrf_token'];
 }
 
-// 校验CSRF令牌
+ 
 function verifyCsrfToken($token)
 {
     return !empty($token) && $token === $_SESSION['csrf_token'];
 }
 
-// 初始化基础变量
+ 
 $is_logged_in = checkUserLoginStatus();
 $user_info = $is_logged_in ? [
     'username' => $_SESSION['user_username'],
@@ -88,7 +88,7 @@ $homeTemplateBaseUrl = "/template/home/{$homeTemplate}/";
 $userTemplate     = TemplateManager::getActiveUserTemplate();
 $userTemplateBaseUrl = "/template/user/{$userTemplate}/";
 
-// 模板拦截
+ 
 if ($currentTemplate !== $activeTemplate) {
     header("HTTP/1.1 403 Forbidden");
     ?>
@@ -118,7 +118,7 @@ if ($currentTemplate !== $activeTemplate) {
     exit;
 }
 
-// 业务变量初始化
+ 
 $links         = [];
 $apply_msg     = '';
 $apply_type    = '';
@@ -127,19 +127,19 @@ $broken_links  = 0;
 $pdo           = getDb();
 
 try {
-    // 读取友链列表
+     
     $sql = "SELECT * FROM huli_friend_links WHERE status='approved' AND is_hidden=0 ORDER BY sort_order DESC, created_at DESC";
     $stmt_links = $pdo->query($sql);
     $links = $stmt_links->fetchAll(PDO::FETCH_ASSOC);
     $total_links = count($links);
 
-    // 统计异常友链（优化：SQL聚合替代PHP循环，大数据更高效）
+     
     $cntStmt = $pdo->query("SELECT COUNT(*) AS cnt FROM huli_friend_links WHERE status='approved' AND is_hidden=0 AND status_check='broken'");
     $broken_links = (int)$cntStmt->fetchColumn();
 
-    // 处理POST提交 - 友链申请
+     
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply_friend_link'])) {
-        // CSRF 校验
+         
         if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
             throw new Exception("请求非法，请刷新页面重试");
         }
@@ -152,7 +152,7 @@ try {
         $description  = trim($_POST['description'] ?? '');
         $logo_url     = trim($_POST['logo_url'] ?? '');
 
-        // 表单校验
+         
         if (empty($site_name) || empty($url)) {
             throw new Exception("网站名称和URL为必填项");
         }
@@ -170,7 +170,7 @@ try {
         }
 
         $user_id = $_SESSION['user_id'];
-        // 插入友链数据
+         
         $stmt_apply = $pdo->prepare("
             INSERT INTO huli_friend_links
             (site_name, url, description, logo, user_id, status, created_at)
@@ -178,14 +178,14 @@ try {
         ");
         $stmt_apply->execute([$site_name, $url, $description, $logo_url, $user_id]);
 
-        // 读取站点配置
+         
         $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
         $settings = [];
         while ($row = $stmt_settings->fetch(PDO::FETCH_ASSOC)) {
             $settings[$row['setting_key']] = $row['setting_value'];
         }
 
-        // 配置邮件信息（移除硬编码邮箱，从配置读取）
+         
         $admin_email    = $settings['admin_email'] ?? '326284281@qq.com';
         $site_name_config = $settings['site_name'] ?? 'huliapi';
         $admin_url      = $settings['admin_url'] ?? '#';
@@ -193,7 +193,7 @@ try {
         $logo_url_config = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://')
             . $_SERVER['HTTP_HOST'] . '/assets/images/logo-sidebar.png';
 
-        // 邮件内容 - 全部转义防止XSS
+         
         $mailSiteName  = htmlspecialchars($site_name, ENT_QUOTES);
         $mailUrl       = htmlspecialchars($url, ENT_QUOTES);
         $mailDesc      = htmlspecialchars($description, ENT_QUOTES);
@@ -242,12 +242,12 @@ try {
 </body>
 </html>';
 
-        // 发送邮件
+         
         send_mail($admin_email, $subject, $body, $pdo);
         $apply_msg  = "友链申请已提交，我们将在1-3个工作日内审核，请耐心等待";
         $apply_type = "success";
 
-        // 提交成功后刷新页面，防止重复提交
+         
         header("Location: " . $_SERVER['REQUEST_URI']);
         exit;
     }
@@ -453,7 +453,7 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                             </div>
                             <div class="modal-body p-4">
                                 <form id="friend-link-form" method="post" class="needs-validation" novalidate>
-                                    <!-- CSRF 令牌 -->
+                                    
                                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
                                     <div class="row g-3">
                                         <div class="col-12">

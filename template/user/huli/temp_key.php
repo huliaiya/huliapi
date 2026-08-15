@@ -17,7 +17,7 @@ try {
     $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $allow_temp_key = $settings['allow_temp_key'] ?? 0;
-} catch (PDOException $e) { /* silent fail */ }
+} catch (PDOException $e) {   }
 $site_name = $settings['site_name'];
 ?>
 
@@ -180,7 +180,7 @@ $site_name = $settings['site_name'];
             }
         }
 
-        // 人机验证关闭时运行时脚本不会输出，这里保证提交流程仍然可用。
+    
         function ensureTurnstile(onReady, onFail) {
             if (typeof window.huliTurnstileEnsureToken === 'function') {
                 window.huliTurnstileEnsureToken(onReady, onFail);

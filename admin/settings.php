@@ -108,8 +108,8 @@ try {
         $pdo->beginTransaction();
         $stmt = $pdo->prepare("UPDATE huli_settings SET setting_value = ? WHERE setting_key = ?");
         $bool_keys = ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'enable_free_qps_limit', 'enable_member_qps_limit', 'enable_warn_notification', 'enable_daily_points', 'enable_daily_points_notification'];
-        // 未勾选的 checkbox 不会出现在 $_POST 中，只靠 array_key_exists 判断会导致开关永远关不掉。
-        // 各表单通过隐藏字段 checkbox_keys[] 声明本次提交包含哪些开关，未声明的开关不做改动。
+         
+         
         $posted_checkbox_keys = (isset($_POST['checkbox_keys']) && is_array($_POST['checkbox_keys'])) ? $_POST['checkbox_keys'] : [];
         foreach ($settings_keys as $key) {
             if (in_array($key, $bool_keys, true)) {

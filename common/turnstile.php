@@ -6,22 +6,12 @@ if (file_exists(dirname(__DIR__) . '/config.php')) {
     require_once dirname(__DIR__) . '/config.php';
 }
 
-/**
- * Cloudflare Turnstile 集成。
- *
- * 关键约束（来自官方文档）：
- * - token 有效期 300 秒，且只能被 siteverify 校验一次；
- * - 正式密钥拒绝测试 token，测试密钥拒绝正式 token；
- * - 正式 sitekey 必须在 Cloudflare 后台的 Hostname Management 中授权当前访问域名。
- */
+ 
 
 define('HULI_TURNSTILE_TEST_SITE_KEYS', '|1x00000000000000000000AA|2x00000000000000000000AB|1x00000000000000000000BB|2x00000000000000000000BB|3x00000000000000000000FF|');
 define('HULI_TURNSTILE_TEST_SECRET_KEYS', '|1x0000000000000000000000000000000AA|2x0000000000000000000000000000000AA|3x0000000000000000000000000000000AA|');
 
-/**
- * 一次性读取全部 Turnstile 配置，避免重复建立数据库连接。
- * 所有取值都会 trim，防止后台粘贴密钥时带入空格或换行导致 invalid-input-secret。
- */
+ 
 function huli_turnstile_settings()
 {
     static $settings = null;
@@ -64,10 +54,7 @@ function huli_turnstile_keys()
     return array('site_key' => $settings['site_key'], 'secret_key' => $settings['secret_key']);
 }
 
-/**
- * 判断 sitekey 与 secret 是否属于同一套（都是测试密钥或都是正式密钥）。
- * 测试与正式混用时 Cloudflare 必然返回 invalid-input-response，这是最常见的配置错误。
- */
+ 
 function huli_turnstile_key_pair_mismatch()
 {
     $keys = huli_turnstile_keys();
@@ -79,9 +66,7 @@ function huli_turnstile_key_pair_mismatch()
     return $site_is_test !== $secret_is_test;
 }
 
-/**
- * 把 Cloudflare 的 error-codes 翻译成可直接展示给用户、同时便于管理员定位的提示。
- */
+ 
 function huli_turnstile_error_message($codes)
 {
     $codes = (array)$codes;
@@ -102,9 +87,7 @@ function huli_turnstile_error_message($codes)
     return '人机验证失败，请重新完成验证后重试';
 }
 
-/**
- * 记录并返回最近一次校验失败的原因，供各业务入口直接回显。
- */
+ 
 function huli_turnstile_last_error($message = null)
 {
     static $last = '';
@@ -141,11 +124,7 @@ function huli_turnstile_siteverify_request($body)
     return @file_get_contents($url, false, $context);
 }
 
-/**
- * 服务端校验单个 token。返回 ['ok'=>bool, 'reason'=>'', 'raw'=>[...]]。
- * raw 始终包含 Cloudflare 的原始响应字段（success/error-codes/hostname 等）。
- * 即使 Turnstile 未启用，也会返回 ok=true（无人机验证时不参与业务）。
- */
+ 
 function huli_turnstile_verify_token($token, &$reason = null)
 {
     $reason = '';
@@ -234,10 +213,7 @@ function huli_turnstile_uuid_v4()
     return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
 }
 
-/**
- * 使用调用方传入的 secret 与 token 调用 siteverify，返回 Cloudflare 原始 JSON 解码结果。
- * 与 huli_turnstile_verify_token 的区别：不读取数据库密钥，用于后台端到端测试（表单可能未保存）。
- */
+ 
 function huli_turnstile_siteverify_raw($secret, $token)
 {
     $secret = trim((string)$secret);
@@ -272,10 +248,7 @@ function huli_turnstile_siteverify_raw($secret, $token)
     return is_array($data) ? $data : array('success' => false, 'error-codes' => array('internal-error'));
 }
 
-/**
- * 检查一组密钥（不读数据库，用于后台检测表单当前填写的值）。
- * 返回 array('ok'=>bool, 'msg'=>string, 'site_is_test'=>bool, 'secret_is_test'=>bool)。
- */
+ 
 function huli_turnstile_check_keys($site, $secret)
 {
     $site = trim((string)$site);
@@ -300,10 +273,7 @@ function huli_turnstile_check_keys($site, $secret)
     return array('ok' => true, 'msg' => $msg, 'site_is_test' => $site_is_test, 'secret_is_test' => $secret_is_test);
 }
 
-/**
- * 仅输出 Turnstile 运行时脚本与 api.js（不渲染任何 widget），且全局只输出一次。
- * 用于后台端到端测试等需要在浏览器端手动控制渲染的场景。
- */
+ 
 function huli_turnstile_assets_html()
 {
     static $script_printed = false;
@@ -315,14 +285,7 @@ function huli_turnstile_assets_html()
         . '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=huliOnTurnstileLoad" async defer></script>';
 }
 
-/**
- * 渲染 widget。使用显式渲染并接管 token 生命周期，解决三类线上问题：
- * 1. token 超过 300 秒过期后仍被提交，导致 timeout-or-duplicate；
- * 2. 挑战尚未完成用户就点提交，导致后端收不到 token；
- * 3. 域名未授权、sitekey 无效等前端错误此前完全静默，无法定位。
- *
- * $force=true 时无视 Turnstile 启用状态也输出 widget，用于后台端到端测试。
- */
+ 
 function huli_turnstile_widget_html($force = false)
 {
     static $widget_index = 0;

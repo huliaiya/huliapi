@@ -33,9 +33,16 @@ try {
     $stmt_inc_downloads->execute([$item_id]);
     $stmt_purchase = $pdo->prepare("INSERT INTO huli_market_purchases (item_id, user_id, price) VALUES (?, ?, ?)");
     $stmt_purchase->execute([$item_id, $user_id, $item['price']]);
-    $new_endpoint = 'u' . $user_id . '_' . rawurldecode($item['original_endpoint']) . '_' . substr(md5(uniqid()), 0, 4);
+    $new_endpoint = 'u' . $user_id . '_' . $item['original_endpoint'] . '_' . substr(md5(uniqid()), 0, 4);
+    $new_endpoint = preg_replace('/[^A-Za-z0-9_\-\/]/', '', $new_endpoint);
+    $new_endpoint = preg_replace('/\.\.+/', '', $new_endpoint);
     $new_file_path = 'API/' . $new_endpoint . '.php';
-    $original_content = file_get_contents('../../' . $item['original_file_path']);
+    $original_path = realpath('../../' . $item['original_file_path']);
+    $api_root = realpath('../../API');
+    if (!$original_path || !$api_root || strpos($original_path, $api_root) !== 0 || !is_file($original_path)) {
+        throw new Exception("源接口文件路径无效，无法购买。");
+    }
+    $original_content = file_get_contents($original_path);
     if(file_put_contents('../../' . $new_file_path, $original_content) === false){
         throw new Exception("自动安装接口文件失败，请检查/API/目录权限。");
     }

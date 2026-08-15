@@ -67,22 +67,23 @@ try {
     }
     if(isset($_POST['cdkey']) && !empty($_POST['cdkey'])) {
         $cdkey = trim($_POST['cdkey']);
-        $stmt = $pdo->prepare("SELECT * FROM huli_cdkeys WHERE cdkey = ? AND status = 'unused'");
-        $stmt->execute([$cdkey]);
-        $cdkey_info = $stmt->fetch(PDO::FETCH_ASSOC);
-        if(!$cdkey_info) {
-            die(json_encode(['success' => false, 'message' => '卡密无效或已被使用']));
-        }
-        $valid_types = ['balance', 'points'];
-        $cdkey_type = isset($cdkey_info['type']) && in_array($cdkey_info['type'], $valid_types) ? $cdkey_info['type'] : 'balance';
-        $value = $cdkey_type === 'balance' ? $cdkey_info['balance'] : $cdkey_info['points'];
-        if($value <= 0) {
-            die(json_encode(['success' => false, 'message' => '卡密价值无效']));
-        }
         $pdo->beginTransaction();
         try {
-            $stmt = $pdo->prepare("UPDATE huli_cdkeys SET status = 'used', used_by_user_id = ?, used_at = NOW() WHERE cdkey = ?");
-            $stmt->execute([$user_id, $cdkey]);
+            $stmt = $pdo->prepare("SELECT * FROM huli_cdkeys WHERE cdkey = ? AND status = 'unused' FOR UPDATE");
+            $stmt->execute([$cdkey]);
+            $cdkey_info = $stmt->fetch(PDO::FETCH_ASSOC);
+            if(!$cdkey_info) {
+                $pdo->rollBack();
+                die(json_encode(['success' => false, 'message' => '卡密无效或已被使用']));
+            }
+            $cdkey_type = isset($cdkey_info['type']) && in_array($cdkey_info['type'], ['balance', 'points']) ? $cdkey_info['type'] : 'balance';
+            $value = $cdkey_type === 'balance' ? $cdkey_info['balance'] : $cdkey_info['points'];
+            if($value <= 0) {
+                $pdo->rollBack();
+                die(json_encode(['success' => false, 'message' => '卡密价值无效']));
+            }
+            $stmt = $pdo->prepare("UPDATE huli_cdkeys SET status = 'used', used_by_user_id = ?, used_at = NOW() WHERE id = ?");
+            $stmt->execute([$user_id, $cdkey_info['id']]);
             if($cdkey_type === 'balance') {
                 $stmt = $pdo->prepare("UPDATE huli_users SET balance = balance + ? WHERE id = ?");
                 $transaction_desc = "余额卡密充值: {$cdkey}";
@@ -115,7 +116,7 @@ try {
             ]));
         } catch (Exception $e) {
             $pdo->rollBack();
-            die(json_encode(['success' => false, 'message' => '兑换失败，请稍后重试：' . $e->getMessage()]));
+            die(json_encode(['success' => false, 'message' => '兑换失败，请稍后重试。']));
         }
     }
     if(isset($_SESSION['feedback_msg'])) {

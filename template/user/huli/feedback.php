@@ -19,7 +19,7 @@ try {
     $apis = $stmt_apis->fetchAll(PDO::FETCH_ASSOC);
     $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
-} catch (PDOException $e) { /* silent fail */ }
+} catch (PDOException $e) {   }
     $site_name = $settings['site_name'] ?? 'huliapi';
 $allow_temp_key = $settings['allow_temp_key'] ?? 1;
 ?>

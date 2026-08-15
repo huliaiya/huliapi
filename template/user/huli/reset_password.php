@@ -249,7 +249,7 @@ $(document).ready(function() {
         }
     }
 
-    // 人机验证关闭时运行时脚本不会输出，这里保证提交流程仍然可用。
+
     function ensureTurnstile(onReady, onFail) {
         if (typeof window.huliTurnstileEnsureToken === 'function') {
             window.huliTurnstileEnsureToken(onReady, onFail);

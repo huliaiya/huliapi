@@ -1,26 +1,4 @@
-<!--
-               ▄              ▄
-              ▌▒█           ▄▀▒▌
-              ▌▒▒▀▄        ▀▒▒▒▐
-             ▐▄▀▒▒▀▀▀▀▄▄▄▀▒▒▒▒▒▐
-           ▄▄▀▒▒▒▒▒▒▒▒▒▒▒█▒▒▄█▒▐
-         ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▒▒▒▒▒▐
-        ▐▒▒▒▄▄▄▒▒▒▒▒▒▒▒▒▒▒▒▒▀▄▒▒▌
-        ▌▒▒▐▄█▀▒▒▒▒▄▀█▄▒▒▒▒▒▒▒█▒▐
-       ▐▒▒▒▒▒▒▒▒▒▒▒▌██▀▒▒▒▒▒▒▒▒▀▄▌
-       ▌▒▀▄██▄▒▒▒▒▒▒▒▒▒▒▒░░░░▒▒▒▒▌
-       ▌▀▐▄█▄█▌▄▒▀▒▒▒▒▒▒░░░░░░▒▒▒▐
-      ▐▒▀▐▀▐▀▒▒▄▄▒▄▒▒▒  Teacher  ▒▌
-      ▐▒▒▒▀▀▄▄▒▒▒▄▒▒▒▒▒▒░░░░░░▒▒▒▐
-       ▌▒▒▒▒▒▒▀▀▀▒▒▒▒▒▒▒▒░░░░▒▒▒▒▌
-       ▐▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▐
-        ▀ yao-hu ▒▒▒▒▒▒▒▒▒▒▒▄▒▒▒▒▌
-          ▀▄▒▒▒▒▒▒▒▒▒▒▄▄▄▀▒▒▒▒▄▀
-         ▐▀▒▀▄▄▄▄▄▄▀▀▀▒▒▒▒▒▄▄▀
-        ▐▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▀▀
 
-        --你好，世界！生活，从敲的第一行代码开始。祝您扒码愉快，有问题请留言。
--->
 
 <?php
 $conf['qqjump']=1;
@@ -603,8 +581,8 @@ $(document).ready(function() {
 </script>
 
 
-<!-- Cherry-blossom effect intentionally disabled for UI clarity. -->
-<!-- <script src="https://api.suyanw.cn/api/mouse/yinghua.js"/></script> -->
+
+
 <script>
 /* Random floating motion for stat cards, API cards, and FAB.
    Each element gets a unique duration (3.8-6.4s) and delay (0-2s)
