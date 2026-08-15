@@ -17,22 +17,20 @@ $feedback_type = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    if (isset($_GET['action'])) {
-        if ($_GET['action'] === 'delete' && isset($_GET['id'])) {
-            $id_to_delete = intval($_GET['id']);
-            $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM huli_apis WHERE category_id = ?");
-            $stmt_check->execute([$id_to_delete]);
-            $api_count = $stmt_check->fetchColumn();
-            if ($api_count > 0) {
-                throw new Exception('无法删除此分类，因为有 '.$api_count.' 个API正在使用它。请先修改这些API的分类。');
-            }
-            $stmt_delete = $pdo->prepare("DELETE FROM huli_api_categories WHERE id = ?");
-            $stmt_delete->execute([$id_to_delete]);
-            $_SESSION['feedback_msg'] = '分类已成功删除。';
-            $_SESSION['feedback_type'] = 'success';
-            header('Location: category_list.php');
-            exit;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['id'])) {
+        $id_to_delete = intval($_POST['id']);
+        $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM huli_apis WHERE category_id = ?");
+        $stmt_check->execute([$id_to_delete]);
+        $api_count = $stmt_check->fetchColumn();
+        if ($api_count > 0) {
+            throw new Exception('无法删除此分类，因为有 '.$api_count.' 个API正在使用它。请先修改这些API的分类。');
         }
+        $stmt_delete = $pdo->prepare("DELETE FROM huli_api_categories WHERE id = ?");
+        $stmt_delete->execute([$id_to_delete]);
+        $_SESSION['feedback_msg'] = '分类已成功删除。';
+        $_SESSION['feedback_type'] = 'success';
+        header('Location: category_list.php');
+        exit;
     }
     if(isset($_SESSION['feedback_msg'])){
         $feedback_msg = $_SESSION['feedback_msg'];
@@ -110,13 +108,7 @@ try {
                                         <a href="category_edit.php?id=<?php echo $cat['id']; ?>" class="btn btn-default" data-bs-toggle="tooltip" title="编辑">
                                             <i class="mdi mdi-pencil"></i>
                                         </a>
-                                        <a href="category_list.php?action=delete&id=<?php echo $cat['id']; ?>"
-                                           class="btn btn-default"
-                                           data-bs-toggle="tooltip"
-                                           title="删除"
-                                           onclick="return confirm('确定要删除这个分类吗？');">
-                                            <i class="mdi mdi-delete"></i>
-                                        </a>
+                                        <?php echo huli_post_action_button('category_list.php', ['action' => 'delete', 'id' => $cat['id']], '<i class="mdi mdi-delete"></i>', 'btn btn-default', '确定要删除这个分类吗？', 'data-bs-toggle="tooltip" title="删除"'); ?>
                                     </div>
                                 </td>
                             </tr>

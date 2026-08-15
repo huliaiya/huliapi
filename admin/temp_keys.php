@@ -12,14 +12,14 @@ try {
     $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
     if (!in_array('expires_at', $columns)) $pdo->exec("ALTER TABLE `huli_users` ADD `expires_at` TIMESTAMP NULL DEFAULT NULL AFTER `status`;");
     if (!in_array('call_limit', $columns)) $pdo->exec("ALTER TABLE `huli_users` ADD `call_limit` INT NULL DEFAULT NULL AFTER `expires_at`;");
-    if (isset($_GET['action'])) {
-        if ($_GET['action'] === 'cleanup') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        if ($_POST['action'] === 'cleanup') {
             $stmt = $pdo->prepare("DELETE FROM huli_users WHERE username LIKE 'temp_%' AND (expires_at < NOW() OR call_limit <= 0)");
             $deleted_count = $stmt->execute() ? $stmt->rowCount() : 0;
             $_SESSION['feedback_msg'] = "成功清理了 {$deleted_count} 个过期或无效的临时密钥。";
-        } else if (isset($_GET['id'])) {
-            $id = intval($_GET['id']);
-            switch ($_GET['action']) {
+        } else if (isset($_POST['id'])) {
+            $id = intval($_POST['id']);
+            switch ($_POST['action']) {
                 case 'delete':
                     $stmt = $pdo->prepare("DELETE FROM huli_users WHERE id = ? AND username LIKE 'temp_%'"); $stmt->execute([$id]);
                     $_SESSION['feedback_msg'] = '临时密钥已成功删除。'; break;
@@ -64,7 +64,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <header class="card-header">
             <div class="card-title">临时密钥管理</div>
 <div class="card-action">
-  <a href="?action=cleanup" onclick="return confirm('确定要清理所有已过期或已用尽的临时密钥吗？');" class="btn btn-danger btn-sm">一键清理过期密钥</a>
+<?php echo huli_post_action_button('temp_keys.php', ['action' => 'cleanup'], '一键清理过期密钥', 'btn btn-danger btn-sm', '确定要清理所有已过期或已用尽的临时密钥吗？'); ?>
 </div>
         </header>
         <div class="card-body">
@@ -113,17 +113,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <i class="mdi mdi-pencil"></i>
                                 </a>
                                 <?php if ($key['status'] === 'active'): ?>
-                                    <a class="btn btn-default" href="?action=ban&id=<?php echo $key['id']; ?>" data-bs-toggle="tooltip" title="封禁" style="color: #f59e0b;">
-                                        <i class="mdi mdi-block-helper"></i>
-                                    </a>
+                                    <?php echo huli_post_action_button('temp_keys.php', ['action' => 'ban', 'id' => $key['id']], '<i class="mdi mdi-block-helper"></i>', 'btn btn-default', '', 'data-bs-toggle="tooltip" title="封禁" style="color:#f59e0b;"'); ?>
                                 <?php else: ?>
-                                    <a class="btn btn-default" href="?action=unban&id=<?php echo $key['id']; ?>" data-bs-toggle="tooltip" title="解封" style="color: #16a34a;">
-                                        <i class="mdi mdi-check"></i>
-                                    </a>
+                                    <?php echo huli_post_action_button('temp_keys.php', ['action' => 'unban', 'id' => $key['id']], '<i class="mdi mdi-check"></i>', 'btn btn-default', '', 'data-bs-toggle="tooltip" title="解封" style="color:#16a34a;"'); ?>
                                 <?php endif; ?>
-                                <a class="btn btn-default" href="?action=delete&id=<?php echo $key['id']; ?>" onclick="return confirm('确定要删除这个临时密钥吗？');" data-bs-toggle="tooltip" title="删除" style="color: #dc2626;">
-                                    <i class="mdi mdi-delete"></i>
-                                </a>
+                                <?php echo huli_post_action_button('temp_keys.php', ['action' => 'delete', 'id' => $key['id']], '<i class="mdi mdi-delete"></i>', 'btn btn-default', '确定要删除这个临时密钥吗？', 'data-bs-toggle="tooltip" title="删除" style="color:#dc2626;"'); ?>
                             </div>
                         </td>
                     </tr>

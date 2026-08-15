@@ -14,7 +14,7 @@ if (file_exists('../config.php')) {
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
 $feedback_type = '';
-$get_page = isset($_GET['page']) ? intval($_GET['page']) : 0;
+$get_page = isset($_POST['page']) ? intval($_POST['page']) : (isset($_GET['page']) ? intval($_GET['page']) : 0);
 $get_status = isset($_GET['status']) ? preg_replace('/[^a-z_0-9]/i', '', $_GET['status']) : '';
 $get_is_hidden = isset($_GET['is_hidden']) ? (int)$_GET['is_hidden'] : 0;
 $get_name = isset($_GET['name']) ? $_GET['name'] : '';
@@ -43,9 +43,9 @@ try {
     $logo_url = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/assets/images/logo-sidebar.png';
     $current_year = date('Y');
     $admin_url = $settings['admin_url'] ?? '#';
-    if (isset($_GET['action']) && isset($_GET['id'])) {
-        $id = intval($_GET['id']);
-        switch ($_GET['action']) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id'])) {
+        $id = intval($_POST['id']);
+        switch ($_POST['action']) {
             case 'delete':
                 $stmt = $pdo->prepare("DELETE FROM huli_friend_links WHERE id = ?");
                 $stmt->execute([$id]);
@@ -665,28 +665,16 @@ function getStatusBadge($status) {
                     <i class="fa fa-pencil mr-1"></i>编辑
                   </a>
                   <?php if ($link['status'] === 'pending'): ?>
-                    <a href="friend_links.php?action=approve&id=<?= $link['id'] ?><?= isset($get_page) ? "&page={$get_page}" : '' ?>"
-                       class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 focus:outline-none"
-                       onclick="return confirm('确定通过此友链？')">
-                      <i class="fa fa-check mr-1"></i>通过
-                    </a>
+                    <?php echo huli_post_action_button('friend_links.php', ['action' => 'approve', 'id' => $link['id']], '<i class="fa fa-check mr-1"></i>通过', 'btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 focus:outline-none', '确定通过此友链？'); ?>
                     <button type="button" class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 focus:outline-none reject-btn"
                             data-id="<?= $link['id'] ?>">
                       <i class="fa fa-times mr-1"></i>拒绝
                     </button>
                   <?php else: ?>
-                    <a href="friend_links.php?action=toggle&id=<?= $link['id'] ?><?= isset($get_page) ? "&page={$get_page}" : '' ?>"
-                       class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 focus:outline-none"
-                       title="<?= $link['is_hidden'] ? '显示' : '隐藏' ?>">
-                      <i class="fa fa-<?= $link['is_hidden'] ? 'eye' : 'eye-slash' ?> mr-1"></i><?= $link['is_hidden'] ? '显示' : '隐藏' ?>
-                    </a>
+                    <?php echo huli_post_action_button('friend_links.php', ['action' => 'toggle', 'id' => $link['id']], '<i class="fa fa-' . ($link['is_hidden'] ? 'eye' : 'eye-slash') . ' mr-1"></i>' . ($link['is_hidden'] ? '显示' : '隐藏'), 'btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 focus:outline-none'); ?>
                   <?php endif; ?>
                 </div>
-                <a href="friend_links.php?action=delete&id=<?= $link['id'] ?><?= isset($get_page) ? "&page={$get_page}" : '' ?>"
-                   class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 focus:outline-none"
-                   onclick="return confirm('确定删除此友链？删除后不可恢复！')">
-                  <i class="fa fa-trash mr-1"></i>删除
-                </a>
+                <?php echo huli_post_action_button('friend_links.php', ['action' => 'delete', 'id' => $link['id']], '<i class="fa fa-trash mr-1"></i>删除', 'btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 focus:outline-none', '确定删除此友链？删除后不可恢复！'); ?>
               </div>
             </div>
           <?php endforeach; ?>
@@ -904,8 +892,11 @@ function getStatusBadge($status) {
       if (!id) return;
       showLoading();
       var formData = new FormData();
+      formData.append('action', 'reject');
+      formData.append('id', id);
+      formData.append('page', page);
       formData.append('reject_note', note);
-      fetch(`friend_links.php?action=reject&id=${id}&page=${page}`, {
+      fetch('friend_links.php', {
         method: 'POST',
         body: formData
       })

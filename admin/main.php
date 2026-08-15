@@ -20,7 +20,7 @@ if (!isset($_SESSION['admin_id'])) {
     header('Location: login.php');
     exit;
 }
-if (isset($_GET['action']) && $_GET['action'] === 'logout') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'logout') {
     session_destroy();
     header('Location: login.php');
     exit;

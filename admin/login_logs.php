@@ -14,9 +14,9 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
-    if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
-        if ($_GET['action'] === 'clear' && isset($_GET['range'])) {
-            $range = $_GET['range'];
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        if ($_POST['action'] === 'clear' && isset($_POST['range'])) {
+            $range = $_POST['range'];
             $where = '';
             if ($range === '30d')  { $where = "WHERE login_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"; }
             elseif ($range === '90d')  { $where = "WHERE login_at < DATE_SUB(NOW(), INTERVAL 90 DAY)"; }
@@ -89,8 +89,8 @@ try {
                 <div class="text-muted small">仅统计后台管理员的登录记录</div>
             </div>
             <div class="d-flex gap-2">
-                <a href="?action=clear&range=30d" class="btn btn-outline-warning btn-sm" onclick="return confirm('确定清理 30 天前的登录日志吗？');">清理 30 天前</a>
-                <a href="?action=clear&range=all" class="btn btn-outline-danger btn-sm" onclick="return confirm('确定清空全部登录日志吗？此操作不可恢复！');">清空全部</a>
+                <?php echo huli_post_action_button('login_logs.php', ['action' => 'clear', 'range' => '30d'], '清理 30 天前', 'btn btn-outline-warning btn-sm', '确定清理 30 天前的登录日志吗？'); ?>
+                <?php echo huli_post_action_button('login_logs.php', ['action' => 'clear', 'range' => 'all'], '清空全部', 'btn btn-outline-danger btn-sm', '确定清空全部登录日志吗？此操作不可恢复！'); ?>
             </div>
         </div>
         <?php if ($feedback_msg): ?>

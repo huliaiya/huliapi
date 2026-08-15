@@ -11,7 +11,7 @@ if (!isset($_SESSION['admin_id'])) {
     header('Location: login.php');
     exit;
 }
-if (isset($_GET['action']) && $_GET['action'] === 'logout') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'logout') {
     session_destroy();
     header('Location: login.php');
     exit;
@@ -222,10 +222,12 @@ try {
               </li>
               <li class="dropdown-divider"></li>
               <li>
-                <a class="dropdown-item" href="?action=logout">
-                  <i class="mdi mdi-logout-variant"></i>
-                  <span>退出登录</span>
-                </a>
+                <form method="POST" action="index.php">
+                  <button type="submit" name="action" value="logout" class="dropdown-item" style="background:none;border:0;width:100%;text-align:left;">
+                    <i class="mdi mdi-logout-variant"></i>
+                    <span>退出登录</span>
+                  </button>
+                </form>
               </li>
             </ul>
           </li>

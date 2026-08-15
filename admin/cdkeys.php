@@ -135,9 +135,9 @@ try {
             fclose($output);
             exit;
         }
-    } elseif (isset($_GET['action'])) {
-        if ($_GET['action'] === 'delete' && isset($_GET['id'])) {
-            $id = filter_var($_GET['id'], FILTER_VALIDATE_INT);
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        if ($_POST['action'] === 'delete' && isset($_POST['id'])) {
+            $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
             if ($id === false) {
                 throw new Exception('无效的卡密ID。');
             }
@@ -145,7 +145,7 @@ try {
             $stmt->execute([$id]);
             $_SESSION['feedback_msg'] = '卡密已成功删除。';
             $_SESSION['feedback_type'] = 'success';
-        } elseif ($_GET['action'] === 'cleanup') {
+        } elseif ($_POST['action'] === 'cleanup') {
             $stmt = $pdo->prepare("DELETE FROM huli_cdkeys WHERE status = 'unused'");
             $stmt->execute();
             $deleted_count = $stmt->rowCount();
@@ -304,10 +304,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <button type="submit" class="btn btn-primary me-1">
                                         <i class="mdi mdi-plus-circle-outline me-1"></i>生成卡密
                                     </button>
-                                    <a href="?action=cleanup" onclick="return confirm('确定要清理所有未使用的卡密吗？此操作不可恢复！');"
-                                       class="btn btn-danger">
-                                        <i class="mdi mdi-delete-outline me-1"></i>清理未使用
-                                    </a>
+                                    <?php echo huli_post_action_button('cdkeys.php', ['action' => 'cleanup'], '<i class="mdi mdi-delete-outline me-1"></i>清理未使用', 'btn btn-danger', '确定要清理所有未使用的卡密吗？此操作不可恢复！'); ?>
                                 </div>
                             </div>
                         </form>
@@ -368,11 +365,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                         <td><?php echo $key['used_at'] ? date('Y-m-d H:i:s', strtotime($key['used_at'])) : 'N/A'; ?></td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <a href="?action=delete&id=<?php echo $key['id']; ?>"
-                                                   onclick="return confirm('确定要删除这个卡密吗？此操作不可恢复！');"
-                                                   class="btn btn-outline-danger" data-bs-toggle="tooltip" title="删除">
-                                                    <i class="mdi mdi-delete"></i>
-                                                </a>
+                                                <?php echo huli_post_action_button('cdkeys.php', ['action' => 'delete', 'id' => $key['id']], '<i class="mdi mdi-delete"></i>', 'btn btn-outline-danger', '确定要删除这个卡密吗？此操作不可恢复！', 'data-bs-toggle="tooltip" title="删除"'); ?>
                                             </div>
                                         </td>
                                     </tr>

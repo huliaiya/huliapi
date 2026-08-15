@@ -29,6 +29,29 @@ try {
     if (!in_array('membership_expire', $columns)) {
         $pdo->exec("ALTER TABLE `huli_users` ADD `membership_expire` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `membership_level`;");
     }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id']) && !isset($_POST['ids'])) {
+        $id = intval($_POST['id']);
+        switch ($_POST['action']) {
+            case 'ban':
+                $stmt = $pdo->prepare("UPDATE huli_users SET status = 'banned' WHERE id = ?");
+                $stmt->execute([$id]);
+                $_SESSION['feedback_msg'] = '用户已成功封禁。';
+                break;
+            case 'unban':
+                $stmt = $pdo->prepare("UPDATE huli_users SET status = 'active' WHERE id = ?");
+                $stmt->execute([$id]);
+                $_SESSION['feedback_msg'] = '用户已成功解封。';
+                break;
+            case 'delete':
+                $stmt = $pdo->prepare("DELETE FROM huli_users WHERE id = ?");
+                $stmt->execute([$id]);
+                $_SESSION['feedback_msg'] = '用户已成功删除。';
+                break;
+        }
+        $_SESSION['feedback_type'] = 'success';
+        header('Location: user_list.php');
+        exit;
+    }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['ids'])) {
         $ids = array_map('intval', $_POST['ids']);
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
@@ -47,29 +70,6 @@ try {
                 $stmt = $pdo->prepare("DELETE FROM huli_users WHERE id IN ($placeholders)");
                 $stmt->execute($ids);
                 $_SESSION['feedback_msg'] = '已成功删除选中的用户。';
-                break;
-        }
-        $_SESSION['feedback_type'] = 'success';
-        header('Location: user_list.php');
-        exit;
-    }
-    if (isset($_GET['action']) && isset($_GET['id'])) {
-        $id = intval($_GET['id']);
-        switch ($_GET['action']) {
-            case 'delete':
-                $stmt = $pdo->prepare("DELETE FROM huli_users WHERE id = ?");
-                $stmt->execute([$id]);
-                $_SESSION['feedback_msg'] = '用户已成功删除。';
-                break;
-            case 'ban':
-                $stmt = $pdo->prepare("UPDATE huli_users SET status = 'banned' WHERE id = ?");
-                $stmt->execute([$id]);
-                $_SESSION['feedback_msg'] = '用户已成功封禁。';
-                break;
-            case 'unban':
-                $stmt = $pdo->prepare("UPDATE huli_users SET status = 'active' WHERE id = ?");
-                $stmt->execute([$id]);
-                $_SESSION['feedback_msg'] = '用户已成功解封。';
                 break;
         }
         $_SESSION['feedback_type'] = 'success';
@@ -290,11 +290,11 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
                       <div class="btn-group btn-group-sm">
                         <a class="btn btn-default" href="user_edit.php?id=<?php echo $user['id']; ?>" data-bs-toggle="tooltip" title="编辑/调额/调整点数/等级"><i class="mdi mdi-pencil"></i></a>
                         <?php if ($user['status'] === 'active'): ?>
-                          <a class="btn btn-warning" href="user_list.php?action=ban&id=<?php echo $user['id']; ?>" data-bs-toggle="tooltip" title="封禁"><i class="mdi mdi-block-helper"></i></a>
+                          <?php echo huli_post_action_button('user_list.php', ['action' => 'ban', 'id' => $user['id']], '<i class="mdi mdi-block-helper"></i>', 'btn btn-warning', '', 'data-bs-toggle="tooltip" title="封禁"'); ?>
                         <?php else: ?>
-                          <a class="btn btn-success" href="user_list.php?action=unban&id=<?php echo $user['id']; ?>" data-bs-toggle="tooltip" title="解封"><i class="mdi mdi-check"></i></a>
+                          <?php echo huli_post_action_button('user_list.php', ['action' => 'unban', 'id' => $user['id']], '<i class="mdi mdi-check"></i>', 'btn btn-success', '', 'data-bs-toggle="tooltip" title="解封"'); ?>
                         <?php endif; ?>
-                        <a class="btn btn-danger" href="user_list.php?action=delete&id=<?php echo $user['id']; ?>" onclick="return confirm('确定要删除这个用户吗？此操作不可恢复。');" data-bs-toggle="tooltip" title="删除"><i class="mdi mdi-window-close"></i></a>
+                        <?php echo huli_post_action_button('user_list.php', ['action' => 'delete', 'id' => $user['id']], '<i class="mdi mdi-window-close"></i>', 'btn btn-danger', '确定要删除这个用户吗？此操作不可恢复。', 'data-bs-toggle="tooltip" title="删除"'); ?>
                       </div>
                     </td>
                   </tr>

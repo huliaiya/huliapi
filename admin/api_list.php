@@ -14,9 +14,9 @@ if (file_exists('../config.php')) {
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
 $feedback_type = '';
-if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['id'])) {
     try {
-        $id = intval($_GET['id']);
+        $id = intval($_POST['id']);
         if ($id <= 0) {
             throw new InvalidArgumentException('无效的接口ID');
         }
@@ -657,12 +657,24 @@ $(document).ready(function() {
     }
     if (confirm(`确定要删除接口"${name}"吗？此操作不可恢复，并将删除服务器上的对应文件。`)) {
       try {
-        const searchParams = new URLSearchParams(window.location.search);
-        searchParams.set('action', 'delete');
-        searchParams.set('id', id);
-        window.location.href = `api_list.php?${searchParams.toString()}`;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'api_list.php';
+        form.style.display = 'none';
+        const a = document.createElement('input');
+        a.type = 'hidden';
+        a.name = 'action';
+        a.value = 'delete';
+        const b = document.createElement('input');
+        b.type = 'hidden';
+        b.name = 'id';
+        b.value = id;
+        form.appendChild(a);
+        form.appendChild(b);
+        document.body.appendChild(form);
+        form.submit();
       } catch (e) {
-        console.error('构建删除URL失败:', e);
+        console.error('构建删除表单失败:', e);
         alert('操作失败，请重试');
       }
     }

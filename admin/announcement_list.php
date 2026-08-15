@@ -9,9 +9,9 @@ $feedback_msg = ''; $feedback_type = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    if (isset($_GET['action']) && isset($_GET['id'])) {
-        $id = intval($_GET['id']);
-        switch ($_GET['action']) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id'])) {
+        $id = intval($_POST['id']);
+        switch ($_POST['action']) {
             case 'delete':
                 $stmt = $pdo->prepare("DELETE FROM huli_announcements WHERE id = ?"); $stmt->execute([$id]);
                 $_SESSION['feedback_msg'] = '公告已成功删除。'; break;
@@ -106,12 +106,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <a href="announcement_edit.php?id=<?php echo $item['id']; ?>" class="btn btn-default" data-bs-toggle="tooltip" title="编辑">
                           <i class="mdi mdi-pencil"></i>
                         </a>
-                        <a href="?action=toggle&id=<?php echo $item['id']; ?>" class="btn btn-warning" data-bs-toggle="tooltip" title="<?php echo $item['is_active'] ? '设为草稿' : '发布'; ?>">
-                          <i class="mdi mdi-<?php echo $item['is_active'] ? 'eye-off' : 'eye'; ?>"></i>
-                        </a>
-                        <a href="?action=delete&id=<?php echo $item['id']; ?>" class="btn btn-danger" data-bs-toggle="tooltip" title="删除" onclick="return confirm('确定要删除这条公告吗？');">
-                          <i class="mdi mdi-delete"></i>
-                        </a>
+                        <?php echo huli_post_action_button('announcement_list.php', ['action' => 'toggle', 'id' => $item['id']], '<i class="mdi mdi-' . ($item['is_active'] ? 'eye-off' : 'eye') . '"></i>', 'btn btn-warning', '', 'data-bs-toggle="tooltip" title="' . ($item['is_active'] ? '设为草稿' : '发布') . '"'); ?>
+                        <?php echo huli_post_action_button('announcement_list.php', ['action' => 'delete', 'id' => $item['id']], '<i class="mdi mdi-delete"></i>', 'btn btn-danger', '确定要删除这条公告吗？', 'data-bs-toggle="tooltip" title="删除"'); ?>
                       </div>
                     </td>
                   </tr>

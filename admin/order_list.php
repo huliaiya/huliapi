@@ -11,9 +11,9 @@ try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     huli_ensure_afdian_order_columns($pdo);
-    if (isset($_GET['action']) && isset($_GET['id'])) {
-        $id = intval($_GET['id']);
-        switch ($_GET['action']) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id'])) {
+        $id = intval($_POST['id']);
+        switch ($_POST['action']) {
             case 'delete':
                 $stmt = $pdo->prepare("DELETE FROM huli_orders WHERE id = ?"); $stmt->execute([$id]);
                 $_SESSION['feedback_msg'] = '订单已成功删除。'; $_SESSION['feedback_type'] = 'success';
@@ -193,16 +193,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <td>
                       <div class="btn-group btn-group-sm">
                         <?php if ($order['status'] === 'pending'): ?>
-                          <a class="btn btn-success" href="?action=mark_paid&id=<?php echo $order['id']; ?>" onclick="return confirm('确定要手动将此订单标记为已支付吗？系统将为用户增加相应余额。')" data-bs-toggle="tooltip" title="标记为已支付">
-                            <i class="mdi mdi-check"></i>
-                          </a>
-                          <a class="btn btn-warning" href="?action=mark_failed&id=<?php echo $order['id']; ?>" onclick="return confirm('确定要将此订单标记为失败吗？')" data-bs-toggle="tooltip" title="标记为失败">
-                            <i class="mdi mdi-close"></i>
-                          </a>
+                          <?php echo huli_post_action_button('order_list.php', ['action' => 'mark_paid', 'id' => $order['id']], '<i class="mdi mdi-check"></i>', 'btn btn-success', '确定要手动将此订单标记为已支付吗？系统将为用户增加相应余额。', 'data-bs-toggle="tooltip" title="标记为已支付"'); ?>
+                          <?php echo huli_post_action_button('order_list.php', ['action' => 'mark_failed', 'id' => $order['id']], '<i class="mdi mdi-close"></i>', 'btn btn-warning', '确定要将此订单标记为失败吗？', 'data-bs-toggle="tooltip" title="标记为失败"'); ?>
                         <?php endif; ?>
-                        <a class="btn btn-danger" href="?action=delete&id=<?php echo $order['id']; ?>" onclick="return confirm('确定要删除这个订单吗？此操作不可恢复。')" data-bs-toggle="tooltip" title="删除">
-                          <i class="mdi mdi-delete"></i>
-                        </a>
+                        <?php echo huli_post_action_button('order_list.php', ['action' => 'delete', 'id' => $order['id']], '<i class="mdi mdi-delete"></i>', 'btn btn-danger', '确定要删除这个订单吗？此操作不可恢复。', 'data-bs-toggle="tooltip" title="删除"'); ?>
                       </div>
                     </td>
                   </tr>

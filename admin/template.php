@@ -68,9 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $feedback_type = "error";
     }
 }
-if (isset($_GET['delete'])) {
-    $type = $_GET['type'] ?? '';
-    $templateId = (int)$_GET['delete'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
+    $type = $_POST['type'] ?? '';
+    $templateId = (int)$_POST['delete'];
     try {
         if ($type === 'home') {
             $success = TemplateManager::deleteHomeTemplate($templateId);
@@ -226,7 +226,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                           </span>
                           <div>
                             <?php if (!$template['is_active']): ?>
-                              <a href="?type=home&delete=<?php echo $template['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除此首页模板吗？')">删除</a>
+                              <?php echo huli_post_action_button('template.php', ['delete' => $template['id'], 'type' => 'home'], '删除', 'btn btn-sm btn-danger', '确定要删除此首页模板吗？'); ?>
                             <?php endif; ?>
                           </div>
                         </div>
@@ -296,7 +296,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                           </span>
                           <div>
                             <?php if (!$template['is_active']): ?>
-                              <a href="?type=user&delete=<?php echo $template['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除此用户中心模板吗？')">删除</a>
+                              <?php echo huli_post_action_button('template.php', ['delete' => $template['id'], 'type' => 'user'], '删除', 'btn btn-sm btn-danger', '确定要删除此用户中心模板吗？'); ?>
                             <?php endif; ?>
                           </div>
                         </div>

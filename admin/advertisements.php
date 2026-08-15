@@ -17,19 +17,19 @@ $feedback_type = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    if (isset($_GET['delete'])) {
-        $id = intval($_GET['delete']);
-        $stmt = $pdo->prepare("DELETE FROM huli_advertisements WHERE id = ?");
-        $stmt->execute([$id]);
-        $feedback_msg = "广告删除成功！";
-        $feedback_type = "success";
-    }
-    if (isset($_GET['toggle_status'])) {
-        $id = intval($_GET['toggle_status']);
-        $stmt = $pdo->prepare("UPDATE huli_advertisements SET status = IF(status = 'active', 'inactive', 'active') WHERE id = ?");
-        $stmt->execute([$id]);
-        $feedback_msg = "广告状态已更新！";
-        $feedback_type = "success";
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        $id = intval($_POST['id'] ?? 0);
+        if ($_POST['action'] === 'delete') {
+            $stmt = $pdo->prepare("DELETE FROM huli_advertisements WHERE id = ?");
+            $stmt->execute([$id]);
+            $feedback_msg = "广告删除成功！";
+            $feedback_type = "success";
+        } elseif ($_POST['action'] === 'toggle_status') {
+            $stmt = $pdo->prepare("UPDATE huli_advertisements SET status = IF(status = 'active', 'inactive', 'active') WHERE id = ?");
+            $stmt->execute([$id]);
+            $feedback_msg = "广告状态已更新！";
+            $feedback_type = "success";
+        }
     }
     $stmt = $pdo->query("SELECT * FROM huli_advertisements ORDER BY sort_order DESC, created_at DESC");
     $ads = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -115,12 +115,8 @@ try {
                                                 <a href="edit_advertisement.php?id=<?= $ad['id'] ?>" class="btn btn-outline-primary">
                                                     <i class="mdi mdi-pencil"></i>
                                                 </a>
-                                                <a href="?toggle_status=<?= $ad['id'] ?>" class="btn btn-outline-<?= $ad['status'] === 'active' ? 'warning' : 'success' ?>">
-                                                    <i class="mdi mdi-<?= $ad['status'] === 'active' ? 'eye-off' : 'eye' ?>"></i>
-                                                </a>
-                                                <a href="?delete=<?= $ad['id'] ?>" class="btn btn-outline-danger" onclick="return confirm('确定要删除这个广告吗？此操作不可恢复。')">
-                                                    <i class="mdi mdi-delete"></i>
-                                                </a>
+                                                <?php echo huli_post_action_button('advertisements.php', ['action' => 'toggle_status', 'id' => $ad['id']], '<i class="mdi mdi-' . ($ad['status'] === 'active' ? 'eye-off' : 'eye') . '"></i>', 'btn btn-outline-' . ($ad['status'] === 'active' ? 'warning' : 'success')); ?>
+                                                <?php echo huli_post_action_button('advertisements.php', ['action' => 'delete', 'id' => $ad['id']], '<i class="mdi mdi-delete"></i>', 'btn btn-outline-danger', '确定要删除这个广告吗？此操作不可恢复。'); ?>
                                             </div>
                                         </td>
                                     </tr>

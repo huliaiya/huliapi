@@ -29,3 +29,13 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') 
         }
     }
 }
+
+function huli_post_action_button($url, $fields, $label, $class = 'btn btn-default btn-sm', $confirm = '', $attrs = '') {
+    $h = '<form method="POST" action="' . htmlspecialchars((string)$url, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;margin:0;">';
+    foreach ((array)$fields as $k => $v) {
+        $h .= '<input type="hidden" name="' . htmlspecialchars((string)$k, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8') . '">';
+    }
+    $onclick = $confirm !== '' ? " onclick=\"return confirm('" . htmlspecialchars($confirm, ENT_QUOTES, 'UTF-8') . "');\"" : '';
+    $h .= '<button type="submit" class="' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') . '"' . $onclick . ' ' . $attrs . '>' . $label . '</button></form>';
+    return $h;
+}

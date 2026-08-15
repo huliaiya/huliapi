@@ -17,16 +17,16 @@ $feedback_type = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    if (isset($_GET['action']) && isset($_GET['id'])) {
-        $id = intval($_GET['id']);
-        switch ($_GET['action']) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id'])) {
+        $id = intval($_POST['id']);
+        switch ($_POST['action']) {
             case 'delete':
                 $stmt = $pdo->prepare("DELETE FROM huli_feedback WHERE id = ?");
                 $stmt->execute([$id]);
                 $_SESSION['feedback_msg'] = '反馈已成功删除。';
                 break;
             case 'update_status':
-                $status = $_GET['status'] ?? 'viewed';
+                $status = $_POST['status'] ?? 'viewed';
                 if (!in_array($status, ['viewed', 'resolved'])) {
                     $status = 'viewed';
                 }
@@ -225,18 +225,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
                   <td>
                     <div class="btn-group btn-group-sm">
                       <?php if ($item['status'] === 'pending'): ?>
-                        <a class="btn btn-primary" href="?action=update_status&id=<?php echo $item['id']; ?>&status=viewed" data-bs-toggle="tooltip" title="标记为已查看">
-                          <i class="mdi mdi-eye-check"></i>
-                        </a>
+                        <?php echo huli_post_action_button('feedback_list.php', ['action' => 'update_status', 'id' => $item['id'], 'status' => 'viewed'], '<i class="mdi mdi-eye-check"></i>', 'btn btn-primary', '', 'data-bs-toggle="tooltip" title="标记为已查看"'); ?>
                       <?php endif; ?>
                       <?php if ($item['status'] !== 'resolved'): ?>
                         <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#replyModal<?php echo $item['id']; ?>" data-bs-toggle="tooltip" title="回复">
                           <i class="mdi mdi-reply"></i>
                         </button>
                       <?php endif; ?>
-                      <a class="btn btn-danger" href="?action=delete&id=<?php echo $item['id']; ?>" onclick="return confirm('确定要删除这条反馈吗？');" data-bs-toggle="tooltip" title="删除">
-                        <i class="mdi mdi-delete"></i>
-                      </a>
+                      <?php echo huli_post_action_button('feedback_list.php', ['action' => 'delete', 'id' => $item['id']], '<i class="mdi mdi-delete"></i>', 'btn btn-danger', '确定要删除这条反馈吗？', 'data-bs-toggle="tooltip" title="删除"'); ?>
                     </div>
                     <div class="modal fade" id="replyModal<?php echo $item['id']; ?>" tabindex="-1" aria-labelledby="replyModalLabel<?php echo $item['id']; ?>" aria-hidden="true">
                       <div class="modal-dialog">

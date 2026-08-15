@@ -12,24 +12,22 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $favicon_url = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:'';
     huli_ensure_broadcast_columns($pdo);
-    if (isset($_GET['delete'])) {
-        $id = intval($_GET['delete']);
-        $pdo->prepare("DELETE FROM huli_email_broadcasts WHERE id = ?")->execute([$id]);
-        $feedback_msg = "群发任务已删除！"; $feedback_type = "success";
-    }
-    if (isset($_GET['toggle'])) {
-        $id = intval($_GET['toggle']);
-        $stmt = $pdo->prepare("UPDATE huli_email_broadcasts SET status = IF(status = 'scheduled', 'draft', 'scheduled') WHERE id = ?");
-        $stmt->execute([$id]);
-        if ($stmt->rowCount() > 0) {
-            $feedback_msg = "任务状态已切换！"; $feedback_type = "success";
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        $id = intval($_POST['id'] ?? 0);
+        if ($_POST['action'] === 'delete') {
+            $pdo->prepare("DELETE FROM huli_email_broadcasts WHERE id = ?")->execute([$id]);
+            $feedback_msg = "群发任务已删除！"; $feedback_type = "success";
+        } elseif ($_POST['action'] === 'toggle') {
+            $stmt = $pdo->prepare("UPDATE huli_email_broadcasts SET status = IF(status = 'scheduled', 'draft', 'scheduled') WHERE id = ?");
+            $stmt->execute([$id]);
+            if ($stmt->rowCount() > 0) {
+                $feedback_msg = "任务状态已切换！"; $feedback_type = "success";
+            }
+        } elseif ($_POST['action'] === 'send_now') {
+            $r = huli_broadcast_send_one($pdo, $id, $err);
+            if ($r === false) { $feedback_msg = $err; $feedback_type = "error"; }
+            elseif (is_array($r)) { $feedback_msg = "发送完成！共发送 {$r['sent']}/{$r['total']} 封邮件。"; $feedback_type = "success"; }
         }
-    }
-    if (isset($_GET['send_now'])) {
-        $id = intval($_GET['send_now']);
-        $r = huli_broadcast_send_one($pdo, $id, $err);
-        if ($r === false) { $feedback_msg = $err; $feedback_type = "error"; }
-        elseif (is_array($r)) { $feedback_msg = "发送完成！共发送 {$r['sent']}/{$r['total']} 封邮件。"; $feedback_type = "success"; }
     }
     $tick_err = huli_broadcast_web_tick($pdo);
     if ($tick_err && empty($feedback_msg)) { $feedback_msg = "调度提示：" . $tick_err; $feedback_type = "info"; }
@@ -93,12 +91,12 @@ $typeLabels=['once'=>'仅一次','daily'=>'每天'];
 <td><div class="d-flex flex-wrap gap-1">
 <a href="email_broadcast_create.php?id=<?= $b['id'] ?>" class="btn btn-primary btn-sm"><i class="mdi mdi-pencil"></i> 修改</a>
 <?php if (in_array($b['status'], ['draft', 'scheduled'])): ?>
-<a href="?send_now=<?= $b['id'] ?>" class="btn btn-success btn-sm" onclick="return confirm('确定立即发送？系统会向所有注册用户发送邮件。')"><i class="mdi mdi-send"></i> 发送</a>
+<?php echo huli_post_action_button('email_broadcasts.php', ['action' => 'send_now', 'id' => $b['id']], '<i class="mdi mdi-send"></i> 发送', 'btn btn-success btn-sm', '确定立即发送？系统会向所有注册用户发送邮件。'); ?>
 <?php endif; ?>
 <?php if ($b['status'] === 'scheduled' || $b['status'] === 'draft'): ?>
-<a href="?toggle=<?= $b['id'] ?>" class="btn btn-warning btn-sm"><?= $b['status']==='scheduled'?'<i class="mdi mdi-pause"></i> 停用':'<i class="mdi mdi-play"></i> 启用' ?></a>
+<?php echo huli_post_action_button('email_broadcasts.php', ['action' => 'toggle', 'id' => $b['id']], ($b['status']==='scheduled'?'<i class="mdi mdi-pause"></i> 停用':'<i class="mdi mdi-play"></i> 启用'), 'btn btn-warning btn-sm'); ?>
 <?php endif; ?>
-<a href="?delete=<?= $b['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('确定删除？')"><i class="mdi mdi-delete"></i> 删除</a>
+<?php echo huli_post_action_button('email_broadcasts.php', ['action' => 'delete', 'id' => $b['id']], '<i class="mdi mdi-delete"></i> 删除', 'btn btn-danger btn-sm', '确定删除？'); ?>
 </div></td>
 </tr>
 <?php endforeach; else: ?>

@@ -26,9 +26,9 @@ try {
     if (!in_array('membership_days', $columns)) {
         $pdo->exec("ALTER TABLE `huli_billing_plans` ADD `membership_days` INT NOT NULL DEFAULT 0 AFTER `points_to_add`;");
     }
-    if (isset($_GET['action']) && isset($_GET['id'])) {
-        $id = intval($_GET['id']);
-        switch ($_GET['action']) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id'])) {
+        $id = intval($_POST['id']);
+        switch ($_POST['action']) {
             case 'delete':
                 $stmt = $pdo->prepare("DELETE FROM huli_billing_plans WHERE id = ?");
                 $stmt->execute([$id]);
@@ -162,15 +162,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 <a href="billing_plan_edit.php?id=<?php echo $plan['id']; ?>" class="btn btn-default" data-bs-toggle="tooltip" title="编辑">
                                     <i class="mdi mdi-pencil"></i>
                                 </a>
-                                <a href="?action=toggle&id=<?php echo $plan['id']; ?>" class="btn btn-default" data-bs-toggle="tooltip" title="<?php echo $plan['is_active'] ? '下架' : '上架'; ?>">
-                                    <i class="mdi mdi-<?php echo $plan['is_active'] ? 'eye-off' : 'eye'; ?>"></i>
-                                </a>
-                                <a href="?action=toggle_card&id=<?php echo $plan['id']; ?>" class="btn btn-default" data-bs-toggle="tooltip" title="<?php echo $plan['is_card'] ? '切换为直接充值' : '切换为卡密方案'; ?>">
-                                    <i class="mdi mdi-<?php echo $plan['is_card'] ? 'credit-card-off' : 'credit-card'; ?>"></i>
-                                </a>
-                                <a href="?action=delete&id=<?php echo $plan['id']; ?>" class="btn btn-default" data-bs-toggle="tooltip" title="删除" onclick="return confirm('确定要删除这个方案吗？');">
-                                    <i class="mdi mdi-delete"></i>
-                                </a>
+                                <?php echo huli_post_action_button('billing_plans.php', ['action' => 'toggle', 'id' => $plan['id']], '<i class="mdi mdi-' . ($plan['is_active'] ? 'eye-off' : 'eye') . '"></i>', 'btn btn-default', '', 'data-bs-toggle="tooltip" title="' . ($plan['is_active'] ? '下架' : '上架') . '"'); ?>
+                                <?php echo huli_post_action_button('billing_plans.php', ['action' => 'toggle_card', 'id' => $plan['id']], '<i class="mdi mdi-' . ($plan['is_card'] ? 'credit-card-off' : 'credit-card') . '"></i>', 'btn btn-default', '', 'data-bs-toggle="tooltip" title="' . ($plan['is_card'] ? '切换为直接充值' : '切换为卡密方案') . '"'); ?>
+                                <?php echo huli_post_action_button('billing_plans.php', ['action' => 'delete', 'id' => $plan['id']], '<i class="mdi mdi-delete"></i>', 'btn btn-default', '确定要删除这个方案吗？', 'data-bs-toggle="tooltip" title="删除"'); ?>
                             </div>
                         </td>
                     </tr>
