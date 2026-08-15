@@ -567,6 +567,25 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
         }
         $(selector).html(html);
     }
+    function showFingerprint(fp) {
+        if (!fp || (!fp.submitted && !fp.db)) return '';
+        var html = '<div class="alert alert-light border small mb-2">';
+        html += '<div class="fw-bold mb-1">密钥指纹（用于核对本次提交与数据库中的密钥是否一致）</div>';
+        if (fp.submitted) {
+            html += '<div>本次提交：Site Key <code>' + esc(fp.submitted.site || '(空)') + '</code> · Secret Key <code>' + esc(fp.submitted.secret || '(空)') + '</code></div>';
+        }
+        if (fp.db && (fp.db.site || fp.db.secret)) {
+            html += '<div>数据库保存：Site Key <code>' + esc(fp.db.site || '(空)') + '</code> · Secret Key <code>' + esc(fp.db.secret || '(空)') + '</code></div>';
+        }
+        if (fp.submitted && fp.db && fp.submitted.site && fp.db.site && fp.submitted.site !== fp.db.site) {
+            html += '<div class="text-danger mt-1">提示：上方表单中的 Site Key 与数据库已保存的值不一致，请确认本测试使用的是哪个密钥（端到端测试以本表单当前值为准）。</div>';
+        }
+        if (fp.submitted && fp.db && fp.submitted.secret && fp.db.secret && fp.submitted.secret !== fp.db.secret) {
+            html += '<div class="text-danger mt-1">提示：上方表单中的 Secret Key 与数据库已保存的值不一致。请重新复制粘贴或点击「保存设置」后再测。</div>';
+        }
+        html += '</div>';
+        return html;
+    }
     function loadE2EWidget(autoSubmit) {
         var siteKey = $.trim($('#turnstile_site_key').val());
         window.__huliE2EAutoSubmit = (autoSubmit !== false);
@@ -656,9 +675,21 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
         $('#ts-e2e-result').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">正在向 Cloudflare 验证令牌...</div>');
         $.post(AJAX_URL, { mode: 'e2e', site_key: siteKey, secret_key: secretKey, 'cf-turnstile-response': token }, function (res) {
             if (res && res.success) {
-                showResult('#ts-e2e-result', true, res.message, res.raw || null);
+                var html = '<div class="alert ' + (true ? 'alert-success' : 'alert-danger') + ' mb-2">' + esc(res.message) + '</div>';
+                if (res.raw) {
+                    html += '<div class="text-muted small mb-1">Cloudflare 原始响应：</div>';
+                    html += '<pre class="bg-light p-2 rounded small" style="max-height: 220px; overflow:auto;">' + esc(JSON.stringify(res.raw, null, 2)) + '</pre>';
+                }
+                html += showFingerprint({ submitted: res.submitted_fp, db: res.db_fp });
+                $('#ts-e2e-result').html(html);
             } else {
-                showResult('#ts-e2e-result', false, (res && res.message) ? res.message : '验证失败，请重试。', (res && res.raw) ? res.raw : null);
+                var html = '<div class="alert alert-danger mb-2">' + esc((res && res.message) ? res.message : '验证失败，请重试。') + '</div>';
+                if (res && res.raw) {
+                    html += '<div class="text-muted small mb-1">Cloudflare 原始响应：</div>';
+                    html += '<pre class="bg-light p-2 rounded small" style="max-height: 220px; overflow:auto;">' + esc(JSON.stringify(res.raw, null, 2)) + '</pre>';
+                }
+                html += showFingerprint({ submitted: res.submitted_fp, db: res.db_fp });
+                $('#ts-e2e-result').html(html);
             }
             loadE2EWidget(false);
         }).fail(function () {

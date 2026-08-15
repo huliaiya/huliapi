@@ -34,6 +34,21 @@ if ($token === '') {
 
 $raw = huli_turnstile_siteverify_raw($secret, $token);
 $codes = isset($raw['error-codes']) ? (array)$raw['error-codes'] : array();
+$site_fp = strlen($site) >= 8 ? substr($site, 0, 8) . '...' . substr($site, -4) : $site;
+$secret_fp = strlen($secret) >= 12 ? substr($secret, 0, 8) . '...' . substr($secret, -4) : $secret;
+$submitted_fp = array('site' => $site_fp, 'secret' => $secret_fp);
+$db_keys = huli_turnstile_keys();
+$db_fp = array();
+if (!empty($db_keys['site_key'])) {
+    $db_fp['site'] = strlen($db_keys['site_key']) >= 12
+        ? substr($db_keys['site_key'], 0, 8) . '...' . substr($db_keys['site_key'], -4)
+        : $db_keys['site_key'];
+}
+if (!empty($db_keys['secret_key'])) {
+    $db_fp['secret'] = strlen($db_keys['secret_key']) >= 12
+        ? substr($db_keys['secret_key'], 0, 8) . '...' . substr($db_keys['secret_key'], -4)
+        : $db_keys['secret_key'];
+}
 if (!empty($raw['success'])) {
     $hostname = isset($raw['hostname']) ? $raw['hostname'] : '';
     $msg = '验证通过！Cloudflare 返回 success=true';
@@ -41,7 +56,7 @@ if (!empty($raw['success'])) {
         $msg .= '（请求来源域名：' . $hostname . '）';
     }
     $msg .= '。当前密钥与域名授权均正常。';
-    ts_json_response(true, $msg, array('raw' => $raw));
+    ts_json_response(true, $msg, array('raw' => $raw, 'submitted_fp' => $submitted_fp, 'db_fp' => $db_fp));
 }
 
 $msg = '验证未通过：' . huli_turnstile_error_message($codes);
@@ -54,4 +69,4 @@ if (in_array('invalid-input-secret', $codes, true)) {
 } elseif (in_array('internal-error', $codes, true)) {
     $msg .= '。服务端请求 Cloudflare 失败，请检查服务器外网连通性后再试。';
 }
-ts_json_response(false, $msg, array('raw' => $raw));
+ts_json_response(false, $msg, array('raw' => $raw, 'submitted_fp' => $submitted_fp, 'db_fp' => $db_fp));
