@@ -1,8 +1,12 @@
 <?php
-date_default_timezone_set('Asia/Shanghai');
-define('DB_HOST','127.0.0.1');define('DB_NAME','huliapi');define('DB_USER','huliapi');define('DB_PASS','huliapi');define('DB_CHARSET','utf8mb4');define('ADMIN_PATH','admin');
+define('DB_HOST', '127.0.0.1');
+define('DB_NAME', 'huliapi');
+define('DB_USER', 'huliapi');
+define('DB_PASS', 'huliapi');
+define('DB_CHARSET', 'utf8mb4');
+define('ADMIN_PATH', 'admin');
 
-// 防御 CSRF 跨站请求伪造：校验 POST 请求的 Origin 和 Referer
+// 防御 CSRF 跨站请求伪造：校验 POST 请求 of Origin and Referer
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $current_host = $_SERVER['HTTP_HOST'] ?? '';
     if ($current_host) {
