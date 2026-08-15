@@ -188,7 +188,7 @@ CREATE TABLE `huli_billing_plans` (
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='计费方案管理表';
 
 INSERT INTO `huli_billing_plans` (`id`,`name`,`description`,`price`,`billing_type`,`balance_to_add`,`points_to_add`,`membership_days`,`is_active`,`is_card`,`created_at`) VALUES
-(1,'默认套餐','默认的初始套餐',0.01,'balance',0.01,0,0,1,0,'2026-04-04 00:00:00'),
+(1,'入门套餐','5元获得5000点数，超高性价比',5.00,'points',0,5000,0,1,0,'2026-04-04 00:00:00'),
 (2,'超级会员月卡','开通超级会员30天',29.90,'membership',0,0,30,1,0,'2026-04-04 00:00:00'),
 (3,'超级会员季卡','开通超级会员90天',79.90,'membership',0,0,90,1,0,'2026-04-04 00:00:00'),
 (4,'100点数','充值100点数',10.00,'points',0,100,0,1,0,'2026-04-04 00:00:00');

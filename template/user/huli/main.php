@@ -226,6 +226,7 @@ try {
         .plan-card {
             cursor: pointer;
             transition: all 0.3s ease;
+            position: relative;
         }
         .plan-card:hover {
             transform: translateY(-5px);
@@ -234,6 +235,19 @@ try {
         .plan-card.border-primary {
             border: 2px solid #0d6efd;
             background-color: rgba(13, 110, 253, 0.05);
+        }
+        .plan-badge-default {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: linear-gradient(135deg, #f43f5e, #e11d48);
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            box-shadow: 0 2px 6px rgba(225,29,72,.4);
+            z-index: 1;
         }
         .payment-method {
             cursor: pointer;
@@ -427,9 +441,15 @@ try {
                         <?php if(empty($billing_plans)): ?>
                             <div class="col-12">当前暂无可用的充值方案。</div>
                         <?php else: ?>
-                            <?php foreach($billing_plans as $plan): ?>
+                            <?php $default_plan_id = (int)$billing_plans[0]['id']; ?>
+                            <?php foreach($billing_plans as $plan):
+                                $is_default = ((int)$plan['id'] === $default_plan_id);
+                            ?>
                                 <div class="col-md-4 mb-3">
-                                    <div class="card plan-card" data-plan-id="<?php echo $plan['id']; ?>">
+                                    <div class="card plan-card<?php echo $is_default ? ' border-primary selected' : ''; ?>" data-plan-id="<?php echo $plan['id']; ?>">
+                                        <?php if($is_default): ?>
+                                            <span class="plan-badge-default">推荐</span>
+                                        <?php endif; ?>
                                         <div class="card-body text-center">
                                             <h5><?php echo htmlspecialchars($plan['name']); ?></h5>
                                             <div class="text-primary fw-bold fs-3">¥<?php echo number_format($plan['price'], 2); ?></div>
@@ -556,11 +576,16 @@ document.addEventListener('DOMContentLoaded', function() {
         rechargeModal.show();
     });
     $('.plan-card').click(function() {
-        $('.plan-card').removeClass('border-primary');
-        $(this).addClass('border-primary');
+        $('.plan-card').removeClass('border-primary selected');
+        $(this).addClass('border-primary selected');
         $('#selected-plan-id').val($(this).data('plan-id'));
         $('#confirm-payment-btn').prop('disabled', false);
     });
+    var $defaultPlan = $('.plan-card.selected').first();
+    if ($defaultPlan.length) {
+        $('#selected-plan-id').val($defaultPlan.data('plan-id'));
+        $('#confirm-payment-btn').prop('disabled', false);
+    }
 
     $('#confirm-payment-btn').click(function(e) {
         e.preventDefault();
