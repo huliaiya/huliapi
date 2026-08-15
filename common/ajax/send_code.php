@@ -37,6 +37,59 @@ if ($type === 'friend_link' || $type === 'feedback') {
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // 获取真实客户端 IP
+    $ip_keys = ['HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_CLIENT_IP', 'REMOTE_ADDR'];
+    $client_ip = '0.0.0.0';
+    foreach ($ip_keys as $key) {
+        if (!empty($_SERVER[$key])) {
+            $ip_list = explode(',', $_SERVER[$key]);
+            foreach ($ip_list as $ip) {
+                $ip = trim($ip);
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    $client_ip = $ip;
+                    break 2;
+                }
+            }
+        }
+    }
+    if ($client_ip === '0.0.0.0') {
+        $client_ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    }
+
+    // 动态检测并创建日志表，防邮件/验证码轰炸
+    $table_check = $pdo->query("SHOW TABLES LIKE 'huli_verification_code_logs'")->fetch();
+    if (!$table_check) {
+        $pdo->exec("CREATE TABLE huli_verification_code_logs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            ip_address VARCHAR(45) NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_ip_time (ip_address, sent_at),
+            INDEX idx_email_time (email, sent_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+
+    // 1. 校验 IP 的发送频率限制
+    $stmt_ip_1h = $pdo->prepare("SELECT COUNT(*) FROM huli_verification_code_logs WHERE ip_address = ? AND sent_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)");
+    $stmt_ip_1h->execute([$client_ip]);
+    if ((int)$stmt_ip_1h->fetchColumn() >= 10) {
+        json_response(false, '当前IP请求验证码过于频繁，请1小时后再试。');
+    }
+    
+    $stmt_ip_24h = $pdo->prepare("SELECT COUNT(*) FROM huli_verification_code_logs WHERE ip_address = ? AND sent_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+    $stmt_ip_24h->execute([$client_ip]);
+    if ((int)$stmt_ip_24h->fetchColumn() >= 30) {
+        json_response(false, '当前IP今日请求验证码次数已达上限。');
+    }
+
+    // 2. 校验邮箱的发送频率限制
+    $stmt_email_24h = $pdo->prepare("SELECT COUNT(*) FROM huli_verification_code_logs WHERE email = ? AND sent_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+    $stmt_email_24h->execute([$email]);
+    if ((int)$stmt_email_24h->fetchColumn() >= 5) {
+        json_response(false, '该邮箱今日接收验证码次数已达上限。');
+    }
+
     if ($type === 'register' || $type === 'reset') {
         $stmt_check = $pdo->prepare("SELECT id FROM huli_users WHERE email = ?");
         $stmt_check->execute([$email]);
@@ -251,6 +304,11 @@ if ($type === 'register') {
 }
     $_SESSION['last_sent_time'] = time();
     $mail->send();
+
+    // 邮件发送成功后记录日志，用于限制频率
+    $stmt_log_send = $pdo->prepare("INSERT INTO huli_verification_code_logs (ip_address, email) VALUES (?, ?)");
+    $stmt_log_send->execute([$client_ip, $email]);
+
     json_response(true, '验证码已成功发送到您的邮箱，请注意查收。');
 } catch (Exception $e) {
     error_log('[send_code] 邮件发送失败: ' . $e->getMessage() . ' ErrorInfo: ' . $mail->ErrorInfo);
