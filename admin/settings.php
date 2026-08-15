@@ -531,7 +531,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 <p class="text-muted small mb-2">下方会直接渲染上方表单 Site Key 对应的人机验证组件。完成验证后自动提交，服务端会用上方表单中当前填写的真实密钥调用 Cloudflare siteverify 接口并展示完整响应。这是最准确的诊断工具，能直接定位域名授权、密钥配对、token 生命周期等问题。</p>
                 <div class="mb-2" id="ts-e2e-widget"></div>
                 <div class="mb-2" id="ts-e2e-status"></div>
-                <input type="hidden" id="ts-e2e-token" value="">
+                <input type="hidden" id="ts-e2e-token" name="cf-turnstile-response" value="">
                 <div class="d-flex align-items-center mb-3">
                   <button type="button" id="ts-e2e-reload-btn" class="btn btn-outline-secondary me-2">
                     <i class="mdi mdi-refresh"></i> 按上方表单 Site Key 重载组件
@@ -594,6 +594,33 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             return;
         }
         $('#ts-e2e-status').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">正在加载验证组件...</div>');
+        if (window.__huliE2EWidget && window.turnstile && typeof window.turnstile.remove === 'function') {
+            try { window.turnstile.remove(window.__huliE2EWidget); } catch (e) {}
+            window.__huliE2EWidget = null;
+        }
+        if (window.__huliE2EWidgetId && window.turnstile && typeof window.turnstile.remove === 'function') {
+            try { window.turnstile.remove(window.__huliE2EWidgetId); } catch (e) {}
+            if (window.huliTurnstile && window.huliTurnstile.widgets) {
+                delete window.huliTurnstile.widgets[window.__huliE2EWidgetId];
+            }
+            window.__huliE2EWidgetId = null;
+        }
+        if (window.__huliE2EPollTimer) {
+            clearInterval(window.__huliE2EPollTimer);
+            window.__huliE2EPollTimer = null;
+        }
+        $('#ts-e2e-widget').html('<div class="huli-turnstile mb-3"></div>');
+        $('#ts-e2e-token').val('');
+        var $host = $('#ts-e2e-widget .huli-turnstile');
+        var widgetId = $host.attr('id');
+        if (!widgetId) {
+            widgetId = 'huli-turnstile-e2e-' + Date.now();
+            $host.attr('id', widgetId);
+        }
+        window.__huliE2EWidgetId = widgetId;
+        if (typeof window.huliReloadTurnstileSdk === 'function') {
+            window.huliReloadTurnstileSdk();
+        }
         var loadingTimer = setTimeout(function () {
             $('#ts-e2e-status').html('<div class="alert alert-warning py-1 px-2 mb-0 small">验证组件仍在加载中（已等待 35 秒）。若长时间无响应，请检查 challenges.cloudflare.com 可达性后点击「重载组件」重试。</div>');
         }, 35000);
@@ -614,39 +641,56 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 $('#ts-e2e-status').html('<div class="alert alert-danger py-1 px-2 mb-0 small">' + detail + '</div>');
                 return;
             }
-            if (window.__huliE2EWidget) {
-                try { window.turnstile.remove(window.__huliE2EWidget); } catch (e) {}
-                window.__huliE2EWidget = null;
-            }
-            $('#ts-e2e-widget').html('<div class="huli-turnstile"></div>');
-            $('#ts-e2e-token').val('');
-            var el = $('#ts-e2e-widget .huli-turnstile').get(0);
             try {
-                window.__huliE2EWidget = window.turnstile.render(el, {
-                    sitekey: siteKey,
-                    callback: function (token) {
-                        $('#ts-e2e-token').val(token);
-                        if (window.__huliE2EAutoSubmit) {
-                            $('#ts-e2e-status').html('<div class="alert alert-success py-1 px-2 mb-0 small">验证组件已完成，正在自动提交验证...</div>');
-                            setTimeout(function () { $('#ts-e2e-submit-btn').trigger('click'); }, 600);
-                        } else {
-                            $('#ts-e2e-status').html('<div class="alert alert-success py-1 px-2 mb-0 small">验证组件已完成，可点击「提交验证」。</div>');
+                if (typeof window.huliRenderOneTurnstile === 'function') {
+                    window.huliRenderOneTurnstile(widgetId, siteKey);
+                } else {
+                    window.__huliE2EWidget = window.turnstile.render(document.getElementById(widgetId), {
+                        sitekey: siteKey,
+                        'refresh-expired': 'auto',
+                        'retry': 'auto',
+                        'retry-interval': 2000,
+                        callback: function (token) {
+                            $('#ts-e2e-token').val(token);
+                        },
+                        'expired-callback': function () {
+                            $('#ts-e2e-token').val('');
+                            $('#ts-e2e-status').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">验证已过期，请重新完成验证。</div>');
+                        },
+                        'error-callback': function (code) {
+                            $('#ts-e2e-token').val('');
+                            $('#ts-e2e-status').html('<div class="alert alert-danger py-1 px-2 mb-0 small">验证组件错误：' + esc(code) + '。常见错误码 110200 表示当前域名未在 Cloudflare Hostname Management 中授权。</div>');
+                            return true;
                         }
-                    },
-                    'expired-callback': function () {
-                        $('#ts-e2e-token').val('');
-                        $('#ts-e2e-status').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">验证已过期，请重新完成验证。</div>');
-                    },
-                    'error-callback': function (code) {
-                        $('#ts-e2e-token').val('');
-                        $('#ts-e2e-status').html('<div class="alert alert-danger py-1 px-2 mb-0 small">验证组件错误：' + esc(code) + '。常见错误码 110200 表示当前域名未在 Cloudflare Hostname Management 中授权。</div>');
-                    }
-                });
+                    });
+                }
             } catch (err) {
                 $('#ts-e2e-status').html('<div class="alert alert-danger py-1 px-2 mb-0 small">组件渲染失败：' + esc(err && err.message ? err.message : err) + '</div>');
                 return;
             }
             $('#ts-e2e-status').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">组件已加载，请完成验证（若为无感验证将自动通过，完成后会自动提交）。</div>');
+            if (window.__huliE2EAutoSubmit) {
+                var polled = 0;
+                var pollTimer = setInterval(function () {
+                    polled += 250;
+                    var token = (typeof window.huliGetTurnstileResponse === 'function') ? window.huliGetTurnstileResponse() : '';
+                    if (token) {
+                        clearInterval(pollTimer);
+                        window.__huliE2EPollTimer = null;
+                        if (!$('#ts-e2e-token').val()) {
+                            $('#ts-e2e-token').val(token);
+                        }
+                        $('#ts-e2e-status').html('<div class="alert alert-success py-1 px-2 mb-0 small">验证组件已完成，正在自动提交验证...</div>');
+                        setTimeout(function () { $('#ts-e2e-submit-btn').trigger('click'); }, 600);
+                        return;
+                    }
+                    if (polled >= 25000) {
+                        clearInterval(pollTimer);
+                        window.__huliE2EPollTimer = null;
+                    }
+                }, 250);
+                window.__huliE2EPollTimer = pollTimer;
+            }
         });
     }
     $('#ts-test-keys-btn').on('click', function () {
@@ -700,6 +744,16 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
         el.addEventListener('shown.bs.tab', function (ev) {
             var target = ev.target.getAttribute('data-bs-target');
             if (target && target.charAt(0) === '#') { history.replaceState(null, '', target); }
+            if (target === '#turnstile') {
+                var currentKey = $.trim($('#turnstile_site_key').val());
+                var tokenField = $('#ts-e2e-token');
+                var widgetBox = $('#ts-e2e-widget');
+                if (currentKey && widgetBox.children().length === 0) {
+                    loadE2EWidget(true);
+                } else if (currentKey && tokenField.length && !tokenField.val()) {
+                    loadE2EWidget(true);
+                }
+            }
         });
     });
     if (location.hash === '#turnstile') {
@@ -708,8 +762,9 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             var tab = new bootstrap.Tab(turnstileTab);
             tab.show();
         }
+    } else {
+        loadE2EWidget(true);
     }
-    loadE2EWidget(true);
 })();
 </script>
 </body>
