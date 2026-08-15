@@ -1,7 +1,7 @@
 <?php
 @session_start();
-error_reporting(E_ALL);
-ini_set('display_errors', 'On');
+@error_reporting(0);
+@ini_set('display_errors', 'Off');
 if (!file_exists('../config.php')) {
     die("出现错误！配置文件丢失，请先完成安装。");
 }

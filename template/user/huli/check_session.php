@@ -1,5 +1,7 @@
 <?php
 @session_start();
+@error_reporting(0);
+@ini_set('display_errors', 'Off');
 require_once dirname(__DIR__, 3) . '/config.php';
 $response = ['logged_in' => false];
 if (isset($_SESSION['user_id'])) {

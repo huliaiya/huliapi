@@ -18,6 +18,7 @@ if (!file_exists('../../config.php')) {
     json_response(false, '系统错误: 配置文件丢失。');
 }
 require_once '../../config.php';
+require_once __DIR__ . '/../../common/turnstile.php';
 $type = $_POST['type'] ?? '';
 $api_id = isset($_POST['api_id']) && $_POST['api_id'] !== '' ? intval($_POST['api_id']) : null;
 $content = trim($_POST['content'] ?? '');
@@ -28,6 +29,10 @@ if (empty($type) || empty($content)) {
 }
 if ($type === 'api' && $api_id === null) {
     json_response(false, '请选择一个需要反馈的接口。');
+}
+$turnstile_reason = '';
+if (!huli_turnstile_verify($turnstile_reason)) {
+    json_response(false, $turnstile_reason ?: '人机验证失败，请完成验证后重试。');
 }
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);

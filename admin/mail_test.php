@@ -1,7 +1,7 @@
 <?php
 @session_start();
-@error_reporting(E_ALL);
-@ini_set('display_errors', 'On');
+@error_reporting(0);
+@ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (!file_exists('../config.php')) { die("出现错误！配置文件丢失。"); }
 require_once '../config.php';

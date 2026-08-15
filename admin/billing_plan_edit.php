@@ -64,7 +64,8 @@ try {
         exit;
     }
 } catch (Exception $e) {
-    echo "<script>alert('错误：".$e->getMessage()."');</script>";
+    error_log('[billing_plan_edit] ' . $e->getMessage());
+    echo "<script>alert('保存失败，请检查输入或稍后重试。');</script>";
 }
 ?>
 

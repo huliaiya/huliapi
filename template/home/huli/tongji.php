@@ -1,4 +1,6 @@
 <?php
+@error_reporting(0);
+@ini_set('display_errors', 'Off');
 date_default_timezone_set('Asia/Shanghai');
 header('Content-Type: text/html; charset=utf-8');
 require_once '../../../config.php';

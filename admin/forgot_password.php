@@ -5,11 +5,17 @@
 if (isset($_SESSION['admin_id'])) { header('Location: index.php'); exit; }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失，请先完成安装。"); }
 $mail_forgot_enabled = false;
+$site_name = 'huliapi';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $stmt = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'mail_admin_forgot_enabled'");
     $mail_forgot_enabled = ($stmt->fetchColumn() == 1);
+    $stmt_site = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_name'");
+    if ($stmt_site) {
+        $val = $stmt_site->fetchColumn();
+        if ($val !== false) { $site_name = $val; }
+    }
 } catch (Exception $e) {}
 ?>
 <!DOCTYPE html>
@@ -18,7 +24,7 @@ try {
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-<title>找回密码 - <?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?></title>
+<title>找回密码 - <?php echo htmlspecialchars($site_name); ?></title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">

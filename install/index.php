@@ -247,6 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $_SESSION['install_log'] = $log;
                 $_SESSION['installed_admin'] = $install;
+                $_SESSION['receipt_sent'] = $receipt_sent;
                 header('Location: ?step=' . STEP_COMPLETE);
                 exit;
             }
@@ -962,9 +963,9 @@ body {
               <span class="credential-value">安装时设置的密码</span>
             </div>
             <div class="credential-item">
-              <i class="mdi mdi-email-check-outline credential-icon" style="color: var(--success);"></i>
+              <i class="mdi mdi-email-check-outline credential-icon" style="color: <?= !empty($_SESSION['receipt_sent']) ? 'var(--success)' : 'var(--warning)' ?>;"></i>
               <span class="credential-label">回执邮件</span>
-              <span class="credential-value">已发送至 yanzhengapi@163.com（含免责声明）</span>
+              <span class="credential-value"><?= !empty($_SESSION['receipt_sent']) ? '已发送至 yanzhengapi@163.com（含免责声明）' : '发送失败，请检查 SMTP 配置（不影响安装）' ?></span>
             </div>
             <div class="credential-item">
               <i class="mdi mdi-alert-circle credential-icon" style="color: var(--warning);"></i>
