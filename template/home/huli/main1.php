@@ -456,12 +456,12 @@ function getCallCountStyle($count) {
         <?php endforeach; ?>
     <?php else: ?>
         <li class="ad-item">
-            <a rel="nofollow" href="https://qm.qq.com/q/kxPtqE3N72" class="ad-color-0 ad-placeholder">
+            <a rel="nofollow" href="https://t.me/huliaiya" class="ad-color-0 ad-placeholder">
                 🔥 文字广告位招租
             </a>
         </li>
         <li class="ad-item">
-            <a rel="nofollow" href="https://qm.qq.com/q/kxPtqE3N72" class="ad-color-1 ad-placeholder">
+            <a rel="nofollow" href="https://t.me/huliaiya" class="ad-color-1 ad-placeholder">
                 📢 5元/月 点击咨询
             </a>
         </li>
