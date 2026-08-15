@@ -528,7 +528,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 </form>
                 <hr class="my-4">
                 <div class="mb-2 fw-bold"><i class="mdi mdi-flask-outline"></i> 端到端测试</div>
-                <p class="text-muted small mb-2">完成下方 Cloudflare 验证后点击「提交验证」，服务端会用上方表单中当前填写的真实密钥调用 Cloudflare siteverify 接口并展示完整响应。这是最准确的诊断工具，能直接定位域名授权、密钥配对、token 生命周期等问题。</p>
+                <p class="text-muted small mb-2">下方会直接渲染上方表单 Site Key 对应的人机验证组件。完成验证后自动提交，服务端会用上方表单中当前填写的真实密钥调用 Cloudflare siteverify 接口并展示完整响应。这是最准确的诊断工具，能直接定位域名授权、密钥配对、token 生命周期等问题。</p>
                 <div class="mb-2" id="ts-e2e-widget"></div>
                 <div class="mb-2" id="ts-e2e-status"></div>
                 <input type="hidden" id="ts-e2e-token" value="">
@@ -567,8 +567,9 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
         }
         $(selector).html(html);
     }
-    function loadE2EWidget() {
+    function loadE2EWidget(autoSubmit) {
         var siteKey = $.trim($('#turnstile_site_key').val());
+        window.__huliE2EAutoSubmit = (autoSubmit !== false);
         if (!siteKey) {
             $('#ts-e2e-status').html('<div class="alert alert-warning py-1 px-2 mb-0 small">请先在上方填写 Turnstile Site Key 再加载测试组件。</div>');
             return;
@@ -606,7 +607,12 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                     sitekey: siteKey,
                     callback: function (token) {
                         $('#ts-e2e-token').val(token);
-                        $('#ts-e2e-status').html('<div class="alert alert-success py-1 px-2 mb-0 small">验证组件已完成，可点击「提交验证」。</div>');
+                        if (window.__huliE2EAutoSubmit) {
+                            $('#ts-e2e-status').html('<div class="alert alert-success py-1 px-2 mb-0 small">验证组件已完成，正在自动提交验证...</div>');
+                            setTimeout(function () { $('#ts-e2e-submit-btn').trigger('click'); }, 600);
+                        } else {
+                            $('#ts-e2e-status').html('<div class="alert alert-success py-1 px-2 mb-0 small">验证组件已完成，可点击「提交验证」。</div>');
+                        }
                     },
                     'expired-callback': function () {
                         $('#ts-e2e-token').val('');
@@ -621,7 +627,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 $('#ts-e2e-status').html('<div class="alert alert-danger py-1 px-2 mb-0 small">组件渲染失败：' + esc(err && err.message ? err.message : err) + '</div>');
                 return;
             }
-            $('#ts-e2e-status').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">组件已加载，请完成验证。</div>');
+            $('#ts-e2e-status').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">组件已加载，请完成验证（若为无感验证将自动通过，完成后会自动提交）。</div>');
         });
     }
     $('#ts-test-keys-btn').on('click', function () {
@@ -638,7 +644,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             $('#ts-test-result').html('<div class="alert alert-danger py-1 px-2 mb-0 small">请求失败，请检查网络连接后重试。</div>');
         });
     });
-    $('#ts-e2e-reload-btn').on('click', loadE2EWidget);
+    $('#ts-e2e-reload-btn').on('click', function () { loadE2EWidget(true); });
     $('#ts-e2e-submit-btn').on('click', function () {
         var token = $.trim($('#ts-e2e-token').val());
         var siteKey = $.trim($('#turnstile_site_key').val());
@@ -654,7 +660,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             } else {
                 showResult('#ts-e2e-result', false, (res && res.message) ? res.message : '验证失败，请重试。', (res && res.raw) ? res.raw : null);
             }
-            loadE2EWidget();
+            loadE2EWidget(false);
         }).fail(function () {
             $('#ts-e2e-result').html('<div class="alert alert-danger py-1 px-2 mb-0 small">请求失败，请检查网络连接后重试。</div>');
         });
@@ -672,7 +678,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             tab.show();
         }
     }
-    loadE2EWidget();
+    loadE2EWidget(true);
 })();
 </script>
 </body>
