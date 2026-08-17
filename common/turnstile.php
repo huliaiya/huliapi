@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (file_exists(dirname(__DIR__) . '/config.php')) {

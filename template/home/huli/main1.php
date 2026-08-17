@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../../../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 $rootPath = dirname(__DIR__, 3);
@@ -14,11 +14,14 @@ $homeTemplateBaseUrl = "/template/home/{$homeTemplate}/";
 $userTemplate = TemplateManager::getActiveUserTemplate();
 $userTemplateBaseUrl = "/template/User/{$userTemplate}/";
 $apis = [];
+$site_name = 'huliapi';
 try {
     $pdo = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $stmt_apis = $pdo->query("SELECT * FROM huli_apis ORDER BY id DESC");
     $apis = $stmt_apis->fetchAll(PDO::FETCH_ASSOC);
+    $stmt_site = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_name'");
+    $site_name = $stmt_site->fetchColumn() ?: 'huliapi';
 } catch (PDOException $e) {
 }
 $announcement = null;

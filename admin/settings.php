@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
@@ -80,7 +80,8 @@ try {
                     }
                 }
             } catch (Throwable $e) {
-                $push_feedback_msg = '测试异常: ' . $e->getMessage();
+                error_log('[settings.php] 测试异常: ' . $e->getMessage());
+                $push_feedback_msg = '测试异常，请稍后重试。';
                 $push_feedback_type = 'danger';
             }
         } elseif (isset($_POST['channel'])) {
@@ -135,6 +136,10 @@ try {
     } catch (Throwable $e) {}
     $sys_mail = huli_load_system_mail_config($pdo);
     $mail_cfg_ok = !empty($sys_mail['smtp_host']) && !empty($sys_mail['smtp_user']) && !empty($sys_mail['smtp_pass']);
+} catch (PDOException $e) {
+    if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
+    error_log('[settings.php] 操作失败: ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。'; $feedback_type = 'error';
 } catch (Exception $e) {
     if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
     $feedback_msg = '操作失败: ' . $e->getMessage(); $feedback_type = 'error';

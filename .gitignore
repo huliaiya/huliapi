@@ -1,1 +1,3 @@
 install.backup/
+logs/
+common/payment/notify_log.txt

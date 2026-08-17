@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
@@ -63,6 +63,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $feedback_type = "error";
             }
         }
+    } catch (PDOException $e) {
+        error_log('[template.php] 操作失败: ' . $e->getMessage());
+        $feedback_msg = "操作失败，请稍后重试。";
+        $feedback_type = "error";
     } catch (Exception $e) {
         $feedback_msg = "操作失败: " . $e->getMessage();
         $feedback_type = "error";
@@ -88,6 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
             $feedback_msg = $msg . "失败！";
             $feedback_type = "error";
         }
+    } catch (PDOException $e) {
+        error_log('[template.php] 操作失败: ' . $e->getMessage());
+        $feedback_msg = "操作失败，请稍后重试。";
+        $feedback_type = "error";
     } catch (Exception $e) {
         $feedback_msg = "操作失败: " . $e->getMessage();
         $feedback_type = "error";

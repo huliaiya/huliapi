@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
@@ -56,7 +56,8 @@ try {
     }
     $plans = $pdo->query("SELECT * FROM huli_billing_plans ORDER BY price ASC")->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    $feedback_msg = '数据库操作失败: ' . $e->getMessage();
+    error_log('[billing_plans.php] 数据库操作失败: ' . $e->getMessage());
+    $feedback_msg = '数据库操作失败，请稍后重试。';
     $feedback_type = 'error';
     $plans = [];
 }

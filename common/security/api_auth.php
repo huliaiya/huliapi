@@ -39,13 +39,21 @@ function checkApiRateLimit($pdo, $settings, $scope, $identifier, $limit, $window
             error_log('Redis限速不可用，已回退数据库限速: ' . $e->getMessage());
         }
     }
-    if ($scope === 'ip') {
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM huli_api_logs WHERE ip_address = ? AND request_time >= FROM_UNIXTIME(?)");
-    } else {
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM huli_api_logs WHERE user_id = ? AND request_time >= FROM_UNIXTIME(?)");
+    $window_start = (int)(time() / $window) * $window;
+    try {
+        $stmt = $pdo->prepare("INSERT INTO huli_rate_limits (scope, identifier, window_start, request_count) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE request_count = request_count + 1");
+        $stmt->execute([$scope, $identifier, $window_start]);
+        $stmt = $pdo->prepare("SELECT request_count FROM huli_rate_limits WHERE scope = ? AND identifier = ? AND window_start = ?");
+        $stmt->execute([$scope, $identifier, $window_start]);
+        $count = (int)$stmt->fetchColumn();
+        if ($count % 64 === 0) {
+            $pdo->prepare("DELETE FROM huli_rate_limits WHERE window_start < ?")->execute([time() - 86400]);
+        }
+        return $count > $limit;
+    } catch (Throwable $e) {
+        error_log('huliapi 限速计数异常: ' . $e->getMessage());
+        return false;
     }
-    $stmt->execute([$identifier, time() - $window]);
-    return (int)$stmt->fetchColumn() > $limit;
 }
 
 function sendDailyPointsNotification($pdo, $settings, $email, $points) {
@@ -185,6 +193,16 @@ try {
             claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY unique_user_date (user_id, claim_date),
             INDEX idx_user (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+    $rate_table_check = $pdo->query("SHOW TABLES LIKE 'huli_rate_limits'")->fetch();
+    if (!$rate_table_check) {
+        $pdo->exec("CREATE TABLE huli_rate_limits (
+            scope VARCHAR(16) NOT NULL,
+            identifier VARCHAR(64) NOT NULL,
+            window_start INT UNSIGNED NOT NULL,
+            request_count INT UNSIGNED NOT NULL DEFAULT 0,
+            PRIMARY KEY (scope, identifier, window_start)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     }
     $required_settings = [
@@ -448,16 +466,6 @@ try {
         }
     }
 }
-            if ($billing_type === 'points') {
-                if ($user['points'] < $billing_amount) {
-                    $grant_msg = $daily_points_granted ? "（今日已自动赠送{$daily_free_points}点）" : "";
-                    api_error_exit(402, "点数不足，当前点数：{$user['points']}{$grant_msg}");
-                }
-            } elseif ($billing_type === 'balance') {
-                if ($user['balance'] < $billing_amount) {
-                    api_error_exit(402, "余额不足，当前余额：{$user['balance']}元");
-                }
-            }
             $is_success = true;
         }
     }
@@ -466,6 +474,26 @@ try {
     }
     $pdo->beginTransaction();
     try {
+        if ($log_user_id && $is_success && !$is_super_member) {
+            if ($billing_type === 'balance') {
+                $stmt_lock = $pdo->prepare("SELECT balance FROM huli_users WHERE id = ? FOR UPDATE");
+                $stmt_lock->execute([$log_user_id]);
+                $cur_balance = $stmt_lock->fetchColumn();
+                if ($cur_balance < $billing_amount) {
+                    $pdo->rollBack();
+                    api_error_exit(402, "余额不足，当前余额：{$cur_balance}元");
+                }
+            } elseif ($billing_type === 'points') {
+                $stmt_lock = $pdo->prepare("SELECT points FROM huli_users WHERE id = ? FOR UPDATE");
+                $stmt_lock->execute([$log_user_id]);
+                $cur_points = $stmt_lock->fetchColumn();
+                if ($cur_points < $billing_amount) {
+                    $grant_msg = $daily_points_granted ? "（今日已自动赠送{$daily_free_points}点）" : "";
+                    $pdo->rollBack();
+                    api_error_exit(402, "点数不足，当前点数：{$cur_points}{$grant_msg}");
+                }
+            }
+        }
         $pdo->prepare("UPDATE huli_apis SET total_calls = total_calls + 1 WHERE id = ?")->execute([$log_api_id]);
         if ($log_user_id) {
             $pdo->prepare("UPDATE huli_users SET call_count = call_count + 1 WHERE id = ?")->execute([$log_user_id]);
@@ -481,7 +509,7 @@ try {
         $stmt_log->execute([$log_api_id, $log_user_id, $log_ip_address, 200, $is_success ? 1 : 0, $billing_type, $billing_amount]);
         $pdo->commit();
     } catch (Exception $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) $pdo->rollBack();
         error_log('huliapi API计费入账异常: ' . $e->getMessage());
         api_error_exit(500, '内部服务器错误');
     }

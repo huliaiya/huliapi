@@ -145,7 +145,8 @@ if (!defined('HULI_ORDER_FULFILLMENT_LOADED')) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            return ['ok' => false, 'message' => '入账失败: ' . $e->getMessage()];
+            error_log('[order_fulfillment.php] 入账失败: ' . $e->getMessage());
+            return ['ok' => false, 'message' => '入账失败，请稍后重试'];
         }
     }
 
@@ -207,7 +208,8 @@ if (!defined('HULI_ORDER_FULFILLMENT_LOADED')) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            return ['ok' => false, 'status' => 'pending', 'message' => '入账失败: ' . $e->getMessage()];
+            error_log('[order_fulfillment.php] 入账失败: ' . $e->getMessage());
+            return ['ok' => false, 'status' => 'pending', 'message' => '入账失败，请稍后重试'];
         }
     }
 }

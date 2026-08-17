@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../../common/session_boot.php';
 error_reporting(0);
 ini_set('display_errors', 'Off');
 $is_ajax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
@@ -88,6 +88,16 @@ try {
         }
         $success_msg = '注册成功！您现在可以使用您的账户登录了。';
     }
+} catch (PDOException $e) {
+    error_log('[register.php] 注册失败: ' . $e->getMessage());
+    if ($is_ajax) {
+        header('Content-Type: application/json');
+        die(json_encode([
+            'success' => false,
+            'message' => '注册失败，请稍后重试。'
+        ]));
+    }
+    $error_msg = '注册失败，请稍后重试。';
 } catch (Exception $e) {
     if ($is_ajax) {
         header('Content-Type: application/json');

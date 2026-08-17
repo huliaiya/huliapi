@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!file_exists('../config.php')) {
@@ -137,7 +137,9 @@ try {
     }
 } catch (PDOException $e) {
     $db_error = "数据库连接错误: " . $e->getMessage();
-    error_log("[" . date('Y-m-d H:i:s') . "] 数据库错误: " . $e->getMessage() . "\n", 3, "../logs/db_errors.log");
+    $log_dir = dirname(__DIR__) . '/logs';
+    if (!is_dir($log_dir)) { @mkdir($log_dir, 0755, true); }
+    error_log("[" . date('Y-m-d H:i:s') . "] 数据库错误: " . $e->getMessage() . "\n", 3, $log_dir . '/db_errors.log');
     $server_info['mysql_version'] = '连接失败';
 }
 if (function_exists('sys_getloadavg')) {

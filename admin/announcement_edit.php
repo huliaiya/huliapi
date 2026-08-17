@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
@@ -36,7 +36,8 @@ try {
         $_SESSION['feedback_type'] = 'success';
         header('Location: announcement_list.php'); exit;
     }
-} catch (Exception $e) { $feedback_msg = '操作失败: ' . $e->getMessage(); $feedback_type = 'error'; }
+} catch (PDOException $e) { error_log('[announcement_edit.php] 操作失败: ' . $e->getMessage()); $feedback_msg = '操作失败，请稍后重试。'; $feedback_type = 'error'; }
+catch (Exception $e) { $feedback_msg = '操作失败: ' . $e->getMessage(); $feedback_type = 'error'; }
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
 

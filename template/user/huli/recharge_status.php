@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../../../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }

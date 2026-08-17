@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../../common/session_boot.php';
 error_reporting(0);
 ini_set('display_errors', 'Off');
 if (!isset($_SESSION['user_id'])) {
@@ -53,6 +53,22 @@ try {
         ]);
     } else {
         header("Location: {$status_url}");
+    }
+    exit;
+} catch (PDOException $e) {
+    error_log('[recharge.php] 数据库错误: ' . $e->getMessage());
+    $error_msg = '创建订单失败，请稍后重试。';
+    if (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => $error_msg,
+            'code' => 500
+        ]);
+    } else {
+        $_SESSION['feedback_msg'] = $error_msg;
+        $_SESSION['feedback_type'] = 'error';
+        header('Location: payok.php');
     }
     exit;
 } catch (Exception $e) {

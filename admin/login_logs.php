@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
@@ -61,7 +61,8 @@ try {
         COUNT(DISTINCT ip) AS uniq_ip
         FROM huli_login_logs WHERE login_at > DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetch();
 } catch (Exception $e) {
-    $feedback_msg = '加载失败: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+    error_log('[login_logs.php] 加载失败: ' . $e->getMessage());
+    $feedback_msg = '加载失败，请稍后重试。';
     $feedback_type = 'error';
     $logs = []; $stats = ['total'=>0,'ok'=>0,'fail'=>0,'uniq_ip'=>0]; $total=0; $totalPages=1; $page=1;
 }
