@@ -9,7 +9,7 @@ $is_installed = file_exists('install.lock');
 if ($is_installed && basename($_SERVER['PHP_SELF']) !== 'install.php' && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_COMPLETE)) {
     die('系统已安装，如需重新安装请删除install.lock文件');
 }
-if (!$is_installed && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_CHECK_ENV) && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_COMPLETE)) {
+if (!$is_installed && $_SERVER['REQUEST_METHOD'] !== 'POST' && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_CHECK_ENV) && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_COMPLETE)) {
     header('Location: ?step=' . STEP_CHECK_ENV);
     exit;
 }
