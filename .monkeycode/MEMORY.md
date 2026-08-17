@@ -41,3 +41,12 @@ Entries discovered by the Agent during task execution should follow this format:
   - The install directory has been renamed to install.backup for security, and removed from git tracking.
   - Global CSRF defense is implemented at the top of config.php by checking POST request Origin/Referer headers (with ports stripped).
   - Code verification logs table huli_verification_code_logs is created in DB for IP and email verification code rate limiting.
+
+[Project Knowledge Summary]
+- Date: 2026-08-17
+- Context: Discovered by Agent while performing smoke tests and rate-limit/billing concurrency verification
+- Category: Environment Configuration
+- Instructions:
+  - This devbox has no curl command; use PHP cURL scripts (`php -r` or temp scripts) for HTTP connectivity tests.
+  - QPS limit check uses `count > limit` (count == limit is allowed), so to verify a 429, prefill `request_count` in `huli_rate_limits` to the limit value first.
+  - Billing concurrency (negative balance) can be verified end-to-end with a temporary billable API endpoint + test user, then 8-way parallel requests expecting 200xN + 402x(8-N) and balance exactly 0.
