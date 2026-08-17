@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../../../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 $rootPath = dirname(__DIR__, 3);
@@ -55,7 +55,11 @@ function getStatusBadge($status) {
 
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') ? 'https' : 'http';
 $base_url = $protocol . "://" . $_SERVER['HTTP_HOST'];
-$request_url = $base_url . '/API/' . rawurldecode($api['endpoint']) . '.php';
+$api_endpoint = trim((string)($api['endpoint'] ?? ''));
+if (!preg_match('/^[A-Za-z0-9_]+$/', $api_endpoint)) {
+    $api_endpoint = '';
+}
+$request_url = $base_url . '/API/' . $api_endpoint . '.php';
 $example_url = !empty($api['request_example']) ? $base_url . $api['request_example'] : $request_url;
 $hasApiKeyParam = false;
 foreach($params as $p) {
@@ -874,8 +878,8 @@ body {
                 <div id="code-panels">
                     <div class="code-panel active" id="panel-php">
                         <pre><code>&lt;?php
-$url = '<?php echo $request_url; ?>';
-$params = [<?php foreach($params as $p) echo "'".htmlspecialchars($p['name'])."' => 'YOUR_VALUE', "; ?>];
+$url = '<?php echo htmlspecialchars($request_url, ENT_QUOTES, 'UTF-8'); ?>';
+$params = [<?php foreach($params as $p) echo "'".htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8')."' => 'YOUR_VALUE', "; ?>];
 $url .= '?' . http_build_query($params);
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
@@ -887,16 +891,17 @@ echo $response;
                     </div>
                     <div class="code-panel" id="panel-python">
                         <pre><code>import requests
-url = "<?php echo $request_url; ?>"
+url = "<?php echo htmlspecialchars($request_url, ENT_QUOTES, 'UTF-8'); ?>"
 params = {
-<?php foreach($params as $p) echo "    '".htmlspecialchars($p['name'])."': 'YOUR_VALUE',\n"; ?>}
+<?php foreach($params as $p) echo "    '".htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8')."': 'YOUR_VALUE',\n"; ?>}
 response = requests.get(url, params=params)
 print(response.text)</code></pre>
                     </div>
                     <div class="code-panel" id="panel-js">
-                        <pre><code>const url = new URL('<?php echo $request_url; ?>');
+                        <pre><code>const url = new URL('<?php echo htmlspecialchars($request_url, ENT_QUOTES, 'UTF-8'); ?>');
+
 const params = {
-<?php foreach($params as $p) echo "    '".htmlspecialchars($p['name'])."': 'YOUR_VALUE',\n"; ?>};
+<?php foreach($params as $p) echo "    '".htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8')."': 'YOUR_VALUE',\n"; ?>};
 Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
 fetch(url)
     .then(response => response.text())

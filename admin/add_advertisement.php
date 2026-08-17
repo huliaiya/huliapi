@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) {
@@ -39,6 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $feedback_msg = "广告添加成功！";
         $feedback_type = "success";
         $_POST = [];
+    } catch (PDOException $e) {
+        error_log('[add_advertisement.php] ' . $e->getMessage());
+        $feedback_msg = "操作失败，请稍后重试。";
+        $feedback_type = "error";
     } catch (Exception $e) {
         $feedback_msg = $e->getMessage();
         $feedback_type = "error";

@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) {
@@ -46,6 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $_SESSION['feedback_type'] = 'success';
     } catch (InvalidArgumentException $e) {
         $_SESSION['feedback_msg'] = '删除失败: 参数无效';
+        $_SESSION['feedback_type'] = 'error';
+    } catch (PDOException $e) {
+        error_log('[api_list.php] 删除失败: ' . $e->getMessage());
+        $_SESSION['feedback_msg'] = '删除失败，请稍后重试。';
         $_SESSION['feedback_type'] = 'error';
     } catch (Exception $e) {
         $_SESSION['feedback_msg'] = '删除失败: ' . $e->getMessage();
@@ -191,7 +195,8 @@ try {
     $totalPages = 1;
     $pdo = null;
 } catch (Exception $e) {
-    $feedback_msg = $e->getMessage();
+    error_log('[api_list.php] 操作失败: ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。';
     $feedback_type = 'error';
     $apis = [];
     $totalPages = 1;

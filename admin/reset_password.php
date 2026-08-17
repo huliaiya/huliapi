@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 $is_ajax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
@@ -74,6 +74,13 @@ try {
         }
         $success_msg = '密码重置成功！请使用新密码登录';
     }
+} catch (PDOException $e) {
+    error_log('[reset_password.php] ' . $e->getMessage());
+    if ($is_ajax) {
+        header('Content-Type: application/json');
+        die(json_encode(['success' => false, 'message' => '系统错误，请稍后重试。']));
+    }
+    $error_msg = '系统错误，请稍后重试。';
 } catch (Exception $e) {
     if ($is_ajax) {
         header('Content-Type: application/json');

@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../../common/session_boot.php';
 error_reporting(0);
 ini_set('display_errors', 'Off');
 if (!isset($_SESSION['user_id'])) {
@@ -42,7 +42,8 @@ try {
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $site_name = $settings['site_name'] ?? 'huliapi';
 } catch (PDOException $e) {
-    die('数据库连接错误：' . $e->getMessage());
+    error_log('[payok.php] 数据库错误: ' . $e->getMessage());
+    die('系统服务暂时不可用，请稍后重试。');
 }
 ?>
 

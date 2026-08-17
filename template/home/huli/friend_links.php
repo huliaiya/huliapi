@@ -7,7 +7,7 @@ ini_set('display_errors', 'Off');
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_samesite', 'Lax');
 ini_set('session.use_trans_sid', 0);
-session_start();
+require_once __DIR__ . '/../../../common/session_boot.php';
 
  
 $rootPath = dirname(__DIR__, 3);

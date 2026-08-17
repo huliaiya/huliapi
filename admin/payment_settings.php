@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
@@ -24,6 +24,10 @@ try {
     $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key LIKE 'afdian_%'");
     $db_settings = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
     $settings = array_merge($settings, $db_settings);
+} catch (PDOException $e) {
+    if ($pdo->inTransaction()) { $pdo->rollBack(); }
+    error_log('[payment_settings.php] 操作失败: ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。'; $feedback_type = 'error';
 } catch (Exception $e) {
     if ($pdo->inTransaction()) { $pdo->rollBack(); }
     $feedback_msg = '操作失败: ' . $e->getMessage(); $feedback_type = 'error';

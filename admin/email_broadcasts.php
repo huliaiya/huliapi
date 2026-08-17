@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
@@ -34,7 +34,8 @@ try {
     $stmt = $pdo->query("SELECT * FROM huli_email_broadcasts ORDER BY created_at DESC");
     $broadcasts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    $feedback_msg = $e->getMessage(); $feedback_type = "error";
+    error_log('[email_broadcasts.php] ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。'; $feedback_type = "error";
 }
 ?><!DOCTYPE html>
 <html lang="zh">

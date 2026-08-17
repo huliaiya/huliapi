@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) {
@@ -40,8 +40,13 @@ try {
             $feedback_type = "error";
         }
     }
+} catch (PDOException $e) {
+    error_log('[delete_advertisement.php] ' . $e->getMessage());
+    $feedback_msg = "广告删除失败，请稍后重试。";
+    $feedback_type = "error";
 } catch (Exception $e) {
-    $feedback_msg = $e->getMessage();
+    error_log('[delete_advertisement.php] ' . $e->getMessage());
+    $feedback_msg = "广告删除失败，请稍后重试。";
     $feedback_type = "error";
 }
 ?>

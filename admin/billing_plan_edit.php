@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 error_reporting(0);
 ini_set('display_errors', 0);
 if (!isset($_SESSION['admin_id'])) {
@@ -24,19 +24,20 @@ try {
     $pdo = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=utf8mb4", DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if ($edit_mode) {
+        $plan_id = intval($_GET['id']);
         $stmt = $pdo->prepare("SELECT * FROM huli_billing_plans WHERE id=?");
-        $stmt->execute([$_GET['id']]);
+        $stmt->execute([$plan_id]);
         $plan = $stmt->fetch(PDO::FETCH_ASSOC) ?: $plan;
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $id          = $_POST['id'] ?? 0;
+        $id          = isset($_POST['id']) ? intval($_POST['id']) : 0;
         $name        = trim($_POST['name']);
         $description = trim($_POST['description']);
         $price       = (float)$_POST['price'];
         $billing_type= $_POST['billing_type'] ?? 'balance';
         $is_active   = (int)$_POST['is_active'];
         $is_card     = (int)$_POST['is_card'];
-        $membership_days = (int)$_POST['membership_days'] ?? 0;
+        $membership_days = isset($_POST['membership_days']) ? (int)$_POST['membership_days'] : 0;
         if ($billing_type === 'balance') {
             $balance_to_add = (float)$_POST['balance_to_add'];
             $points_to_add  = 0;
@@ -48,7 +49,7 @@ try {
         } else {
             $balance_to_add = 0;
             $points_to_add  = 0;
-            $membership_days = (int)$_POST['membership_days'] ?? 0;
+            $membership_days = isset($_POST['membership_days']) ? (int)$_POST['membership_days'] : 0;
         }
         if ($id) {
             $stmt = $pdo->prepare("UPDATE huli_billing_plans SET
@@ -96,25 +97,25 @@ try {
                 </header>
                 <div class="card-body">
                     <form method="post">
-                        <input type="hidden" name="id" value="<?php echo $plan['id'] ?>">
+                        <input type="hidden" name="id" value="<?php echo htmlspecialchars($plan['id']); ?>">
                         <h5 class="section-title">基本信息</h5>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>方案名称 <span class="required-mark">*</span></label>
-                                    <input type="text" name="name" class="form-control" value="<?php echo $plan['name'] ?>" required>
+                                    <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars($plan['name']); ?>" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>销售价格 <span class="required-mark">*</span></label>
-                                    <input type="number" step="0.01" name="price" class="form-control" value="<?php echo $plan['price'] ?>" required>
+                                    <input type="number" step="0.01" name="price" class="form-control" value="<?php echo htmlspecialchars($plan['price']); ?>" required>
                                 </div>
                             </div>
                         </div>
                         <div class="form-group">
                             <label>方案描述</label>
-                            <textarea class="form-control" name="description" rows="3"><?php echo $plan['description'] ?></textarea>
+                            <textarea class="form-control" name="description" rows="3"><?php echo htmlspecialchars($plan['description']); ?></textarea>
                         </div>
                         <h5 class="section-title">计费类型</h5>
                         <div class="form-group">
@@ -135,15 +136,15 @@ try {
                         </div>
                         <div class="form-group" id="balance_box">
                             <label>获得余额</label>
-                            <input type="number" step="0.01" name="balance_to_add" class="form-control" value="<?php echo $plan['balance_to_add'] ?>">
+                            <input type="number" step="0.01" name="balance_to_add" class="form-control" value="<?php echo htmlspecialchars($plan['balance_to_add']); ?>">
                         </div>
                         <div class="form-group" id="points_box">
                             <label>获得点数</label>
-                            <input type="number" name="points_to_add" class="form-control" value="<?php echo $plan['points_to_add'] ?>">
+                            <input type="number" name="points_to_add" class="form-control" value="<?php echo htmlspecialchars($plan['points_to_add']); ?>">
                         </div>
                         <div class="form-group" id="membership_box">
                             <label>超级会员天数</label>
-                            <input type="number" name="membership_days" class="form-control" value="<?php echo $plan['membership_days'] ?>">
+                            <input type="number" name="membership_days" class="form-control" value="<?php echo htmlspecialchars($plan['membership_days']); ?>">
                         </div>
                         <h5 class="section-title">高级设置</h5>
                         <div class="row">

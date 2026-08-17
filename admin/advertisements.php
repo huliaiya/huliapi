@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) {
@@ -34,7 +34,8 @@ try {
     $stmt = $pdo->query("SELECT * FROM huli_advertisements ORDER BY sort_order DESC, created_at DESC");
     $ads = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    $feedback_msg = "数据库错误: " . $e->getMessage();
+    error_log('[advertisements.php] 数据库错误: ' . $e->getMessage());
+    $feedback_msg = "数据库错误，请稍后重试。";
     $feedback_type = "error";
 }
 ?>

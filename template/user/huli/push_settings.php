@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../../../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
@@ -59,7 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } catch (Throwable $e) {
-            $feedback_msg = '测试异常: ' . $e->getMessage(); $feedback_type = 'danger';
+            error_log('[push_settings.php] 测试推送异常: ' . $e->getMessage());
+            $feedback_msg = '测试异常，请稍后重试。'; $feedback_type = 'danger';
         }
     } else {
         $channel = $_POST['channel'] ?? '';

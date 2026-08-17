@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 header('Content-Type: application/json; charset=utf-8');

@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) {
@@ -232,7 +232,8 @@ try {
                 $api_id, $admin_id
             ]);
             if (!$result) {
-                throw new Exception('数据库更新失败: ' . implode(' ', $stmt->errorInfo()));
+                error_log('[api_edit.php] 数据库更新失败: ' . implode(' ', $stmt->errorInfo()));
+                throw new Exception('数据库更新失败，请稍后重试。');
             }
             $_SESSION['feedback_msg'] = '接口已成功更新';
         } else {
@@ -259,6 +260,10 @@ try {
     $categories = [];
     $stmt_cats = $pdo->query("SELECT * FROM huli_api_categories ORDER BY name");
     $categories = $stmt_cats->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log('[api_edit.php] 操作失败: ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。';
+    $feedback_type = 'error';
 } catch (Exception $e) {
     $feedback_msg = '操作失败: ' . $e->getMessage();
     $feedback_type = 'error';

@@ -3,7 +3,7 @@
 <?php
 $conf['qqjump']=1;
 if(strpos($_SERVER['HTTP_USER_AGENT'], 'QQ/')||strpos($_SERVER['HTTP_USER_AGENT'], 'MicroMessenger')!==false && $conf['qqjump']==1){
-$siteurl='http://'.$_SERVER['SERVER_NAME'].':'.$_SERVER["SERVER_PORT"].$_SERVER["REQUEST_URI"];
+$siteurl=htmlspecialchars('http://'.$_SERVER['SERVER_NAME'].':'.$_SERVER["SERVER_PORT"].$_SERVER["REQUEST_URI"], ENT_QUOTES, 'UTF-8');
 echo "
 <html>
 <head>
@@ -63,7 +63,7 @@ exit;
 
 
 <?php
-@session_start();
+require_once __DIR__ . '/../../../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 $rootPath = dirname(__DIR__, 3);

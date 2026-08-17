@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
@@ -48,7 +48,7 @@ try {
     $stmt_list->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt_list->execute();
     $orders = $stmt_list->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) { $feedback_msg = '数据库操作失败: ' . $e->getMessage(); $feedback_type = 'error'; $orders = []; }
+} catch (Exception $e) { error_log('[order_list.php] 数据库操作失败: ' . $e->getMessage()); $feedback_msg = '数据库操作失败，请稍后重试。'; $feedback_type = 'error'; $orders = []; }
 
 function getOrderStatusBadge($status) {
     switch ($status) {

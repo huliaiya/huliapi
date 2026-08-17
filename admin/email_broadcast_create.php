@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
@@ -43,7 +43,8 @@ try {
         if (!$edit_id) { $broadcast = ['title'=>'','content'=>'','scheduled_at'=>'','status'=>'draft','send_type'=>$send_type]; }
         else { $broadcast['title'] = $title; $broadcast['content'] = $content; $broadcast['scheduled_at'] = $scheduled_at; $broadcast['status'] = $status; $broadcast['send_type'] = $send_type; }
     }
-} catch (Exception $e) { $feedback_msg = $e->getMessage(); $feedback_type = 'error'; }
+} catch (PDOException $e) { error_log('[email_broadcast_create.php] ' . $e->getMessage()); $feedback_msg = '操作失败，请稍后重试。'; $feedback_type = 'error'; }
+catch (Exception $e) { $feedback_msg = $e->getMessage(); $feedback_type = 'error'; }
 ?>
 <!DOCTYPE html>
 <html lang="zh">

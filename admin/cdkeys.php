@@ -1,5 +1,5 @@
 <?php
-@session_start();
+require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
@@ -179,6 +179,11 @@ try {
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     $keys = $stmt->fetchAll();
+} catch (PDOException $e) {
+    error_log('[cdkeys.php] 操作失败: ' . $e->getMessage());
+    $feedback_msg = '操作失败，请稍后重试。';
+    $feedback_type = 'error';
+    $keys = [];
 } catch (Exception $e) {
     $feedback_msg = '操作失败: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
     $feedback_type = 'error';
