@@ -5,7 +5,7 @@ define('STEP_DB_CONFIG', 2);
 define('STEP_INSTALL_DB', 3);
 define('STEP_COMPLETE', 4);
 
-$is_installed = file_exists('install.lock');
+$is_installed = file_exists(__DIR__ . '/install.lock');
 if ($is_installed && basename($_SERVER['PHP_SELF']) !== 'install.php' && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_COMPLETE)) {
     die('系统已安装，如需重新安装请删除install.lock文件');
 }
@@ -137,14 +137,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $install = $_SESSION['install_config'];
                 $log = '';
                 $log .= "> 正在生成数据库配置文件...\n";
+                $config_path = __DIR__ . '/../config.php';
+                $csrf_tail = '';
+                if (file_exists($config_path)) {
+                    $existing = file_get_contents($config_path);
+                    if (preg_match('/define\(\s*\'ADMIN_PATH\'\s*,\s*[^)]+\)\s*;\s*\n([\s\S]*)$/', $existing, $m)) {
+                        $csrf_tail = $m[1];
+                    }
+                }
                 $configContent = "<?php\n"
                     . "define('DB_HOST', " . var_export($db['host'], true) . ");\n"
                     . "define('DB_NAME', " . var_export($db['name'], true) . ");\n"
                     . "define('DB_USER', " . var_export($db['user'], true) . ");\n"
                     . "define('DB_PASS', " . var_export($db['pwd'], true) . ");\n"
                     . "define('DB_CHARSET', 'utf8mb4');\n"
-                    . "define('ADMIN_PATH', " . var_export($install['admin_path'], true) . ");\n";
-                if (!file_put_contents('../config.php', $configContent)) {
+                    . "define('ADMIN_PATH', " . var_export($install['admin_path'], true) . ");\n"
+                    . $csrf_tail;
+                if (!file_put_contents($config_path, $configContent)) {
                     throw new Exception('无法创建配置文件，请检查目录权限');
                 }
                 $config_written_this_run = true;
@@ -221,13 +230,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $log .= "✓ 管理员和邮件配置保存成功\n";
                 if ($install['admin_path'] !== 'admin') {
-                    if (!is_dir('../admin')) throw new Exception('默认后台目录不存在，无法重命名');
-                    if (file_exists('../' . $install['admin_path'])) throw new Exception('后台目录名已存在，请更换名称');
-                    if (!rename('../admin', '../' . $install['admin_path'])) throw new Exception('后台目录重命名失败，请检查目录权限');
+                    if (!is_dir(__DIR__ . '/../admin')) throw new Exception('默认后台目录不存在，无法重命名');
+                    if (file_exists(__DIR__ . '/../' . $install['admin_path'])) throw new Exception('后台目录名已存在，请更换名称');
+                    if (!rename(__DIR__ . '/../admin', __DIR__ . '/../' . $install['admin_path'])) throw new Exception('后台目录重命名失败，请检查目录权限');
                     $log .= "✓ 后台目录已设置为 /{$install['admin_path']}/\n";
                 }
                 $log .= "> 正在创建安装锁文件...\n";
-                file_put_contents('install.lock', "安装锁\n安装完成时间: " . date('Y-m-d H:i:s'));
+                file_put_contents(__DIR__ . '/install.lock', "安装锁\n安装完成时间: " . date('Y-m-d H:i:s'));
                 $log .= "✓ 安装锁文件创建成功\n";
 
                 // 安装成功 → 发送免责回执邮件到开发者邮箱
@@ -255,8 +264,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
         $error = $e->getMessage();
         if ($action === 'install_db' && $config_written_this_run) {
-            if (file_exists('../config.php')) @unlink('../config.php');
-            if (file_exists('install.lock')) @unlink('install.lock');
+            if (file_exists(__DIR__ . '/../config.php')) @unlink(__DIR__ . '/../config.php');
+            if (file_exists(__DIR__ . '/install.lock')) @unlink(__DIR__ . '/install.lock');
         }
     }
 }
@@ -333,11 +342,11 @@ function checkEnvironment() {
     if (!empty($missing)) {
         throw new Exception('缺少必需的PHP扩展: ' . implode(', ', $missing));
     }
-    $check_dirs = ['../', '../API'];
+    $check_dirs = [__DIR__ . '/../', __DIR__ . '/../API'];
     foreach ($check_dirs as $dir) {
         if (!is_writable($dir)) throw new Exception("目录/文件不可写: {$dir}");
     }
-    $check_file = '../config.php';
+    $check_file = __DIR__ . '/../config.php';
     if (file_exists($check_file) && !is_writable($check_file)) {
         throw new Exception("目录/文件不可写: {$check_file}");
     }
@@ -723,8 +732,8 @@ body {
             </li>
             <?php endforeach; ?>
             <?php
-            $check_dirs = ['../', '../API'];
-            $check_file_optional = '../config.php';
+            $check_dirs = [__DIR__ . '/../', __DIR__ . '/../API'];
+            $check_file_optional = __DIR__ . '/../config.php';
             $env_items = $check_dirs;
             $env_file_writable = true;
             if (file_exists($check_file_optional)) {
