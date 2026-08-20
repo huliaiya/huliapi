@@ -141,10 +141,6 @@ $configSite = $settings['site_name'] ?? 'huliapi';
 <div class="container py-4" style="max-width: 860px;">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0"><i class="mdi mdi-server-network text-primary me-2"></i>MCP 配置</h4>
-        <div>
-            <a href="index.php" class="btn btn-outline-primary btn-sm me-2"><i class="mdi mdi-account"></i> 返回用户中心</a>
-            <a href="logout.php" class="btn btn-outline-secondary btn-sm">安全退出</a>
-        </div>
     </div>
 
     <?php if ($feedback_msg): ?>
