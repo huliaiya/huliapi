@@ -1,9 +1,10 @@
 
 
 <?php
+require_once __DIR__ . '/../../../common/url_helper.php';
 $conf['qqjump']=1;
 if(strpos($_SERVER['HTTP_USER_AGENT'], 'QQ/')||strpos($_SERVER['HTTP_USER_AGENT'], 'MicroMessenger')!==false && $conf['qqjump']==1){
-$siteurl=htmlspecialchars('http://'.$_SERVER['SERVER_NAME'].':'.$_SERVER["SERVER_PORT"].$_SERVER["REQUEST_URI"], ENT_QUOTES, 'UTF-8');
+$siteurl=htmlspecialchars(huli_current_origin() . $_SERVER["REQUEST_URI"], ENT_QUOTES, 'UTF-8');
 echo "
 <html>
 <head>

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../common/session_boot.php';
+require_once __DIR__ . '/../common/url_helper.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) {
@@ -50,7 +51,7 @@ try {
                             $settings[$row['setting_key']] = $row['setting_value'];
                         }
                         $site_name = $settings['site_name'] ?? 'huliapi';
-                        $logo_url = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/assets/images/logo-sidebar.png';
+                        $logo_url = huli_current_origin('/assets/images/logo-sidebar.png');
                         $current_year = date('Y');
                         $subject = '【' . $site_name . '】您的反馈已收到回复';
                         $body = '<!DOCTYPE html>

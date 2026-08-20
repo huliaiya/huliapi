@@ -20,6 +20,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
 require_once ROOT_PATH . 'common/mail.php';
+require_once ROOT_PATH . 'common/url_helper.php';
 
  
 function getDb()
@@ -190,8 +191,7 @@ try {
         $site_name_config = $settings['site_name'] ?? 'huliapi';
         $admin_url      = $settings['admin_url'] ?? '#';
         $current_year   = date('Y');
-        $logo_url_config = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://')
-            . $_SERVER['HTTP_HOST'] . '/assets/images/logo-sidebar.png';
+        $logo_url_config = huli_current_origin('/assets/images/logo-sidebar.png');
 
          
         $mailSiteName  = htmlspecialchars($site_name, ENT_QUOTES);
