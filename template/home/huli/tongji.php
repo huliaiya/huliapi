@@ -13,10 +13,89 @@ $page_total = isset($_GET['page_total']) ? max(1, intval($_GET['page_total'])) :
 $limit = 20;
 $offset_today = ($page_today - 1) * $limit;
 $offset_total = ($page_total - 1) * $limit;
-$stmt = $pdo->prepare("SELECT call_count FROM huli_daily_stats WHERE stat_date = ?");
-$stmt->execute([$today]);
+$today_start = $today . ' 00:00:00';
+$today_end = date('Y-m-d', strtotime('+1 day', strtotime($today))) . ' 00:00:00';
+$yesterday_start = $yesterday . ' 00:00:00';
+$yesterday_end = $today_start;
+
+if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
+    header('Content-Type: application/json; charset=utf-8');
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM huli_api_logs WHERE request_time >= ? AND request_time < ?");
+    $stmt->execute([$today_start, $today_end]);
+    $tt = (int)$stmt->fetchColumn();
+    $stmt->execute([$yesterday_start, $yesterday_end]);
+    $ty = (int)$stmt->fetchColumn();
+    if ($ty == 0) { $p = 100; $pc = 'up'; }
+    else {
+        $raw = round(($tt - $ty) / $ty * 100, 1);
+        $p = max(-100, min(100, $raw));
+        $pc = $p >= 0 ? 'up' : 'down';
+    }
+    $ptext = $p >= 0 ? ('+' . $p . '%') : ($p . '%');
+    $sql_today_ajax = "SELECT t.api_id, a.name, t.cnt AS today_calls
+              FROM (SELECT api_id, COUNT(*) AS cnt
+                    FROM huli_api_logs
+                    WHERE request_time >= ? AND request_time < ?
+                    GROUP BY api_id
+                    HAVING cnt >= 1) t
+              JOIN huli_apis a ON a.id = t.api_id
+              ORDER BY t.cnt DESC LIMIT ?";
+    $stmt = $pdo->prepare($sql_today_ajax);
+    $stmt->bindValue(1, $today_start); $stmt->bindValue(2, $today_end); $stmt->bindValue(3, $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    $today_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $y_map_ajax = [];
+    $stmt = $pdo->prepare("SELECT api_id, COUNT(*) AS cnt FROM huli_api_logs WHERE request_time >= ? AND request_time < ? GROUP BY api_id");
+    $stmt->execute([$yesterday_start, $yesterday_end]);
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) { $y_map_ajax[$r['api_id']] = (int)$r['cnt']; }
+    $tbody_today = '';
+    if (empty($today_rows)) {
+        $tbody_today = '<tr><td colspan="4" class="empty">今日暂无API调用记录</td></tr>';
+    } else {
+        foreach ($today_rows as $i => $row) {
+            $t = (int)$row['today_calls'];
+            $y = $y_map_ajax[$row['api_id']] ?? 0;
+            if ($y == 0) { $cp = 100; $cls = 'up'; }
+            else {
+                $raw = round(($t - $y) / $y * 100, 1);
+                $cp = max(-100, min(100, $raw));
+                $cls = $cp >= 0 ? 'up' : 'down';
+            }
+            $show = $cp >= 0 ? ('+' . $cp . '%') : ($cp . '%');
+            $no = $i + 1;
+            $tbody_today .= '<tr><td class="rank">' . $no . ($no <= 3 ? '<span class="hot">🔥</span>' : '') . '</td><td class="name">' . htmlspecialchars($row['name']) . '</td><td class="calls">' . number_format($t) . '</td><td class="rate ' . $cls . '">' . $show . '</td></tr>';
+        }
+    }
+    $sql_total_ajax = "SELECT id, name, total_calls FROM huli_apis WHERE total_calls >= 1 ORDER BY total_calls DESC LIMIT ?";
+    $stmt = $pdo->prepare($sql_total_ajax);
+    $stmt->bindValue(1, $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    $total_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $tbody_total = '';
+    if (empty($total_rows)) {
+        $tbody_total = '<tr><td colspan="3" class="empty">暂无API总调用记录</td></tr>';
+    } else {
+        foreach ($total_rows as $i => $row) {
+            $no = $i + 1;
+            $tbody_total .= '<tr><td class="rank">' . $no . ($no <= 3 ? '<span class="hot">🔥</span>' : '') . '</td><td class="name">' . htmlspecialchars($row['name']) . '</td><td class="calls">' . number_format($row['total_calls']) . '</td></tr>';
+        }
+    }
+    echo json_encode([
+        'total_today' => $tt,
+        'total_yday' => $ty,
+        'percent' => $p,
+        'percent_text' => $ptext,
+        'percent_class' => $pc,
+        'today_rows' => $tbody_today,
+        'total_rows' => $tbody_total,
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM huli_api_logs WHERE request_time >= ? AND request_time < ?");
+$stmt->execute([$today . ' 00:00:00', date('Y-m-d', strtotime('+1 day', strtotime($today))) . ' 00:00:00']);
 $total_today = $stmt->fetchColumn() ?: 0;
-$stmt->execute([$yesterday]);
+$stmt->execute([$yesterday . ' 00:00:00', $today . ' 00:00:00']);
 $total_yday = $stmt->fetchColumn() ?: 0;
 if ($total_yday == 0) {
     $percent = 100;
@@ -48,7 +127,7 @@ $sql_today = "SELECT t.api_id, a.name, t.cnt AS today_calls
                     FROM huli_api_logs
                     WHERE request_time >= ? AND request_time < ?
                     GROUP BY api_id
-                    HAVING cnt >= 10) t
+                    HAVING cnt >= 1) t
               JOIN huli_apis a ON a.id = t.api_id
               ORDER BY t.cnt DESC
               LIMIT ?, ?";
@@ -59,18 +138,18 @@ $stmt->bindValue(3, $offset_today, PDO::PARAM_INT);
 $stmt->bindValue(4, $limit, PDO::PARAM_INT);
 $stmt->execute();
 $today_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$sql_count_today = "SELECT COUNT(*) FROM (SELECT api_id FROM huli_api_logs WHERE request_time >= ? AND request_time < ? GROUP BY api_id HAVING COUNT(*) >= 10) AS sub";
+$sql_count_today = "SELECT COUNT(*) FROM (SELECT api_id FROM huli_api_logs WHERE request_time >= ? AND request_time < ? GROUP BY api_id HAVING COUNT(*) >= 1) AS sub";
 $stmt = $pdo->prepare($sql_count_today);
 $stmt->execute([$today_start, $today_end]);
 $count_today = $stmt->fetchColumn();
 $total_pages_today = ceil($count_today / $limit);
-$sql_total = "SELECT id, name, total_calls FROM huli_apis WHERE total_calls >= 10 ORDER BY total_calls DESC LIMIT ?, ?";
+$sql_total = "SELECT id, name, total_calls FROM huli_apis WHERE total_calls >= 1 ORDER BY total_calls DESC LIMIT ?, ?";
 $stmt = $pdo->prepare($sql_total);
 $stmt->bindValue(1, $offset_total, PDO::PARAM_INT);
 $stmt->bindValue(2, $limit, PDO::PARAM_INT);
 $stmt->execute();
 $total_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$count_total = $pdo->query("SELECT COUNT(*) FROM huli_apis WHERE total_calls >= 10")->fetchColumn();
+$count_total = $pdo->query("SELECT COUNT(*) FROM huli_apis WHERE total_calls >= 1")->fetchColumn();
 $total_pages_total = ceil($count_total / $limit);
 ?>
 
@@ -124,15 +203,15 @@ body{background:#f0f2f5;padding:15px;color:#333;font-size:14px}
 <div class="sum-box">
 <div class="sum-item">
 <div class="sum-label">今日总调用</div>
-<div class="sum-num"><?=number_format($total_today)?></div>
+<div class="sum-num" id="today-total"><?=number_format($total_today)?></div>
 </div>
 <div class="sum-item">
 <div class="sum-label">昨日总调用</div>
-<div class="sum-num"><?=number_format($total_yday)?></div>
+<div class="sum-num" id="yesterday-total"><?=number_format($total_yday)?></div>
 </div>
 <div class="sum-item">
 <div class="sum-label">环比昨日</div>
-<div class="sum-percent <?=$percent_class?>"><?php echo $percent >= 0 ? "+".$percent : $percent; ?>%</div>
+<div class="sum-percent <?=$percent_class?>" id="percent"><?php echo $percent >= 0 ? "+".$percent : $percent; ?>%</div>
 </div>
 </div>
 </div>
@@ -142,7 +221,7 @@ body{background:#f0f2f5;padding:15px;color:#333;font-size:14px}
 <thead>
 <tr><th class="rank">排名</th><th class="name">API名称</th><th class="calls">今日调用</th><th class="rate">较比昨日</th></tr>
 </thead>
-<tbody>
+<tbody id="today-tbody">
 <?php if(empty($today_list)): ?>
 <tr><td colspan="4" class="empty">今日暂无API调用记录</td></tr>
 <?php endif; ?>
@@ -194,7 +273,7 @@ $show = $p >=0 ? "+".$p."%" : $p."%";
 <thead>
 <tr><th class="rank">排名</th><th class="name">API名称</th><th class="calls">总调用</th></tr>
 </thead>
-<tbody>
+<tbody id="total-tbody">
 <?php if(empty($total_list)): ?>
 <tr><td colspan="3" class="empty">暂无API总调用记录</td></tr>
 <?php endif; ?>
@@ -223,7 +302,19 @@ $show = $p >=0 ? "+".$p."%" : $p."%";
 <div class="refresh-bar">⏱️ 数据每10秒自动刷新</div>
 </div>
 <script>
-setInterval(function(){location.reload();},10000);
+async function refreshRank() {
+    try {
+        const resp = await fetch('?ajax=1', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const data = await resp.json();
+        document.getElementById('today-total').textContent = data.total_today.toLocaleString();
+        document.getElementById('yesterday-total').textContent = data.total_yday.toLocaleString();
+        document.getElementById('percent').textContent = data.percent_text;
+        document.getElementById('percent').className = 'sum-percent ' + data.percent_class;
+        document.getElementById('today-tbody').innerHTML = data.today_rows;
+        document.getElementById('total-tbody').innerHTML = data.total_rows;
+    } catch (e) { console.error('刷新失败:', e); }
+}
+setInterval(refreshRank, 10000);
 </script>
 </body>
 </html>
