@@ -36,7 +36,7 @@ Entries discovered by the Agent during task execution should follow this format:
 - Context: Discovered by Agent while performing system configuration and verification
 - Category: Operations & Deployment
 - Instructions:
-  - Local database is MariaDB, database name is huliapi, username is huliapi, password is huliapi.
+  - Local database is MariaDB, database name is huliapi, username and password are configured in `config.php` (`DB_USER` / `DB_PASS`); do not write plaintext credentials into memory files.
   - PHP Development Server runs on port 8000 via command `php -S 0.0.0.0:8000 -t /workspace`.
   - The install directory has been renamed to install.backup for security, and removed from git tracking.
   - Global CSRF defense is implemented at the top of config.php by checking POST request Origin/Referer headers (with ports stripped).

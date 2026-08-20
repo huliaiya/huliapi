@@ -52,9 +52,6 @@ CREATE TABLE `huli_admins` (
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员账户表';
 
-INSERT INTO `huli_admins` (`id`,`username`,`password`,`email`,`created_at`,`last_login`,`status`) VALUES
-(1,'admin','123456','admin@example.com','2026-04-04 00:00:00','2026-04-04 09:03:04',1);
-
 DROP TABLE IF EXISTS `huli_advertisements`;
 CREATE TABLE `huli_advertisements` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '广告ID',
