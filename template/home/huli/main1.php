@@ -18,8 +18,10 @@ $site_name = 'huliapi';
 try {
     $pdo = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_apis = $pdo->query("SELECT * FROM huli_apis ORDER BY id DESC");
+    $stmt_apis = $pdo->query("SELECT * FROM huli_apis WHERE status = 'normal' ORDER BY id DESC");
     $apis = $stmt_apis->fetchAll(PDO::FETCH_ASSOC);
+    $total_apis_all = (int)$pdo->query("SELECT COUNT(*) FROM huli_apis")->fetchColumn();
+    $error_apis_count = (int)$pdo->query("SELECT COUNT(*) FROM huli_apis WHERE status = 'error'")->fetchColumn();
     $stmt_site = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_name'");
     $site_name = $stmt_site->fetchColumn() ?: 'huliapi';
 } catch (PDOException $e) {
@@ -473,10 +475,10 @@ function getCallCountStyle($count) {
 <div class="row mb-4 stats-card-row g-3">
     <?php
     $stats = [
-        ['label' => 'API 总数', 'value' => count($apis), 'icon' => 'mdi-api', 'bg' => 'rgba(108, 178, 235, .85)', 'accent' => '#5ba4dc'],
+        ['label' => 'API 总数', 'value' => $total_apis_all, 'icon' => 'mdi-api', 'bg' => 'rgba(108, 178, 235, .85)', 'accent' => '#5ba4dc'],
         ['label' => '总调用量', 'value' => array_sum(array_column($apis, 'total_calls')), 'icon' => 'mdi-arrow-up-bold', 'bg' => 'rgba(235, 145, 195, .85)', 'accent' => '#d97ab1'],
-        ['label' => '可用 API', 'value' => count(array_filter($apis, fn($a) => $a['status'] === 'normal')), 'icon' => 'mdi-check-circle-outline', 'bg' => 'rgba(140, 215, 175, .85)', 'accent' => '#7bc89e'],
-        ['label' => '异常 API', 'value' => count(array_filter($apis, fn($a) => $a['status'] === 'error')), 'icon' => 'mdi-alert-circle-outline', 'bg' => 'rgba(235, 145, 160, .85)', 'accent' => '#e08899'],
+        ['label' => '可用 API', 'value' => count($apis), 'icon' => 'mdi-check-circle-outline', 'bg' => 'rgba(140, 215, 175, .85)', 'accent' => '#7bc89e'],
+        ['label' => '异常 API', 'value' => $error_apis_count, 'icon' => 'mdi-alert-circle-outline', 'bg' => 'rgba(235, 145, 160, .85)', 'accent' => '#e08899'],
     ];
     foreach ($stats as $s): ?>
     <div class="col-md-6 col-xl-3">
