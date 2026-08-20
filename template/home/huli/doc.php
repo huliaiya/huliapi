@@ -9,6 +9,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
+require_once ROOT_PATH . 'common/url_helper.php';
 $template = TemplateManager::getActiveUserTemplate();
 $template_base_url = "/template/user/{$template}/";
 $is_logged_in = isset($_SESSION['user_id']);
@@ -53,8 +54,7 @@ function getStatusBadge($status) {
     }
 }
 
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') ? 'https' : 'http';
-$base_url = $protocol . "://" . $_SERVER['HTTP_HOST'];
+$base_url = huli_current_origin();
 $api_endpoint = trim((string)($api['endpoint'] ?? ''));
 if (!preg_match('/^[A-Za-z0-9_]+$/', $api_endpoint)) {
     $api_endpoint = '';
