@@ -75,6 +75,25 @@ if ($newToken !== '') {
         . "严格按照文档内容及步骤准确执行，不得擅自修改、遗漏或添加操作。\n"
         . "如遇错误，请立即停止，并输出错误步骤、完整错误信息、可能原因及解决建议。执行完成后，请汇总执行结果。涉及 Token、密钥、密码等敏感信息时，必须脱敏展示，禁止泄露。";
 }
+
+$mcpLogToday = 0;
+$mcpLogYesterday = 0;
+$mcpLogTotal = 0;
+$mcpLogSuccess = 0;
+$mcpLogError = 0;
+$mcpLogRecent = [];
+try {
+    huli_mcp_ensure_log_schema();
+    $pdo_log = huli_mcp_pdo();
+    $mcpLogToday = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE DATE(request_time) = CURDATE()")->fetchColumn();
+    $mcpLogYesterday = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE DATE(request_time) = CURDATE() - INTERVAL 1 DAY")->fetchColumn();
+    $mcpLogTotal = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs")->fetchColumn();
+    $mcpLogSuccess = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE status = 'success'")->fetchColumn();
+    $mcpLogError = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE status IN ('error','invalid')")->fetchColumn();
+    $stmt_log = $pdo_log->query("SELECT request_time, role, username, method, tool_name, status, latency_ms, ip_address, error_msg FROM huli_mcp_logs ORDER BY id DESC LIMIT 8");
+    $mcpLogRecent = $stmt_log->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {}
+$mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 100, 1) : 0.0;
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -247,6 +266,62 @@ if ($newToken !== '') {
   }
 }</div>
             <button class="btn btn-outline-primary btn-sm btn-copy" data-copy="#client-config"><i class="mdi mdi-content-copy me-1"></i>复制配置</button>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="card-title"><i class="mdi mdi-history me-2"></i>MCP 调用日志（实时）</div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">今日调用</div>
+                    <div class="h4 mb-0 text-primary"><?php echo number_format($mcpLogToday); ?></div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">昨日调用</div>
+                    <div class="h4 mb-0 text-secondary"><?php echo number_format($mcpLogYesterday); ?></div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">历史累计</div>
+                    <div class="h4 mb-0"><?php echo number_format($mcpLogTotal); ?></div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">成功率</div>
+                    <div class="h4 mb-0 text-success"><?php echo $mcpLogSuccessRate; ?>%</div>
+                </div>
+            </div>
+            <?php if (empty($mcpLogRecent)): ?>
+                <div class="text-muted small">暂无调用记录。</div>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead><tr><th>时间</th><th>角色</th><th>用户</th><th>方法</th><th>工具</th><th>状态</th><th class="text-end">耗时</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($mcpLogRecent as $lr): ?>
+                            <tr>
+                                <td class="small text-muted"><?php echo htmlspecialchars($lr['request_time']); ?></td>
+                                <td><?php echo $lr['role'] === 'admin' ? '<span class="badge bg-danger">管理</span>' : '<span class="badge bg-info">用户</span>'; ?></td>
+                                <td class="small"><?php echo htmlspecialchars($lr['username']); ?></td>
+                                <td><span class="badge bg-light text-dark"><?php echo htmlspecialchars($lr['method']); ?></span></td>
+                                <td><?php echo $lr['tool_name'] ? '<code>' . htmlspecialchars($lr['tool_name']) . '</code>' : '<span class="text-muted">-</span>'; ?></td>
+                                <td>
+                                    <?php if ($lr['status'] === 'success'): ?>
+                                        <span class="badge bg-success">成功</span>
+                                    <?php elseif ($lr['status'] === 'invalid'): ?>
+                                        <span class="badge bg-secondary">非法</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-danger" title="<?php echo htmlspecialchars($lr['error_msg'] ?? ''); ?>">失败</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-end small"><?php echo (int)$lr['latency_ms']; ?> ms</td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
