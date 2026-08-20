@@ -124,8 +124,12 @@ huli_mcp_user_register('call_api', '以当前账号身份调用一个本地 API�
     }
     $params['api_key'] = $user['api_key'];
 
+    $filePath = (string)$api['file_path'];
+    if ($filePath === '' || strpos($filePath, '://') !== false || strpos($filePath, '..') !== false || $filePath[0] !== 'A') {
+        throw new RuntimeException('接口路径不合法');
+    }
     $base = huli_mcp_public_url('');
-    $url = rtrim($base, '/') . '/' . ltrim($api['file_path'], '/');
+    $url = rtrim($base, '/') . '/' . ltrim($filePath, '/');
 
     $ch = curl_init();
     $curlOpts = [
@@ -134,6 +138,7 @@ huli_mcp_user_register('call_api', '以当前账号身份调用一个本地 API�
         CURLOPT_TIMEOUT => 30,
         CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
     ];
     if ($method === 'POST') {
         $curlOpts[CURLOPT_POST] = true;

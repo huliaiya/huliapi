@@ -67,14 +67,14 @@ huli_mcp_admin_register('list_users', '查询用户列表，支持按关键词�
     ];
 });
 
-huli_mcp_admin_register('get_user_detail', '获取单个用户的完整信息：账号资料、余额、积分、会员、调用统计、最近订单与交易', [
+huli_mcp_admin_register('get_user_detail', '获取单个用户的完整信息：账号资料、余额、积分、会员、调用统计、最近订单与交易（不返回密码/api_key 等敏感字段）', [
     'type' => 'object',
     'properties' => [
         'id' => ['type' => 'integer', 'description' => '用户 ID'],
     ],
     'required' => ['id'],
 ], function ($pdo, $args) {
-    $stmt = $pdo->prepare("SELECT * FROM huli_users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT id, username, email, qq, status, balance, points, call_count, call_limit, membership_level, membership_expire, expires_at, created_at FROM huli_users WHERE id = ?");
     $stmt->execute([(int)$args['id']]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$user) {
