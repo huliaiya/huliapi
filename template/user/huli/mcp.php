@@ -67,6 +67,25 @@ if ($configToken === '') {
     $configToken = $hasToken ? '请重新生成 Token 后填入完整值（前缀: ' . $tokenPrefix . '）' : '待生成 Token';
 }
 $configSite = $settings['site_name'] ?? 'huliapi';
+
+$aiInstruction = '';
+if ($newToken !== '') {
+    $aiInstruction = "# AI Agent 自动接入指令\n"
+        . "\n请根据以下信息，为你的 MCP 功能配置远程服务并验证可用。配置方式以你自身的官方文档为准，不确定时先自查（例如搜索「<你的名称> MCP http 配置」），不要猜测路径或格式。\n"
+        . "\n## MCP 服务信息\n"
+        . "- 服务地址（支持 Streamable HTTP 与 SSE 双协议）：{$mcpUrl}\n"
+        . "- 鉴权方式：请求头 `Authorization: Bearer {$newToken}`\n"
+        . "- TLS：无需额外处理证书\n"
+        . "\n## 配置步骤\n"
+        . "1. 按你自身支持的 MCP 客户端配置格式，添加一个名为 `huliapi-user` 的 MCP 服务：\n"
+        . "   - url：{$mcpUrl}\n"
+        . "   - headers.Authorization：Bearer {$newToken}\n"
+        . "2. 重启或重新加载 MCP 客户端，使配置生效。\n"
+        . "3. 列出 MCP 工具，确认能获取到工具列表（共 " . count($tools) . " 个用户侧工具），且无 TLS 或 401 错误。\n"
+        . "4. 调用一个只读工具（例如 get_account_info）确认连通性。\n"
+        . "\n## 完成\n"
+        . "配置成功且验证通过后，请简短输出确认信息（含服务地址、工具数量、接入方式）。";
+}
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -236,6 +255,21 @@ $configSite = $settings['site_name'] ?? 'huliapi';
   }
 }</div>
             <button class="btn btn-outline-primary btn-sm btn-copy" data-copy="#client-config"><i class="mdi mdi-content-copy me-1"></i>复制配置</button>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="card-title"><i class="mdi mdi-robot-outline me-2"></i>AI 自动接入指令（一键复制）</div>
+        </div>
+        <div class="card-body">
+            <div class="small text-muted mb-2">复制下方指令并发送给你的 AI 编程助手（Claude Code / Codex / Cursor 等），它会自动读取并完成 MCP 接入：</div>
+            <?php if ($aiInstruction !== ''): ?>
+            <div class="code-block" id="ai-instruction"><?php echo htmlspecialchars($aiInstruction); ?></div>
+            <button class="btn btn-primary btn-sm btn-copy" data-copy="#ai-instruction"><i class="mdi mdi-content-copy me-1"></i>一键复制接入指令</button>
+            <?php else: ?>
+            <div class="alert alert-warning mb-0 py-2"><i class="mdi mdi-alert-outline me-1"></i>接入指令中包含完整 Token。<?php echo $hasToken ? '请点击上方「重新生成 Token」后立即复制（Token 仅生成时可见）。' : '请先点击上方「生成 Token」，生成后即可一键复制接入指令。'; ?></div>
+            <?php endif; ?>
         </div>
     </div>
 
