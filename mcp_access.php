@@ -23,6 +23,8 @@ if (!$ctx) {
 $role = $ctx['role'];
 $roleName = $role === 'admin' ? '管理员' : '用户';
 $serverName = $role === 'admin' ? 'huliapi-admin' : 'huliapi-user';
+$downloadFilename = ($role === 'admin' ? 'huliapi-mcp-admin' : 'huliapi-mcp-user') . '-接入指令.md';
+header('Content-Disposition: attachment; filename="' . $downloadFilename . '"; filename*=UTF-8\'\'' . rawurlencode($downloadFilename));
 
 huli_mcp_pdo();
 require_once __DIR__ . '/common/mcp/mcp_tools_' . $role . '.php';

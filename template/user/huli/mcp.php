@@ -71,7 +71,7 @@ $configSite = $settings['site_name'] ?? 'huliapi';
 $aiInstruction = '';
 $mcpAccessUrl = '';
 if ($newToken !== '') {
-    $mcpAccessUrl = huli_mcp_public_url('/mcp_access.php?token=' . urlencode($newToken));
+    $mcpAccessUrl = huli_mcp_public_url('/mcp_access.php/huliapi-mcp-user-接入指令.md?token=' . urlencode($newToken));
     $aiInstruction = "请下载并读取以下文件：\n"
         . $mcpAccessUrl . "\n"
         . "严格按照文档内容及步骤准确执行，不得擅自修改、遗漏或添加操作。\n"
