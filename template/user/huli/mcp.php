@@ -267,6 +267,7 @@ if ($newToken !== '') {
             <?php if ($aiInstruction !== ''): ?>
             <div class="code-block" id="ai-instruction"><?php echo htmlspecialchars($aiInstruction); ?></div>
             <button class="btn btn-primary btn-sm btn-copy" data-copy="#ai-instruction"><i class="mdi mdi-content-copy me-1"></i>一键复制接入指令</button>
+            <button class="btn btn-success btn-sm btn-download-md" data-filename="huliapi-mcp-接入指令.md"><i class="mdi mdi-download me-1"></i>下载 .md 接入文档</button>
             <?php else: ?>
             <div class="alert alert-warning mb-0 py-2"><i class="mdi mdi-alert-outline me-1"></i>接入指令中包含完整 Token。<?php echo $hasToken ? '请点击上方「重新生成 Token」后立即复制（Token 仅生成时可见）。' : '请先点击上方「生成 Token」，生成后即可一键复制接入指令。'; ?></div>
             <?php endif; ?>
@@ -318,6 +319,23 @@ $(function() {
         document.body.removeChild(ta);
         cb();
     }
+    $('.btn-download-md').on('click', function() {
+        var content = $('#ai-instruction').text().trim();
+        if (!content) { return; }
+        var blob = new Blob(['\uFEFF' + content], { type: 'text/markdown;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = $(this).data('filename');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        var self = this;
+        var orig = $(this).html();
+        $(this).prop('disabled', true).html('<i class="mdi mdi-check me-1"></i>已下载');
+        setTimeout(function() { $(self).prop('disabled', false).html(orig); }, 1500);
+    });
 });
 </script>
 </body>
