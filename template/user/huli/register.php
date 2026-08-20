@@ -22,6 +22,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/turnstile.php';
+require_once ROOT_PATH . 'common/gallery.php';
 $error_msg = '';
 $success_msg = '';
 $turnstile_reason = '';
@@ -126,12 +127,13 @@ try {
     <link rel="stylesheet" type="text/css" href="../../../assets/css/style.min.css">
     <style>
 body {
-    background: 
-        radial-gradient(circle at 10% 20%, rgba(93, 177, 255, 0.52), transparent 45%),
-        radial-gradient(circle at 90% 80%, rgba(38, 208, 194, 0.38), transparent 48%),
-        radial-gradient(circle at 50% 50%, rgba(113, 132, 255, 0.28), transparent 50%),
-        linear-gradient(135deg, #f5f8fc 0%, #eef3fa 100%);
-    background-attachment: fixed;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
+        url('<?php echo htmlspecialchars(huli_random_gallery_image()); ?>');
+    background-size: cover, cover;
+    background-position: center, center;
+    background-attachment: fixed, fixed;
+    background-repeat: no-repeat, no-repeat;
     display: flex;
     justify-content: center;
     align-items: center;
