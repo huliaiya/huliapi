@@ -48,6 +48,8 @@ CREATE TABLE `huli_admins` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp() COMMENT '创建时间',
   `last_login` timestamp NULL DEFAULT NULL COMMENT '最后登录时间',
   `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '状态',
+  `mcp_token_hash` varchar(64) NULL DEFAULT NULL COMMENT 'MCP Token哈希',
+  `mcp_token_prefix` varchar(16) NULL DEFAULT NULL COMMENT 'MCP Token前缀(展示用)',
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员账户表';
@@ -386,6 +388,8 @@ CREATE TABLE `huli_users` (
   `last_points_warn_date` date DEFAULT NULL COMMENT '最后点数提醒日期',
   `last_balance_warn_date` date DEFAULT NULL COMMENT '最后余额提醒日期',
   `qq` varchar(20) NOT NULL DEFAULT '' COMMENT 'QQ号',
+  `mcp_token_hash` varchar(64) NULL DEFAULT NULL COMMENT 'MCP Token哈希',
+  `mcp_token_prefix` varchar(16) NULL DEFAULT NULL COMMENT 'MCP Token前缀(展示用)',
   PRIMARY KEY (`id`),
   UNIQUE KEY `api_key` (`api_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户账户表';
