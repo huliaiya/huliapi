@@ -22,7 +22,7 @@ try { $pdo_a = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charse
 try { @require_once '../common/email_broadcast_dispatcher.php'; huli_broadcast_web_tick($pdo_a); } catch (Throwable $e) {}
 $settings = ['site_name' => 'huliapi'];
 try {
-    $stmt_settings = $pdo_a->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key = 'site_name'");
+    $stmt_settings = $pdo_a->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_name'");
     if ($stmt_settings) {
         $val = $stmt_settings->fetchColumn();
         if ($val !== false) { $settings['site_name'] = $val; }
