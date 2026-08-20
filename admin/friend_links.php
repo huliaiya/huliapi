@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../common/session_boot.php';
+require_once __DIR__ . '/../common/url_helper.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) {
@@ -40,7 +41,7 @@ try {
         $settings[$row['setting_key']] = $row['setting_value'];
     }
     $site_name = $settings['site_name'] ?? 'huliapi';
-    $logo_url = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/assets/images/logo-sidebar.png';
+    $logo_url = huli_current_origin('/assets/images/logo-sidebar.png');
     $current_year = date('Y');
     $admin_url = $settings['admin_url'] ?? '#';
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id'])) {
