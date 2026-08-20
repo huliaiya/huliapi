@@ -28,6 +28,18 @@ try {
         if ($val !== false) { $settings['site_name'] = $val; }
     }
 } catch (Throwable $e) {}
+
+$_auto_scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+    $fw = strtolower(trim(explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
+    if ($fw === 'https' || $fw === 'http') { $_auto_scheme = $fw; }
+} elseif (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower($_SERVER['HTTP_X_FORWARDED_SSL']) !== 'off') {
+    $_auto_scheme = 'https';
+} elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR']) && $_auto_scheme === 'http') {
+    $_auto_scheme = 'https';
+}
+$_auto_host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
+$auto_origin = $_auto_scheme . '://' . $_auto_host;
 ?>
 
 <!DOCTYPE html>
@@ -36,9 +48,9 @@ try {
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-<meta name="description" content="<?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?> 仪表盘 - huliapi">
+<meta name="description" content="<?php echo htmlspecialchars($auto_origin); ?> - 仪表盘">
 <meta name="author" content="yinq">
-<title><?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?> - 仪表盘 - huliapi</title>
+<title><?php echo htmlspecialchars($auto_origin); ?> - 仪表盘</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
