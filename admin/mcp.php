@@ -56,12 +56,7 @@ if (isset($_SESSION['admin_mcp_new_token'])) {
     unset($_SESSION['admin_mcp_new_token']);
 }
 
-$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
-    $scheme = strtolower(trim(explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
-}
-$host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
-$mcpUrl = $scheme . '://' . $host . '/mcp.php';
+$mcpUrl = huli_mcp_public_url('/mcp.php');
 
 $tools = huli_mcp_list_tools();
 

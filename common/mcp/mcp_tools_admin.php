@@ -245,10 +245,10 @@ huli_mcp_admin_register('list_orders', '查询订单列表，可按状态过滤'
     $where = '';
     $params = [];
     if (!empty($args['status'])) {
-        $where = "WHERE status = ?";
+        $where = "WHERE o.status = ?";
         $params = [(string)$args['status']];
     }
-    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM huli_orders $where");
+    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM huli_orders o $where");
     $countStmt->execute($params);
     $total = (int)$countStmt->fetchColumn();
     $offset = ($page - 1) * $size;
@@ -311,7 +311,7 @@ huli_mcp_admin_register('get_server_status', '获取服务器运行状态：PHP 
 huli_mcp_admin_register('list_feedback', '查询用户反馈列表，可过滤待处理状态', [
     'type' => 'object',
     'properties' => [
-        'status' => ['type' => 'string', 'enum' => ['pending', 'processed'], 'description' => '按状态过滤'],
+        'status' => ['type' => 'string', 'enum' => ['pending', 'viewed', 'resolved'], 'description' => '按状态过滤'],
         'page' => ['type' => 'integer', 'description' => '页码，默认 1'],
         'page_size' => ['type' => 'integer', 'description' => '每页条数，默认 20，最大 100'],
     ],
@@ -321,10 +321,10 @@ huli_mcp_admin_register('list_feedback', '查询用户反馈列表，可过滤�
     $where = '';
     $params = [];
     if (!empty($args['status'])) {
-        $where = "WHERE status = ?";
+        $where = "WHERE f.status = ?";
         $params = [(string)$args['status']];
     }
-    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM huli_feedback $where");
+    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM huli_feedback f $where");
     $countStmt->execute($params);
     $total = (int)$countStmt->fetchColumn();
     $offset = ($page - 1) * $size;
@@ -332,4 +332,267 @@ huli_mcp_admin_register('list_feedback', '查询用户反馈列表，可过滤�
     $stmt->execute($params);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     return ['total' => $total, 'page' => $page, 'page_size' => $size, 'feedback' => $rows];
+});
+
+huli_mcp_admin_register('respond_feedback', '回复用户反馈，回复后反馈状态变为已解决', [
+    'type' => 'object',
+    'properties' => [
+        'feedback_id' => ['type' => 'integer', 'description' => '反馈 ID'],
+        'response' => ['type' => 'string', 'description' => '回复内容'],
+    ],
+    'required' => ['feedback_id', 'response'],
+], function ($pdo, $args) {
+    $id = (int)$args['feedback_id'];
+    $response = trim((string)$args['response']);
+    if ($response === '') {
+        throw new RuntimeException('回复内容不能为空');
+    }
+    $stmt = $pdo->prepare("SELECT id, user_id, content, status FROM huli_feedback WHERE id = ?");
+    $stmt->execute([$id]);
+    $fb = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$fb) {
+        throw new RuntimeException('反馈不存在');
+    }
+    $pdo->prepare("UPDATE huli_feedback SET response = ?, status = 'resolved', responded_at = CURRENT_TIMESTAMP WHERE id = ?")->execute([$response, $id]);
+    return ['feedback_id' => $id, 'user_id' => $fb['user_id'], 'status' => 'resolved'];
+});
+
+huli_mcp_admin_register('list_cdkeys', '查询卡密列表，可按状态（未使用/已使用）过滤', [
+    'type' => 'object',
+    'properties' => [
+        'status' => ['type' => 'string', 'enum' => ['unused', 'used'], 'description' => '按状态过滤'],
+        'page' => ['type' => 'integer', 'description' => '页码，默认 1'],
+        'page_size' => ['type' => 'integer', 'description' => '每页条数，默认 20，最大 100'],
+    ],
+], function ($pdo, $args) {
+    $page = isset($args['page']) ? max(1, (int)$args['page']) : 1;
+    $size = isset($args['page_size']) ? max(1, min(100, (int)$args['page_size'])) : 20;
+    $where = '';
+    $params = [];
+    if (!empty($args['status'])) {
+        $where = "WHERE c.status = ?";
+        $params = [(string)$args['status']];
+    }
+    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM huli_cdkeys c $where");
+    $countStmt->execute($params);
+    $total = (int)$countStmt->fetchColumn();
+    $offset = ($page - 1) * $size;
+    $stmt = $pdo->prepare("SELECT c.id, c.cdkey, c.type, c.balance, c.points, c.membership_days, c.status, c.used_by_user_id, u.username AS used_by, c.created_at FROM huli_cdkeys c LEFT JOIN huli_users u ON u.id = c.used_by_user_id $where ORDER BY c.id DESC LIMIT $offset, $size");
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    return ['total' => $total, 'page' => $page, 'page_size' => $size, 'cdkeys' => $rows];
+});
+
+huli_mcp_admin_register('create_cdkey', '批量生成充值卡密，支持余额/积分/会员天数三种类型', [
+    'type' => 'object',
+    'properties' => [
+        'type' => ['type' => 'string', 'enum' => ['balance', 'points', 'membership'], 'description' => '卡密类型'],
+        'value' => ['type' => 'number', 'description' => '卡密价值：balance 为金额(元)、points 为积分、membership 为会员天数'],
+        'count' => ['type' => 'integer', 'description' => '生成数量，1-1000，默认 1'],
+    ],
+    'required' => ['type', 'value'],
+], function ($pdo, $args) {
+    $type = (string)$args['type'];
+    if (!in_array($type, ['balance', 'points', 'membership'], true)) {
+        throw new RuntimeException('无效的卡密类型');
+    }
+    $count = isset($args['count']) ? (int)$args['count'] : 1;
+    if ($count < 1 || $count > 1000) {
+        throw new RuntimeException('生成数量必须为 1-1000 的整数');
+    }
+    $balance = $points = $membershipDays = 0;
+    if ($type === 'balance') {
+        $balance = round((float)$args['value'], 2);
+        if ($balance <= 0) {
+            throw new RuntimeException('金额必须大于 0');
+        }
+    } elseif ($type === 'points') {
+        $points = (int)$args['value'];
+        if ($points <= 0) {
+            throw new RuntimeException('积分必须为正整数');
+        }
+    } else {
+        $membershipDays = (int)$args['value'];
+        if ($membershipDays <= 0) {
+            throw new RuntimeException('会员天数必须为正整数');
+        }
+    }
+    $pdo->beginTransaction();
+    try {
+        $values = [];
+        $placeholders = [];
+        for ($i = 0; $i < $count; $i++) {
+            $key = strtoupper(bin2hex(random_bytes(16)));
+            $values[] = $key;
+            $values[] = $type;
+            $values[] = $balance;
+            $values[] = $points;
+            $values[] = $membershipDays;
+            $placeholders[] = '(?, ?, ?, ?, ?)';
+        }
+        $stmt = $pdo->prepare("INSERT INTO huli_cdkeys (cdkey, type, balance, points, membership_days) VALUES " . implode(', ', $placeholders));
+        $stmt->execute($values);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
+    }
+    $unit = $type === 'balance' ? '元' : ($type === 'points' ? '积分' : '天会员');
+    return ['created' => $count, 'type' => $type, 'value' => $type === 'balance' ? $balance : ($type === 'points' ? $points : $membershipDays), 'unit' => $unit];
+});
+
+huli_mcp_admin_register('list_billing_plans', '查询充值套餐列表（全量，含未上架），支持按状态过滤', [
+    'type' => 'object',
+    'properties' => [
+        'is_active' => ['type' => 'boolean', 'description' => '仅返回上架中的套餐'],
+    ],
+], function ($pdo, $args) {
+    $where = '';
+    if (!empty($args['is_active'])) {
+        $where = "WHERE is_active = 1";
+    }
+    $stmt = $pdo->query("SELECT id, name, description, price, billing_type, balance_to_add, points_to_add, membership_days, is_active, is_card, created_at FROM huli_billing_plans $where ORDER BY price ASC");
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    return ['count' => count($rows), 'plans' => $rows];
+});
+
+huli_mcp_admin_register('set_billing_plan_status', '上架/下架充值套餐', [
+    'type' => 'object',
+    'properties' => [
+        'plan_id' => ['type' => 'integer', 'description' => '套餐 ID'],
+        'is_active' => ['type' => 'boolean', 'description' => 'true 上架 / false 下架'],
+    ],
+    'required' => ['plan_id', 'is_active'],
+], function ($pdo, $args) {
+    $planId = (int)$args['plan_id'];
+    $isActive = !empty($args['is_active']) ? 1 : 0;
+    $stmt = $pdo->prepare("SELECT id, name, is_active FROM huli_billing_plans WHERE id = ?");
+    $stmt->execute([$planId]);
+    $plan = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$plan) {
+        throw new RuntimeException('套餐不存在');
+    }
+    $pdo->prepare("UPDATE huli_billing_plans SET is_active = ? WHERE id = ?")->execute([$isActive, $planId]);
+    return ['plan_id' => $planId, 'name' => $plan['name'], 'is_active' => (bool)$isActive];
+});
+
+huli_mcp_admin_register('list_announcements', '查询平台公告列表', [
+    'type' => 'object',
+    'properties' => [
+        'is_active' => ['type' => 'boolean', 'description' => '仅返回已启用公告'],
+    ],
+], function ($pdo, $args) {
+    $where = '';
+    if (!empty($args['is_active'])) {
+        $where = "WHERE is_active = 1";
+    }
+    $stmt = $pdo->query("SELECT id, title, content, is_active, created_at FROM huli_announcements $where ORDER BY created_at DESC");
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    return ['count' => count($rows), 'announcements' => $rows];
+});
+
+huli_mcp_admin_register('create_announcement', '发布一条平台公告', [
+    'type' => 'object',
+    'properties' => [
+        'title' => ['type' => 'string', 'description' => '公告标题'],
+        'content' => ['type' => 'string', 'description' => '公告内容'],
+    ],
+    'required' => ['title', 'content'],
+], function ($pdo, $args) {
+    $title = trim((string)$args['title']);
+    $content = trim((string)$args['content']);
+    if ($title === '' || $content === '') {
+        throw new RuntimeException('标题和内容不能为空');
+    }
+    $stmt = $pdo->prepare("INSERT INTO huli_announcements (title, content, is_active) VALUES (?, ?, 1)");
+    $stmt->execute([$title, $content]);
+    return ['id' => (int)$pdo->lastInsertId(), 'title' => $title, 'is_active' => true];
+});
+
+huli_mcp_admin_register('set_announcement_status', '启用/停用平台公告', [
+    'type' => 'object',
+    'properties' => [
+        'announcement_id' => ['type' => 'integer', 'description' => '公告 ID'],
+        'is_active' => ['type' => 'boolean', 'description' => 'true 启用 / false 停用'],
+    ],
+    'required' => ['announcement_id', 'is_active'],
+], function ($pdo, $args) {
+    $id = (int)$args['announcement_id'];
+    $isActive = !empty($args['is_active']) ? 1 : 0;
+    $stmt = $pdo->prepare("SELECT id, title, is_active FROM huli_announcements WHERE id = ?");
+    $stmt->execute([$id]);
+    $ann = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$ann) {
+        throw new RuntimeException('公告不存在');
+    }
+    $pdo->prepare("UPDATE huli_announcements SET is_active = ? WHERE id = ?")->execute([$isActive, $id]);
+    return ['announcement_id' => $id, 'title' => $ann['title'], 'is_active' => (bool)$isActive];
+});
+
+huli_mcp_admin_register('list_api_logs', '查询 API 调用日志，可按用户或结果过滤，包含计费信息', [
+    'type' => 'object',
+    'properties' => [
+        'user_id' => ['type' => 'integer', 'description' => '按用户过滤'],
+        'is_success' => ['type' => 'boolean', 'description' => '按调用结果过滤'],
+        'page' => ['type' => 'integer', 'description' => '页码，默认 1'],
+        'page_size' => ['type' => 'integer', 'description' => '每页条数，默认 20，最大 100'],
+    ],
+], function ($pdo, $args) {
+    $page = isset($args['page']) ? max(1, (int)$args['page']) : 1;
+    $size = isset($args['page_size']) ? max(1, min(100, (int)$args['page_size'])) : 20;
+    $where = [];
+    $params = [];
+    if (!empty($args['user_id'])) {
+        $where[] = "l.user_id = ?";
+        $params[] = (int)$args['user_id'];
+    }
+    if (isset($args['is_success'])) {
+        $where[] = "l.is_success = ?";
+        $params[] = !empty($args['is_success']) ? 1 : 0;
+    }
+    $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM huli_api_logs l $whereSql");
+    $countStmt->execute($params);
+    $total = (int)$countStmt->fetchColumn();
+    $offset = ($page - 1) * $size;
+    $sql = "SELECT l.id, l.api_id, a.name AS api_name, l.user_id, u.username, l.ip_address, l.request_time, l.response_code, l.is_success, l.billing_type, l.billing_amount FROM huli_api_logs l LEFT JOIN huli_apis a ON a.id = l.api_id LEFT JOIN huli_users u ON u.id = l.user_id $whereSql ORDER BY l.id DESC LIMIT $offset, $size";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    return ['total' => $total, 'page' => $page, 'page_size' => $size, 'logs' => $rows];
+});
+
+huli_mcp_admin_register('list_transactions', '查询用户余额/积分变动记录（全平台），可按用户过滤', [
+    'type' => 'object',
+    'properties' => [
+        'user_id' => ['type' => 'integer', 'description' => '按用户过滤'],
+        'type' => ['type' => 'string', 'description' => '按交易类型过滤（如 recharge / consume / admin_adjust / cdkey_redeem）'],
+        'page' => ['type' => 'integer', 'description' => '页码，默认 1'],
+        'page_size' => ['type' => 'integer', 'description' => '每页条数，默认 20，最大 100'],
+    ],
+], function ($pdo, $args) {
+    $page = isset($args['page']) ? max(1, (int)$args['page']) : 1;
+    $size = isset($args['page_size']) ? max(1, min(100, (int)$args['page_size'])) : 20;
+    $where = [];
+    $params = [];
+    if (!empty($args['user_id'])) {
+        $where[] = "t.user_id = ?";
+        $params[] = (int)$args['user_id'];
+    }
+    if (!empty($args['type'])) {
+        $where[] = "t.type = ?";
+        $params[] = (string)$args['type'];
+    }
+    $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM huli_transactions t $whereSql");
+    $countStmt->execute($params);
+    $total = (int)$countStmt->fetchColumn();
+    $offset = ($page - 1) * $size;
+    $sql = "SELECT t.id, t.user_id, u.username, t.type, t.amount, t.description, t.status, t.created_at FROM huli_transactions t LEFT JOIN huli_users u ON u.id = t.user_id $whereSql ORDER BY t.id DESC LIMIT $offset, $size";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    return ['total' => $total, 'page' => $page, 'page_size' => $size, 'transactions' => $rows];
 });

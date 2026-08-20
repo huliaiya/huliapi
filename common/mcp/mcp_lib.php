@@ -94,3 +94,27 @@ function huli_mcp_list_tools() {
 function huli_mcp_json($data) {
     return json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
+
+function huli_mcp_detect_scheme() {
+    $scheme = 'http';
+    if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)) {
+        $scheme = 'https';
+    }
+    if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+        $forwarded = strtolower(trim(explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
+        if ($forwarded === 'https' || $forwarded === 'http') {
+            $scheme = $forwarded;
+        }
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower($_SERVER['HTTP_X_FORWARDED_SSL']) !== 'off') {
+        $scheme = 'https';
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR']) && $scheme === 'http') {
+        $scheme = 'https';
+    }
+    return $scheme;
+}
+
+function huli_mcp_public_url($path = '/mcp.php') {
+    $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
+    return huli_mcp_detect_scheme() . '://' . $host . $path;
+}
