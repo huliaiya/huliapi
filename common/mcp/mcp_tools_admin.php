@@ -596,3 +596,100 @@ huli_mcp_admin_register('list_transactions', '查询用户余额/积分变动记
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     return ['total' => $total, 'page' => $page, 'page_size' => $size, 'transactions' => $rows];
 });
+
+huli_mcp_admin_register('get_mcp_stats', '获取 MCP 服务请求统计：今日请求数、总请求数、成功率、按方法/工具/角色分布、最近 7 天趋势', [
+    'type' => 'object',
+    'properties' => new stdClass(),
+], function ($pdo, $args) {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS huli_mcp_logs (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      request_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      role ENUM('user','admin') NOT NULL,
+      user_id INT UNSIGNED NOT NULL DEFAULT 0,
+      username VARCHAR(64) NOT NULL DEFAULT '',
+      method VARCHAR(64) NOT NULL DEFAULT '',
+      tool_name VARCHAR(64) NULL DEFAULT NULL,
+      ip_address VARCHAR(64) NOT NULL DEFAULT '',
+      status ENUM('success','error','invalid') NOT NULL DEFAULT 'success',
+      error_msg VARCHAR(500) NULL DEFAULT NULL,
+      latency_ms INT UNSIGNED NOT NULL DEFAULT 0,
+      PRIMARY KEY (id),
+      KEY idx_request_time (request_time),
+      KEY idx_role_time (role, request_time),
+      KEY idx_user_time (role, user_id, request_time),
+      KEY idx_method (method),
+      KEY idx_tool (tool_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $today = (int)$pdo->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE DATE(request_time) = CURDATE()")->fetchColumn();
+    $yesterday = (int)$pdo->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE DATE(request_time) = CURDATE() - INTERVAL 1 DAY")->fetchColumn();
+    $total = (int)$pdo->query("SELECT COUNT(*) FROM huli_mcp_logs")->fetchColumn();
+    $success = (int)$pdo->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE status = 'success'")->fetchColumn();
+    $error = (int)$pdo->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE status IN ('error','invalid')")->fetchColumn();
+    $successRate = $total > 0 ? round(($success / $total) * 100, 2) : 0.0;
+    $byRole = $pdo->query("SELECT role, COUNT(*) AS cnt FROM huli_mcp_logs GROUP BY role")->fetchAll(PDO::FETCH_KEY_PAIR);
+    $byMethod = $pdo->query("SELECT method, COUNT(*) AS cnt FROM huli_mcp_logs GROUP BY method ORDER BY cnt DESC")->fetchAll(PDO::FETCH_ASSOC);
+    $byTool = $pdo->query("SELECT tool_name, COUNT(*) AS cnt FROM huli_mcp_logs WHERE tool_name IS NOT NULL GROUP BY tool_name ORDER BY cnt DESC LIMIT 10")->fetchAll(PDO::FETCH_ASSOC);
+    $trend = $pdo->query("SELECT DATE(request_time) AS d, COUNT(*) AS cnt FROM huli_mcp_logs WHERE request_time >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) GROUP BY DATE(request_time) ORDER BY d ASC")->fetchAll(PDO::FETCH_ASSOC);
+    return [
+        'today_requests' => $today,
+        'yesterday_requests' => $yesterday,
+        'total_requests' => $total,
+        'success_requests' => $success,
+        'error_requests' => $error,
+        'success_rate_percent' => $successRate,
+        'by_role' => [
+            'user' => (int)($byRole['user'] ?? 0),
+            'admin' => (int)($byRole['admin'] ?? 0),
+        ],
+        'by_method' => $byMethod,
+        'top_tools' => $byTool,
+        'trend_7d' => $trend,
+    ];
+});
+
+huli_mcp_admin_register('list_mcp_logs', '查询 MCP 请求历史日志，可按角色/方法/工具/状态/用户过滤', [
+    'type' => 'object',
+    'properties' => [
+        'role' => ['type' => 'string', 'enum' => ['user', 'admin'], 'description' => '按角色过滤'],
+        'method' => ['type' => 'string', 'description' => '按方法过滤（如 tools/call、initialize）'],
+        'tool_name' => ['type' => 'string', 'description' => '按工具名过滤'],
+        'status' => ['type' => 'string', 'enum' => ['success', 'error', 'invalid'], 'description' => '按状态过滤'],
+        'user_id' => ['type' => 'integer', 'description' => '按用户 ID 过滤（管理员 ID 或用户 ID 均可）'],
+        'page' => ['type' => 'integer', 'description' => '页码，默认 1'],
+        'page_size' => ['type' => 'integer', 'description' => '每页条数，默认 20，最大 100'],
+    ],
+], function ($pdo, $args) {
+    $page = isset($args['page']) ? max(1, (int)$args['page']) : 1;
+    $size = isset($args['page_size']) ? max(1, min(100, (int)$args['page_size'])) : 20;
+    $where = [];
+    $params = [];
+    if (!empty($args['role'])) {
+        $where[] = "role = ?";
+        $params[] = (string)$args['role'];
+    }
+    if (!empty($args['method'])) {
+        $where[] = "method = ?";
+        $params[] = (string)$args['method'];
+    }
+    if (!empty($args['tool_name'])) {
+        $where[] = "tool_name = ?";
+        $params[] = (string)$args['tool_name'];
+    }
+    if (!empty($args['status'])) {
+        $where[] = "status = ?";
+        $params[] = (string)$args['status'];
+    }
+    if (!empty($args['user_id'])) {
+        $where[] = "user_id = ?";
+        $params[] = (int)$args['user_id'];
+    }
+    $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM huli_mcp_logs $whereSql");
+    $countStmt->execute($params);
+    $total = (int)$countStmt->fetchColumn();
+    $offset = ($page - 1) * $size;
+    $stmt = $pdo->prepare("SELECT id, request_time, role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms FROM huli_mcp_logs $whereSql ORDER BY id DESC LIMIT $offset, $size");
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    return ['total' => $total, 'page' => $page, 'page_size' => $size, 'logs' => $rows];
+});

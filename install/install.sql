@@ -512,4 +512,25 @@ CREATE TABLE `huli_user_login_logs` (
   KEY `ip_time` (`ip`,`login_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='前台用户登录日志';
 
+DROP TABLE IF EXISTS `huli_mcp_logs`;
+CREATE TABLE `huli_mcp_logs` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `request_time` datetime NOT NULL DEFAULT current_timestamp() COMMENT '请求时间',
+  `role` enum('user','admin') NOT NULL COMMENT '角色',
+  `user_id` int(10) unsigned NOT NULL DEFAULT 0 COMMENT '用户/管理员ID',
+  `username` varchar(64) NOT NULL DEFAULT '' COMMENT '用户名',
+  `method` varchar(64) NOT NULL DEFAULT '' COMMENT 'MCP 方法',
+  `tool_name` varchar(64) DEFAULT NULL COMMENT '工具名（tools/call 时）',
+  `ip_address` varchar(64) NOT NULL DEFAULT '' COMMENT '来源IP',
+  `status` enum('success','error','invalid') NOT NULL DEFAULT 'success' COMMENT '结果',
+  `error_msg` varchar(500) DEFAULT NULL COMMENT '错误信息',
+  `latency_ms` int(10) unsigned NOT NULL DEFAULT 0 COMMENT '耗时(ms)',
+  PRIMARY KEY (`id`),
+  KEY `idx_request_time` (`request_time`),
+  KEY `idx_role_time` (`role`,`request_time`),
+  KEY `idx_user_time` (`role`,`user_id`,`request_time`),
+  KEY `idx_method` (`method`),
+  KEY `idx_tool` (`tool_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MCP 请求日志';
+
 SET FOREIGN_KEY_CHECKS=1;
