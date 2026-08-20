@@ -193,6 +193,35 @@ http://your-domain.com/install/
 - 人机验证使用 Cloudflare Turnstile。
 - 管理员登录日志和用户登录日志独立记录。
 
+## MCP 服务
+
+huliapi 内置 Model Context Protocol (MCP) 服务，支持 Streamable HTTP 与 SSE 两种传输协议，可供 Claude Desktop、Cursor、Dify 等支持 MCP 的客户端接入。
+
+### 服务地址
+
+`/mcp.php`（例如 `https://你的域名/mcp.php`），协议版本 `2024-11-05`，使用 Bearer Token 鉴权。
+
+### 用户端与管理员端隔离
+
+- **用户 MCP**：在「用户中心 - MCP 配置」页面生成 Token。包含账户信息查询、API 调用、调用统计、交易记录等 8 个用户工具。
+- **管理员 MCP**：在「管理后台 - MCP 配置」页面生成 Token。包含系统统计、用户管理、余额/点数调整、API 管理、订单查看等 11 个管理工具。
+- 两种 Token 完全隔离：用户 Token 调用管理工具会返回 `Unknown tool`，反之亦然。Token 仅以 SHA-256 哈希形式存储于数据库，明文只在生成时展示一次。
+
+### 客户端配置示例
+
+```json
+{
+  "mcpServers": {
+    "huliapi": {
+      "url": "https://你的域名/mcp.php",
+      "headers": {
+        "Authorization": "Bearer 你的Token"
+      }
+    }
+  }
+}
+```
+
 ---
 
 ## 常见问题

@@ -179,6 +179,12 @@ if ($currentTemplate !== $activeTemplate) {
                 <span>推送通知</span>
               </a>
             </li>
+            <li class="nav-item">
+              <a class="multitabs" href="<?= $userTemplateBaseUrl ?>mcp.php">
+                <i class="mdi mdi-server-network"></i>
+                <span>MCP 配置</span>
+              </a>
+            </li>
           </ul>
         </nav>
         <div class="sidebar-footer">
