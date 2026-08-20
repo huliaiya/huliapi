@@ -142,9 +142,6 @@ $configSite = $settings['site_name'] ?? 'huliapi';
             <i class="mdi mdi-server-network text-primary me-2"></i>MCP 配置
             <span class="badge bg-danger ms-2">管理员</span>
         </h4>
-        <div>
-            <a href="main.php" class="btn btn-outline-primary btn-sm me-2"><i class="mdi mdi-view-dashboard"></i> 返回管理首页</a>
-        </div>
     </div>
 
     <?php if ($feedback_msg): ?>
