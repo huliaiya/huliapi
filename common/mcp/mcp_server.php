@@ -34,13 +34,16 @@ function huli_mcp_get_token() {
 }
 
 function huli_mcp_handle_message($msg, $ctx) {
+    $startMs = (int)(microtime(true) * 1000);
     if (!is_array($msg) || !isset($msg['jsonrpc']) || $msg['jsonrpc'] !== '2.0') {
+        huli_mcp_log($ctx, 'invalid', null, 'invalid', 'Invalid Request', (int)(microtime(true) * 1000) - $startMs);
         return huli_mcp_error(-32600, 'Invalid Request');
     }
-    $method = isset($msg['method']) ? $msg['method'] : '';
+    $method = isset($msg['method']) ? (string)$msg['method'] : '';
     $id = array_key_exists('id', $msg) ? $msg['id'] : null;
     $params = isset($msg['params']) && is_array($msg['params']) ? $msg['params'] : [];
     $isNotification = !array_key_exists('id', $msg);
+    $toolName = ($method === 'tools/call' && isset($params['name'])) ? (string)$params['name'] : null;
 
     switch ($method) {
         case 'initialize':
@@ -50,15 +53,18 @@ function huli_mcp_handle_message($msg, $ctx) {
                 'capabilities' => $capabilities,
                 'serverInfo' => ['name' => 'huliapi-mcp', 'version' => HULI_MCP_VERSION],
             ];
+            huli_mcp_log($ctx, $method, null, 'success', '', (int)(microtime(true) * 1000) - $startMs);
             return huli_mcp_result($result, $id);
 
         case 'notifications/initialized':
+            huli_mcp_log($ctx, $method, null, 'success', '', (int)(microtime(true) * 1000) - $startMs);
             if ($isNotification) {
                 return null;
             }
             return huli_mcp_result([], $id);
 
         case 'ping':
+            huli_mcp_log($ctx, $method, null, 'success', '', (int)(microtime(true) * 1000) - $startMs);
             return huli_mcp_result([], $id);
 
         case 'tools/list':
@@ -67,22 +73,26 @@ function huli_mcp_handle_message($msg, $ctx) {
             if (isset($params['cursor'])) {
                 $result['nextCursor'] = null;
             }
+            huli_mcp_log($ctx, $method, null, 'success', '', (int)(microtime(true) * 1000) - $startMs);
             return huli_mcp_result($result, $id);
 
         case 'tools/call':
-            $name = isset($params['name']) ? $params['name'] : '';
+            $name = isset($params['name']) ? (string)$params['name'] : '';
             $args = isset($params['arguments']) && is_array($params['arguments']) ? $params['arguments'] : [];
             $tool = $GLOBALS['HULI_MCP_TOOLS'][$name] ?? null;
             if (!$tool) {
+                huli_mcp_log($ctx, $method, $name, 'error', 'Unknown tool', (int)(microtime(true) * 1000) - $startMs);
                 return huli_mcp_error(-32602, 'Unknown tool: ' . $name, $id);
             }
             try {
                 $result = call_user_func($tool['callable'], $ctx, $args);
+                huli_mcp_log($ctx, $method, $name, 'success', '', (int)(microtime(true) * 1000) - $startMs);
                 return huli_mcp_result([
                     'content' => [['type' => 'text', 'text' => is_string($result) ? $result : huli_mcp_json($result)]],
                     'isError' => false,
                 ], $id);
             } catch (Throwable $e) {
+                huli_mcp_log($ctx, $method, $name, 'error', $e->getMessage(), (int)(microtime(true) * 1000) - $startMs);
                 return huli_mcp_result([
                     'content' => [['type' => 'text', 'text' => '工具执行失败: ' . $e->getMessage()]],
                     'isError' => true,
@@ -90,15 +100,19 @@ function huli_mcp_handle_message($msg, $ctx) {
             }
 
         case 'resources/list':
+            huli_mcp_log($ctx, $method, null, 'success', '', (int)(microtime(true) * 1000) - $startMs);
             return huli_mcp_result(['resources' => []], $id);
 
         case 'resources/read':
+            huli_mcp_log($ctx, $method, null, 'error', 'No resources available', (int)(microtime(true) * 1000) - $startMs);
             return huli_mcp_error(-32602, 'No resources available', $id);
 
         case 'prompts/list':
+            huli_mcp_log($ctx, $method, null, 'success', '', (int)(microtime(true) * 1000) - $startMs);
             return huli_mcp_result(['prompts' => []], $id);
 
         default:
+            huli_mcp_log($ctx, $method, null, 'error', 'Method not found', (int)(microtime(true) * 1000) - $startMs);
             return huli_mcp_error(-32601, 'Method not found: ' . $method, $id);
     }
 }
@@ -132,6 +146,7 @@ function huli_mcp_send_response($payload, $useSse) {
 }
 
 function huli_mcp_handle_sse_endpoint($ctx) {
+    huli_mcp_log($ctx, 'sse/open', null, 'success', '', 0);
     header('Content-Type: text/event-stream; charset=utf-8');
     header('Cache-Control: no-cache');
     header('Connection: keep-alive');
@@ -182,6 +197,11 @@ function huli_mcp_handle_request() {
         header('Content-Type: application/json; charset=utf-8');
         http_response_code(401);
         echo huli_mcp_json(huli_mcp_error(-32001, 'Unauthorized: 无效或缺失的 MCP Token', null));
+        try {
+            $pdo = huli_mcp_pdo();
+            $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES ('user', 0, '', 'auth', NULL, ?, 'error', 'Unauthorized', 0)");
+            $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? '')]);
+        } catch (Throwable $e) {}
         exit;
     }
     if (($ctx['role'] === 'user' && $ctx['status'] !== 'active')) {

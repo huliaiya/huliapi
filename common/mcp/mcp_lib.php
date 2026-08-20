@@ -118,3 +118,52 @@ function huli_mcp_public_url($path = '/mcp.php') {
     $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
     return huli_mcp_detect_scheme() . '://' . $host . $path;
 }
+
+function huli_mcp_ensure_log_schema() {
+    static $done = false;
+    if ($done) { return; }
+    $done = true;
+    $pdo = huli_mcp_pdo();
+    $exists = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'huli_mcp_logs'")->fetchColumn();
+    if ($exists) { return; }
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_mcp_logs` (
+      `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      `request_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      `role` ENUM('user','admin') NOT NULL,
+      `user_id` INT UNSIGNED NOT NULL DEFAULT 0,
+      `username` VARCHAR(64) NOT NULL DEFAULT '',
+      `method` VARCHAR(64) NOT NULL DEFAULT '',
+      `tool_name` VARCHAR(64) NULL DEFAULT NULL,
+      `ip_address` VARCHAR(64) NOT NULL DEFAULT '',
+      `status` ENUM('success','error','invalid') NOT NULL DEFAULT 'success',
+      `error_msg` VARCHAR(500) NULL DEFAULT NULL,
+      `latency_ms` INT UNSIGNED NOT NULL DEFAULT 0,
+      PRIMARY KEY (`id`),
+      KEY `idx_request_time` (`request_time`),
+      KEY `idx_role_time` (`role`, `request_time`),
+      KEY `idx_user_time` (`role`, `user_id`, `request_time`),
+      KEY `idx_method` (`method`),
+      KEY `idx_tool` (`tool_name`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MCP 请求日志'");
+}
+
+function huli_mcp_log($ctx, $method, $toolName, $status, $errorMsg = '', $latencyMs = 0) {
+    try {
+        huli_mcp_ensure_log_schema();
+        $pdo = huli_mcp_pdo();
+        $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $ctx['role'] ?? 'user',
+            (int)($ctx['id'] ?? 0),
+            (string)($ctx['username'] ?? ''),
+            (string)$method,
+            $toolName,
+            (string)($_SERVER['REMOTE_ADDR'] ?? ''),
+            $status,
+            $errorMsg !== '' ? mb_substr($errorMsg, 0, 500) : null,
+            (int)$latencyMs,
+        ]);
+    } catch (Throwable $e) {
+        // 日志写入失败不应影响主流程
+    }
+}
