@@ -874,40 +874,185 @@ body {
                     <button class="tab-btn active" data-target="php">PHP</button>
                     <button class="tab-btn" data-target="python">Python</button>
                     <button class="tab-btn" data-target="js">JavaScript</button>
+                    <button class="tab-btn" data-target="node">Node.js</button>
+                    <button class="tab-btn" data-target="curl">cURL</button>
+                    <button class="tab-btn" data-target="java">Java</button>
+                    <button class="tab-btn" data-target="go">Go</button>
                 </div>
-                <div id="code-panels">
-                    <div class="code-panel active" id="panel-php">
-                        <pre><code>&lt;?php
-$url = '<?php echo htmlspecialchars($request_url, ENT_QUOTES, 'UTF-8'); ?>';
-$params = [<?php foreach($params as $p) echo "'".htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8')."' => 'YOUR_VALUE', "; ?>];
-$url .= '?' . http_build_query($params);
+                <div id="code-panels"><?php
+$param_list = [];
+foreach ($params as $p) {
+    $pname = htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8');
+    $param_list[] = "'" . $pname . "' => 'YOUR_VALUE'";
+}
+$param_inline = implode(', ', $param_list);
+$param_python = '';
+foreach ($params as $p) {
+    $pname = htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8');
+    $param_python .= "    '" . $pname . "': 'YOUR_VALUE',\n";
+}
+$param_node = '';
+foreach ($params as $p) {
+    $pname = htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8');
+    $param_node .= "\n    '" . $pname . "': 'YOUR_VALUE',";
+}
+$param_curl = '';
+foreach ($params as $p) {
+    $pname = htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8');
+    $param_curl .= "  --data-urlencode \"" . $pname . "=YOUR_VALUE\" \\\n";
+}
+$param_java_set = '';
+foreach ($params as $i => $p) {
+    $pname = htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8');
+    $param_java_set .= "        urlBuilder.append(\"" . $pname . "=YOUR_VALUE&\");\n";
+}
+$param_go_set = '';
+foreach ($params as $p) {
+    $pname = htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8');
+    $param_go_set .= "    q.Set(\"" . $pname . "\", \"YOUR_VALUE\")\n";
+}
+$request_url_esc = htmlspecialchars($request_url, ENT_QUOTES, 'UTF-8');
+
+echo '<div class="code-panel active" id="panel-php"><pre><code><?php
+// 使用 cURL 调用 API
+$url = \'' . $request_url_esc . '\';
+$params = [' . $param_inline . '];
+$url .= \'?\' . http_build_query($params);
+
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 $response = curl_exec($ch);
-curl_close($ch);
-echo $response;
-?&gt;</code></pre>
-                    </div>
-                    <div class="code-panel" id="panel-python">
-                        <pre><code>import requests
-url = "<?php echo htmlspecialchars($request_url, ENT_QUOTES, 'UTF-8'); ?>"
-params = {
-<?php foreach($params as $p) echo "    '".htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8')."': 'YOUR_VALUE',\n"; ?>}
-response = requests.get(url, params=params)
-print(response.text)</code></pre>
-                    </div>
-                    <div class="code-panel" id="panel-js">
-                        <pre><code>const url = new URL('<?php echo htmlspecialchars($request_url, ENT_QUOTES, 'UTF-8'); ?>');
 
+if (curl_errno($ch)) {
+    die(\'请求失败: \' . curl_error($ch));
+}
+curl_close($ch);
+
+// 解析 JSON 响应
+$data = json_decode($response, true);
+echo "code: " . ($data[\'code\'] ?? \'N/A\') . "\n";
+echo "msg:  " . ($data[\'msg\'] ?? $response);
+?></code></pre></div>';
+
+echo '<div class="code-panel" id="panel-python"><pre><code>import requests
+
+# 调用 API
+url = "' . $request_url_esc . '"
+params = {
+' . $param_python . '}
+
+try:
+    response = requests.get(url, params=params, timeout=10)
+    response.raise_for_status()
+    data = response.json()
+    print(f"code: {data.get(\'code\')}")
+    print(f"msg:  {data.get(\'msg\')}")
+except requests.exceptions.RequestException as e:
+    print(f"请求失败: {e}")</code></pre></div>';
+
+echo '<div class="code-panel" id="panel-js"><pre><code>// 使用原生 fetch（浏览器/现代 Node.js）
+const url = new URL(\'' . $request_url_esc . '\');
 const params = {
-<?php foreach($params as $p) echo "    '".htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8')."': 'YOUR_VALUE',\n"; ?>};
+' . $param_python . '};
+
 Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
-fetch(url)
-    .then(response => response.text())
-    .then(data => console.log(data))
-    .catch(error => console.error('Error:', error));</code></pre>
-                    </div>
+
+fetch(url, { method: \'GET\' })
+    .then(async response => {
+        const data = await response.json();
+        console.log(\'code:\', data.code);
+        console.log(\'msg: \', data.msg);
+    })
+    .catch(error => console.error(\'请求失败:\', error));</code></pre></div>';
+
+echo '<div class="code-panel" id="panel-node"><pre><code>// Node.js (需要先安装: npm install axios)
+const axios = require(\'axios\');
+
+const url = \'' . $request_url_esc . '\';
+const params = {' . $param_node . '};
+
+axios.get(url, { params, timeout: 10000 })
+    .then(response => {
+        console.log(\'code:\', response.data.code);
+        console.log(\'msg: \', response.data.msg);
+    })
+    .catch(error => {
+        if (error.response) {
+            console.error(\'服务器返回错误:\', error.response.status);
+        } else {
+            console.error(\'请求失败:\', error.message);
+        }
+    });</code></pre></div>';
+
+echo '<div class="code-panel" id="panel-curl"><pre><code># 使用 cURL 命令行调用 API
+curl -X GET "' . $request_url_esc . '" \
+' . $param_curl . '  --connect-timeout 10 \
+  --max-time 30 \
+  -H "Accept: application/json"
+
+# 带 API Key 鉴权（如需）：
+# curl -X GET "' . $request_url_esc . '?apikey=YOUR_API_KEY"</code></pre></div>';
+
+echo '<div class="code-panel" id="panel-java"><pre><code>import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+
+public class ApiClient {
+    public static void main(String[] args) throws Exception {
+        StringBuilder urlBuilder = new StringBuilder("' . $request_url_esc . '?");
+' . $param_java_set . '        String url = urlBuilder.toString();
+
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+        conn.setRequestMethod("GET");
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(10000);
+        conn.setRequestProperty("Accept", "application/json");
+
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) response.append(line);
+            System.out.println(response);
+        } finally {
+            conn.disconnect();
+        }
+    }
+}</code></pre></div>';
+
+echo '<div class="code-panel" id="panel-go"><pre><code>package main
+
+import (
+    "fmt"
+    "io"
+    "net/http"
+    "net/url"
+    "time"
+)
+
+func main() {
+    // 构造 URL 与参数
+    base, _ := url.Parse("' . $request_url_esc . '")
+    q := base.Query()
+' . $param_go_set . '    base.RawQuery = q.Encode()
+
+    // 发送请求
+    client := &http.Client{Timeout: 10 * time.Second}
+    resp, err := client.Get(base.String())
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Println(string(body))
+}</code></pre></div>';
+?>
                 </div>
             </div>
         </div>
