@@ -208,13 +208,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $log .= "✓ 数据库导入完成\n";
                 $adminStmt = $pdo->prepare("UPDATE huli_admins SET username = ?, password = ?, email = ?, qq = ?, nickname = ? WHERE id = 1");
-                $adminStmt->execute([
+                $adminUpdated = $adminStmt->execute([
                     $install['admin_username'],
                     password_hash($install['admin_password'], PASSWORD_DEFAULT),
                     $install['admin_email'],
                     $install['admin_qq'],
                     $install['admin_nickname'],
                 ]);
+                if ($adminStmt->rowCount() === 0) {
+                    $adminInsert = $pdo->prepare("INSERT INTO huli_admins (id, username, password, email, qq, nickname, status) VALUES (1, ?, ?, ?, ?, ?, 1)");
+                    $adminInsert->execute([
+                        $install['admin_username'],
+                        password_hash($install['admin_password'], PASSWORD_DEFAULT),
+                        $install['admin_email'],
+                        $install['admin_qq'],
+                        $install['admin_nickname'],
+                    ]);
+                }
                 $settingStmt = $pdo->prepare("UPDATE huli_settings SET setting_value = ? WHERE setting_key = ?");
                 foreach ([
                     ['mail_smtp_host', $install['smtp_host']],
