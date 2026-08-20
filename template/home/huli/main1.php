@@ -399,13 +399,19 @@ function getCallCountStyle($count) {
         inset 0 1px 0 rgba(255, 255, 255, .65);
     backdrop-filter: blur(14px) saturate(160%);
     -webkit-backdrop-filter: blur(14px) saturate(160%);
-    transition: transform .25s ease, box-shadow .25s ease;
+    transition: box-shadow .25s ease;
+    cursor: default;
+    user-select: none;
 }
 .stats-card:hover {
-    transform: translateY(-2px);
     box-shadow:
         0 12px 28px rgba(45, 100, 155, .18),
         inset 0 1px 0 rgba(255, 255, 255, .75);
+}
+.stats-card:active {
+    box-shadow:
+        0 6px 22px rgba(45, 100, 155, .10),
+        inset 0 1px 0 rgba(255, 255, 255, .65);
 }
 .stats-card-icon {
     flex: 0 0 auto;
@@ -603,7 +609,6 @@ function filterAPIs() {
 }
 (function () {})();
 $(document).ready(function() {
-    $('.scroll-numbers').scrollNumbers();
     function debounce(func, wait) {
         let timeout;
         return function() {

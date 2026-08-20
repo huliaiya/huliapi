@@ -61,19 +61,22 @@ function format(value){
 
 //添加事件监听器
 window.addEventListener("DOMContentLoaded", function(){
-    var fps = 240,//滚动帧率
+    var fps = 240,
         els = [].slice.call(document.querySelectorAll('.scroll-numbers'));
 
     els.forEach(function(el){
         var content = (el.firstChild.textContent).trim(),
             decimalPlaces = content.split(',')[1] || '',
-            value = unformat(content),
-            values = interpolation(fps, easing.quadratic, value);
-			//滚动持续时间：1秒
+            value = unformat(content);
+        if (value < 10) {
+            el.firstChild.textContent = content;
+            return;
+        }
+        var values = interpolation(fps, easing.quadratic, value);
         animateEl(values, 1000, function (current, i, values){
-          var isLast = (i === values.length - 1),
-              value = round(current, decimalPlaces.length);
-          el.firstChild.textContent = isLast? content : format(value);
+            var isLast = (i === values.length - 1),
+                value = round(current, decimalPlaces.length);
+            el.firstChild.textContent = isLast? content : format(value);
         });
     });
 });
