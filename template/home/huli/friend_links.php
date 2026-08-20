@@ -279,7 +279,7 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
 .card-body { padding: 1.5rem !important; }
 .btn { border-radius: 0.5rem !important; padding: 0.5rem 1.25rem !important; font-weight: 500 !important; transition: all 0.2s ease; border: none !important; }
 .btn-primary { background-color: #4096ff !important; }
-.btn-primary:hover { background-color: #337ecc !important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(64, 150, 255, 0.3); }
+.btn-primary:hover { background-color: #337ecc !important; box-shadow: 0 4px 12px rgba(64, 150, 255, 0.3); }
 .btn-secondary { background-color: #86909c !important; }
 .btn-secondary:hover { background-color: #737f8c !important; }
 .form-control { border-radius: 0.5rem !important; border: 1px solid #e5e6eb !important; padding: 0.75rem 1rem !important; transition: all 0.2s ease; }
@@ -290,7 +290,7 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
 .modal-header { border-bottom: 1px solid #f1f3f5 !important; padding: 1rem 1.5rem !important; }
 .modal-footer { border-top: 1px solid #f1f3f5 !important; padding: 1rem 1.5rem !important; }
 .friend-card { transition: all 0.3s ease; border-radius: 0.75rem; box-shadow: 0 3px 10px rgba(0,0,0,0.07); overflow: hidden; position: relative; border: 1px solid #f0f2f5; margin-bottom: 1rem; background: #fff; height: 100%; }
-.friend-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.12); border-color: #e5e9f2; }
+.friend-card:hover { box-shadow: 0 10px 20px rgba(0,0,0,0.12); border-color: #e5e9f2; }
 .friend-card .card-body { padding: 1rem !important; }
 .friend-logo-container { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 6px; flex-shrink: 0; overflow: hidden; border: 1px solid #e9ecef; }
 .friend-logo-img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; background: #f5f5f5; }
@@ -303,7 +303,7 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
 .friend-status { position: absolute; top: 0.6rem; right: 0.6rem; z-index: 10; }
 .stats-container { display: flex; gap: 1rem; margin: 1.5rem 1.5rem 2rem; align-items: center; flex-wrap: wrap; }
 .stats-card { flex: 1; min-width: 200px; border-radius: 0.75rem; transition: all 0.3s ease; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.07); display: flex; align-items: center; padding: 1rem 1.5rem; height: 90px; background: #fff; }
-.stats-card:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+.stats-card:hover { box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
 .stats-card .mdi { font-size: 2rem; margin-right: 1.2rem; flex-shrink: 0; }
 .stats-info { flex-grow: 1; }
 .stats-card h5.card-title { font-size: 0.9rem; margin-bottom: 0.2rem; color: #495057; font-weight: 500; }

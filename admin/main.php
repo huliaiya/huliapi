@@ -329,7 +329,6 @@ function formatUptime($seconds) {
     transition: transform .25s ease, box-shadow .25s ease;
 }
 .stats-card:hover {
-    transform: translateY(-2px);
     box-shadow:
         0 12px 28px rgba(45, 100, 155, .18),
         inset 0 1px 0 rgba(255, 255, 255, .75);

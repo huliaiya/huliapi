@@ -220,11 +220,11 @@ body.center-vh {
 }
 
 .btn:hover {
-    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(45, 100, 155, .18);
 }
 
 .btn:active {
-    transform: translateY(-1px) scale(.99);
+    box-shadow: 0 6px 22px rgba(45, 100, 155, .10);
 }
 
 .btn::before {
@@ -552,7 +552,6 @@ body .main-header {
 .api-card:hover,
 .info-card:hover,
 .card:not([class*="bg-"]):hover {
-    transform: translateY(-5px);
     border-color: rgba(140, 200, 245, .55) !important;
     box-shadow:
         0 26px 50px rgba(45, 100, 155, .22),

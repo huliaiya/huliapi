@@ -392,17 +392,14 @@ function getStatusBadge($status) {
         transition: all 0.3s ease;
       }
       .card-hover:hover {
-        transform: translateY(-4px);
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
       }
       .btn-effect {
-        transition: all 0.2s ease;
+        transition: box-shadow 0.2s ease;
       }
       .btn-effect:hover {
-        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
       }
-      .btn-effect:active {
-        transform: translateY(0);
       }
       .badge-pulse {
         animation: pulse 2s infinite;
