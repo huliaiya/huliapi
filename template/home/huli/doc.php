@@ -958,6 +958,19 @@ fetch(url)
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const codePanels = document.querySelectorAll('.code-panel');
+        tabBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const target = btn.dataset.target;
+                tabBtns.forEach(function(b) { b.classList.remove('active'); });
+                codePanels.forEach(function(p) { p.classList.remove('active'); });
+                btn.classList.add('active');
+                const panel = document.getElementById('panel-' + target);
+                if (panel) { panel.classList.add('active'); }
+            });
+        });
+
         const form = document.getElementById('api-tester-form');
         const baseUrl = form.dataset.url;
         const method = (form.dataset.method || 'GET').toUpperCase();
