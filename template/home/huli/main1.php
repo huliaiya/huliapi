@@ -108,7 +108,6 @@ function getCallCountStyle($count) {
     color: inherit;
 }
 .api-card-link:hover {
-    transform: translateY(-5px);
     box-shadow:
         0 18px 38px rgba(45, 100, 155, .20),
         inset 0 1px 0 rgba(255, 255, 255, .7);
@@ -176,7 +175,6 @@ function getCallCountStyle($count) {
     background: linear-gradient(135deg, rgba(108, 177, 245, .35), rgba(92, 197, 211, .35));
     border-color: var(--glass-accent, #5d9fe8);
     color: var(--glass-accent, #5d9fe8);
-    transform: translateY(-1px);
     box-shadow: 0 6px 18px rgba(93, 159, 232, .25);
 }
 .badge.bg-green {
@@ -293,7 +291,6 @@ function getCallCountStyle($count) {
 .sidebar-api-item:hover {
     background: rgba(255, 255, 255, .72);
     border-left-color: var(--glass-accent, #5d9fe8);
-    transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(93, 159, 232, .2);
 }
 .sidebar-api-item.active {
@@ -345,7 +342,6 @@ function getCallCountStyle($count) {
 .ad-item:hover {
     border-color: #adb5bd;
     box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-    transform: translateY(-1px);
 }
 .ad-item a {
     display: block;

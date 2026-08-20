@@ -380,7 +380,6 @@ body.theme-dark .update-modal.modal-content {
 }
 .update-steps .step.active {
     background: linear-gradient(135deg, rgba(134,194,255,.22), rgba(119,222,218,.16));
-    transform: translateY(-1px);
 }
 .update-steps .step.active .step-dot {
     background: linear-gradient(135deg, 

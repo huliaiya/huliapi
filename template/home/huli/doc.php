@@ -160,7 +160,6 @@ body {
     transition: transform .3s, box-shadow .3s;
 }
 .api-card:hover {
-    transform: translateY(-2px);
     box-shadow: 0 18px 44px rgba(64, 120, 180, .18);
 }
 .api-card .card-header {
@@ -224,7 +223,6 @@ body {
     transition: all .25s;
 }
 .copy-btn:hover {
-    transform: translateY(-1px);
     box-shadow: 0 6px 18px rgba(93, 159, 232, .5);
 }
 .param-table {
@@ -291,7 +289,6 @@ body {
     transition: all .25s;
 }
 .btn-test:hover {
-    transform: translateY(-1px);
     box-shadow: 0 6px 18px rgba(93, 159, 232, .5);
 }
 .response-area {

@@ -282,7 +282,6 @@ try {
             border-radius: 16px !important;
         }
         .plan-card:hover {
-            transform: translateY(-5px);
             box-shadow: 0 12px 30px rgba(0,0,0,0.06);
             background: rgba(255, 255, 255, 0.6) !important;
         }
@@ -326,7 +325,6 @@ try {
             font-weight: 600 !important;
         }
         .btn-primary:hover {
-            transform: translateY(-2px);
             box-shadow: 0 12px 30px rgba(40, 121, 186, 0.4) !important;
         }
     </style>

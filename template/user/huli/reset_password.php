@@ -179,11 +179,10 @@ body {
     min-height: 46px;
 }
 .btn-primary:hover {
-    transform: translateY(-2px);
     box-shadow: 0 12px 30px rgba(40, 121, 186, 0.4) !important;
 }
 .btn-primary:active {
-    transform: translateY(0);
+    box-shadow: 0 6px 16px rgba(40, 121, 186, 0.3) !important;
 }
 </style>
 </head>
