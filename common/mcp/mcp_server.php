@@ -92,9 +92,11 @@ function huli_mcp_handle_message($msg, $ctx) {
                     'isError' => false,
                 ], $id);
             } catch (Throwable $e) {
+                $isDbError = $e instanceof PDOException;
+                $clientMsg = $isDbError ? '工具执行失败: 内部数据库错误' : ('工具执行失败: ' . $e->getMessage());
                 huli_mcp_log($ctx, $method, $name, 'error', $e->getMessage(), (int)(microtime(true) * 1000) - $startMs);
                 return huli_mcp_result([
-                    'content' => [['type' => 'text', 'text' => '工具执行失败: ' . $e->getMessage()]],
+                    'content' => [['type' => 'text', 'text' => $clientMsg]],
                     'isError' => true,
                 ], $id);
             }

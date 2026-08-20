@@ -10,6 +10,11 @@ $token = isset($_GET['token']) ? (string)$_GET['token'] : '';
 if ($token === '') {
     http_response_code(400);
     echo "# 错误\n\n缺少 token 参数。\n";
+    try {
+        $pdo = huli_mcp_pdo();
+        $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES ('user', 0, '', 'access_doc', NULL, ?, 'invalid', 'missing token', 0)");
+        $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? '')]);
+    } catch (Throwable $e) {}
     exit;
 }
 
@@ -17,6 +22,11 @@ $ctx = huli_mcp_validate_token($token);
 if (!$ctx) {
     http_response_code(403);
     echo "# 错误\n\nToken 无效或已失效。\n";
+    try {
+        $pdo = huli_mcp_pdo();
+        $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES ('user', 0, '', 'access_doc', NULL, ?, 'error', ?, 0)");
+        $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? ''), 'invalid token prefix=' . substr($token, 0, 4) . '***']);
+    } catch (Throwable $e) {}
     exit;
 }
 
@@ -66,5 +76,12 @@ $out = "# huliapi MCP 接入指令\n\n"
     . "- [ ] 用户 Token 与管理员 Token 已严格隔离（用户 Token 调用管理员工具应返回 `Unknown tool`）\n\n"
     . "## 完成\n\n"
     . "配置成功且验证通过后，简短输出确认（含服务地址、工具数量、接入方式），并对所有敏感信息（Token、密钥、密码）做脱敏展示。\n";
+
+try {
+    huli_mcp_ensure_log_schema();
+    $pdo = huli_mcp_pdo();
+    $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES (?, ?, ?, 'access_doc', NULL, ?, 'success', '', 0)");
+    $stmt->execute([$ctx['role'], (int)$ctx['id'], (string)$ctx['username'], (string)($_SERVER['REMOTE_ADDR'] ?? '')]);
+} catch (Throwable $e) {}
 
 echo $out;
