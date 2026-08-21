@@ -227,6 +227,7 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC'
         right:24px;
         bottom:-8px;
         height:1px;
+        background:#e2e8f0;
     }
     .log-table td{
         padding:10px 0;
@@ -247,6 +248,7 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC'
         letter-spacing:.3px;
         padding-top:2px;
     }
+    .log-table tbody tr:hover td{background:transparent;}
     .cell-ua{flex-direction:row;}
     .cell-time{flex-direction:column;align-items:flex-start !important;}
     .cell-time::before{display:none;}
