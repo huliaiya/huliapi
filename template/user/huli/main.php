@@ -327,6 +327,17 @@ try {
         .btn-primary:hover {
             box-shadow: 0 12px 30px rgba(40, 121, 186, 0.4) !important;
         }
+        /* 移动端：nav-tabs 允许换行并缩小 */
+        @media (max-width: 768px) {
+            .nav-tabs {
+                flex-wrap: wrap;
+            }
+            .nav-tabs .nav-link {
+                padding: 0.5rem 0.75rem;
+                font-size: 13px;
+                white-space: nowrap;
+            }
+        }
     </style>
 </head>
 <body>

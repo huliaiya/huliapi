@@ -725,6 +725,68 @@ body {
 .api-list::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
+/* ===== 移动端适配 ===== */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 12px 12px !important;
+    }
+    .page-title {
+        font-size: 20px;
+    }
+    .test-row {
+        flex-wrap: wrap;
+    }
+    .test-row label {
+        min-width: 100%;
+        margin-bottom: 4px;
+    }
+    /* 参数表 & 状态码表卡片化 */
+    .param-table {
+        border: none;
+    }
+    .param-table thead {
+        display: none;
+    }
+    .param-table tbody,
+    .param-table tr,
+    .param-table td {
+        display: block;
+        width: 100%;
+    }
+    .param-table tr {
+        background:
+            linear-gradient(140deg, rgba(255, 255, 255, .20) 0%, rgba(214, 234, 250, .14) 50%, rgba(196, 224, 244, .12) 100%);
+        border: 1px solid rgba(180, 220, 245, .35);
+        border-radius: 12px;
+        padding: 4px 10px;
+        margin-bottom: 10px;
+    }
+    .param-table td {
+        border: none;
+        padding: 6px 4px;
+        text-align: left;
+    }
+    .param-table td[data-label]::before {
+        content: attr(data-label);
+        display: inline-block;
+        width: 54px;
+        margin-right: 8px;
+        font-weight: 700;
+        color: var(--glass-accent, #5d9fe8);
+        font-size: 12px;
+        vertical-align: top;
+    }
+    .param-table td[data-label="说明"]::before {
+        width: 54px;
+    }
+    .param-table tr:has(td[colspan]) {
+        padding: 10px;
+    }
+    .code-tabs .tab-btn {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+}
 </style>
 </head>
  <body>
@@ -805,10 +867,10 @@ body {
                         </tr>
                         <?php else: foreach($params as $p): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($p['name']); ?></td>
-                            <td><?php echo htmlspecialchars($p['type']); ?></td>
-                            <td><?php echo $p['required'] === 'yes' ? '是' : '否'; ?></td>
-                            <td><?php echo nl2br(htmlspecialchars(str_replace('<br>', "\n", $p['desc']))); ?></td>
+                            <td data-label="参数名"><?php echo htmlspecialchars($p['name']); ?></td>
+                            <td data-label="类型"><?php echo htmlspecialchars($p['type']); ?></td>
+                            <td data-label="必填"><?php echo $p['required'] === 'yes' ? '是' : '否'; ?></td>
+                            <td data-label="说明"><?php echo nl2br(htmlspecialchars(str_replace('<br>', "\n", $p['desc']))); ?></td>
                         </tr>
                         <?php endforeach; endif; ?>
                     </tbody>
@@ -829,60 +891,60 @@ body {
                     </thead>
                     <tbody>
                         <tr>
-                            <td>200</td>
-                            <td>请求成功，服务器已成功处理了请求。</td>
+                            <td data-label="状态码">200</td>
+                            <td data-label="说明">请求成功，服务器已成功处理了请求。</td>
                         </tr>
                         <tr>
-                            <td>201</td>
-                            <td>已创建。请求成功并且服务器已创建了新的资源。</td>
+                            <td data-label="状态码">201</td>
+                            <td data-label="说明">已创建。请求成功并且服务器已创建了新的资源。</td>
                         </tr>
                         <tr>
-                            <td>204</td>
-                            <td>无内容。服务器成功处理了请求，但不需要返回任何实体内容。</td>
+                            <td data-label="状态码">204</td>
+                            <td data-label="说明">无内容。服务器成功处理了请求，但不需要返回任何实体内容。</td>
                         </tr>
                         <tr>
-                            <td>400</td>
-                            <td>错误请求。服务器无法理解请求的格式，请检查请求参数是否正确。</td>
+                            <td data-label="状态码">400</td>
+                            <td data-label="说明">错误请求。服务器无法理解请求的格式，请检查请求参数是否正确。</td>
                         </tr>
                         <tr>
-                            <td>401</td>
-                            <td>未授权。请求需要身份验证，请提供有效的身份凭据（如登录态、Token）。</td>
+                            <td data-label="状态码">401</td>
+                            <td data-label="说明">未授权。请求需要身份验证，请提供有效的身份凭据（如登录态、Token）。</td>
                         </tr>
                         <tr>
-                            <td>403</td>
-                            <td>服务器拒绝请求。这可能是由于缺少必要的认证凭据（如API密钥）或权限不足。</td>
+                            <td data-label="状态码">403</td>
+                            <td data-label="说明">服务器拒绝请求。这可能是由于缺少必要的认证凭据（如API密钥）或权限不足。</td>
                         </tr>
                         <tr>
-                            <td>404</td>
-                            <td>请求的资源未找到。请检查您的请求地址是否正确。</td>
+                            <td data-label="状态码">404</td>
+                            <td data-label="说明">请求的资源未找到。请检查您的请求地址是否正确。</td>
                         </tr>
                         <tr>
-                            <td>405</td>
-                            <td>方法不允许。请求使用的 HTTP 方法不被该接口支持，请检查请求方式（GET/POST）。</td>
+                            <td data-label="状态码">405</td>
+                            <td data-label="说明">方法不允许。请求使用的 HTTP 方法不被该接口支持，请检查请求方式（GET/POST）。</td>
                         </tr>
                         <tr>
-                            <td>408</td>
-                            <td>请求超时。服务器等待请求时发生超时，请稍后重试。</td>
+                            <td data-label="状态码">408</td>
+                            <td data-label="说明">请求超时。服务器等待请求时发生超时，请稍后重试。</td>
                         </tr>
                         <tr>
-                            <td>429</td>
-                            <td>请求过于频繁。您已超出速率限制，请稍后再试。</td>
+                            <td data-label="状态码">429</td>
+                            <td data-label="说明">请求过于频繁。您已超出速率限制，请稍后再试。</td>
                         </tr>
                         <tr>
-                            <td>500</td>
-                            <td>服务器内部错误。服务器在执行请求时遇到了问题。</td>
+                            <td data-label="状态码">500</td>
+                            <td data-label="说明">服务器内部错误。服务器在执行请求时遇到了问题。</td>
                         </tr>
                         <tr>
-                            <td>502</td>
-                            <td>网关错误。作为网关或代理的服务器从上游服务器收到了无效响应。</td>
+                            <td data-label="状态码">502</td>
+                            <td data-label="说明">网关错误。作为网关或代理的服务器从上游服务器收到了无效响应。</td>
                         </tr>
                         <tr>
-                            <td>503</td>
-                            <td>服务不可用。服务器暂时无法处理请求（可能正在维护或过载），请稍后重试。</td>
+                            <td data-label="状态码">503</td>
+                            <td data-label="说明">服务不可用。服务器暂时无法处理请求（可能正在维护或过载），请稍后重试。</td>
                         </tr>
                         <tr>
-                            <td>504</td>
-                            <td>网关超时。作为网关或代理的服务器未能及时从上游服务器收到请求。</td>
+                            <td data-label="状态码">504</td>
+                            <td data-label="说明">网关超时。作为网关或代理的服务器未能及时从上游服务器收到请求。</td>
                         </tr>
                     </tbody>
                 </table>

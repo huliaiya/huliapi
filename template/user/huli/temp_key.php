@@ -137,6 +137,11 @@ $site_name = $settings['site_name'];
             vertical-align: middle;
             margin-right: 0.5rem;
         }
+        @media (max-width: 576px) {
+            .card {
+                padding: 1.5rem !important;
+            }
+        }
     </style>
 </head>
 <body>

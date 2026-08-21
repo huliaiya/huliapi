@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <title>用户登录 - huliapi</title>
 <?php if($favicon_url):?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($favicon_url);?>"><?php endif;?>
 <link rel="shortcut icon" type="image/x-icon" href="https://picui.ogmua.cn/s1/2026/05/26/6a156ea77f458.webp">
@@ -121,7 +121,7 @@ body {
         url('<?php echo htmlspecialchars(huli_random_gallery_image()); ?>');
     background-size: cover, cover;
     background-position: center, center;
-    background-attachment: fixed, fixed;
+    background-attachment: scroll, scroll;
     background-repeat: no-repeat, no-repeat;
     display: flex;
     justify-content: center;
@@ -194,6 +194,11 @@ body {
     background: rgba(220, 84, 117, 0.15) !important;
     border: 1px solid rgba(220, 84, 117, 0.25) !important;
     color: #dc5475 !important;
+}
+@media (max-width: 576px) {
+    .glass-card {
+        padding: 1.5rem !important;
+    }
 }
 </style>
 </head>
