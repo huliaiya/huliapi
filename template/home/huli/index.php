@@ -194,7 +194,7 @@ body {
         url('<?php echo htmlspecialchars(huli_random_gallery_image()); ?>') !important;
     background-size: cover, cover !important;
     background-position: center, center !important;
-    background-attachment: fixed, fixed !important;
+    background-attachment: scroll, scroll !important;
     background-repeat: no-repeat, no-repeat !important;
 }
 .lyear-layout-sidebar {

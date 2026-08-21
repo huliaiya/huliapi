@@ -136,7 +136,13 @@ function getCallCountStyle($count) {
     0% { opacity: 0.8; transform: scale(1); }
     100% { opacity: 1; transform: scale(1.1); }
 }
- input.api-search-box {
+ .search-card-wrapper {
+    background: rgba(255, 255, 255, .35) !important;
+    backdrop-filter: blur(10px) saturate(150%);
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
+    border: 1px solid rgba(180, 220, 245, .45);
+}
+input.api-search-box {
     border-radius: 50px;
     padding-left: 50px !important;
     height: 44px;
@@ -481,8 +487,9 @@ body {
         url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>') !important;
     background-size: cover, cover !important;
     background-position: center, center !important;
-    background-attachment: fixed, fixed !important;
+    background-attachment: scroll, scroll !important;
     background-repeat: no-repeat, no-repeat !important;
+    min-height: 100vh;
 }
 </style>
 </head>
@@ -534,7 +541,7 @@ body {
     </div>
     <?php endforeach; ?>
 </div>
-<div class="card mb-4">
+<div class="card mb-4 glass-card search-card-wrapper">
     <div class="card-body p-3">
         <div class="d-flex align-items-center gap-2">
             <div class="position-relative flex-grow-1">

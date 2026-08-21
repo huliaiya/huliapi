@@ -95,7 +95,7 @@ body {
       url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>');
     background-size: cover, cover;
     background-position: center, center;
-    background-attachment: fixed, fixed;
+    background-attachment: scroll, scroll;
     background-repeat: no-repeat, no-repeat;
     color: var(--glass-text);
     font-size: 14px;
