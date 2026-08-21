@@ -197,6 +197,25 @@ function getCallCountStyle($count) {
     font-size: 12px;
     padding: 0.2rem 0.4rem;
 }
+.api-status-codes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.api-status-code {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    cursor: help;
+    letter-spacing: .3px;
+    font-family: 'JetBrains Mono','SF Mono','Courier New',monospace;
+}
+.api-status-code.s-200 { background: #ecfdf5; color: #059669; border: 1px solid rgba(5,150,105,.18); }
+.api-status-code.s-403 { background: #fef2f2; color: #dc2626; border: 1px solid rgba(220,38,38,.18); }
+.api-status-code.s-404 { background: #fffbeb; color: #d97706; border: 1px solid rgba(217,119,6,.18); }
+.api-status-code.s-429 { background: #fff7ed; color: #ea580c; border: 1px solid rgba(234,88,12,.18); }
+.api-status-code.s-500 { background: #fef2f2; color: #b91c1c; border: 1px solid rgba(185,28,28,.18); }
 .offcanvas-start {
     width: 300px;
     background: linear-gradient(165deg, rgba(232, 244, 255, .92), rgba(214, 234, 250, .88));
@@ -539,6 +558,13 @@ function getCallCountStyle($count) {
                     </span>
                 <?php endif; ?>
                 <p class="card-text text-muted mb-3"><?php echo htmlspecialchars($api['description']); ?></p>
+                <div class="api-status-codes mb-3">
+                    <span class="api-status-code s-200" title="200 请求成功，服务器已成功处理了请求。">200</span>
+                    <span class="api-status-code s-403" title="403 服务器拒绝请求。这可能是由于缺少必要的认证凭据（如API密钥）或权限不足。">403</span>
+                    <span class="api-status-code s-404" title="404 请求的资源未找到。请检查您的请求地址是否正确。">404</span>
+                    <span class="api-status-code s-429" title="429 请求过于频繁。您已超出速率限制，请稍后再试。">429</span>
+                    <span class="api-status-code s-500" title="500 服务器内部错误。服务器在执行请求时遇到了问题。">500</span>
+                </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="me-3 <?php echo $style['color']; ?>">
