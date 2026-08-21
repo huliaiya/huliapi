@@ -24,7 +24,7 @@ if ($is_logged_in) {
     } catch (PDOException $e) {
     }
 }
-    $api = null; $params = []; $site_name = 'huliapi';
+    $api = null; $params = []; $site_name = 'huliapi'; $yn_token = '';
 $is_logged_in = isset($_SESSION['user_id']);
 $user_info = $is_logged_in ? ['username' => $_SESSION['user_username'], 'email' => $_SESSION['user_email']] : null;
 $api_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -44,6 +44,7 @@ try {
     $stmt_settings = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_name'");
     $db_site_name = $stmt_settings->fetchColumn();
     if($db_site_name) $site_name = $db_site_name;
+    $yn_token = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'yn_github_token'")->fetchColumn() ?: '';
 } catch (PDOException $e) { }
 
 function getStatusBadge($status) {
@@ -1298,5 +1299,6 @@ func main() {
         }
     });
     </script>
+<?php include __DIR__ . '/yn_widget.php'; ?>
 </body>
 </html>
