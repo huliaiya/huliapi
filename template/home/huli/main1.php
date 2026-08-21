@@ -93,16 +93,16 @@ function getCallCountStyle($count) {
 <style>
 .api-card {
     transition: all 0.3s ease;
-    border: 1px solid rgba(180, 220, 245, .38);
+    border: 1px solid rgba(255, 255, 255, .35);
     border-radius: 22px;
     height: 100%;
     background:
-        linear-gradient(140deg, rgba(255, 255, 255, .32) 0%, rgba(214, 234, 250, .22) 50%, rgba(196, 224, 244, .18) 100%);
+        linear-gradient(140deg, rgba(255, 255, 255, .10) 0%, rgba(214, 234, 250, .06) 50%, rgba(196, 224, 244, .05) 100%);
     box-shadow:
-        0 8px 28px rgba(45, 100, 155, .10),
-        inset 0 1px 0 rgba(255, 255, 255, .55);
-    backdrop-filter: blur(10px) saturate(150%);
-    -webkit-backdrop-filter: blur(10px) saturate(150%);
+        0 8px 28px rgba(45, 100, 155, .12),
+        inset 0 1px 0 rgba(255, 255, 255, .35);
+    backdrop-filter: blur(3px) saturate(110%);
+    -webkit-backdrop-filter: blur(3px) saturate(110%);
 }
 .api-card-link {
     display: block;
@@ -136,11 +136,15 @@ function getCallCountStyle($count) {
     0% { opacity: 0.8; transform: scale(1); }
     100% { opacity: 1; transform: scale(1.1); }
 }
- .search-card-wrapper {
-    background: rgba(255, 255, 255, .35) !important;
-    backdrop-filter: blur(10px) saturate(150%);
-    -webkit-backdrop-filter: blur(10px) saturate(150%);
-    border: 1px solid rgba(180, 220, 245, .45);
+.search-card-wrapper {
+    background:
+        linear-gradient(140deg, rgba(255, 255, 255, .14) 0%, rgba(214, 234, 250, .10) 50%, rgba(196, 224, 244, .08) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, .35) !important;
+    box-shadow:
+        0 8px 24px rgba(45, 100, 155, .10),
+        inset 0 1px 0 rgba(255, 255, 255, .35) !important;
+    backdrop-filter: blur(3px) saturate(110%);
+    -webkit-backdrop-filter: blur(3px) saturate(110%);
 }
 input.api-search-box {
     border-radius: 50px;
@@ -416,23 +420,27 @@ input.api-search-box {
     margin-top: 8px;
 }
 .stats-card {
+    border: 1px solid rgba(255, 255, 255, .35);
+    border-radius: 18px;
+    background:
+        linear-gradient(140deg, rgba(255, 255, 255, .38) 0%, rgba(214, 234, 250, .26) 50%, rgba(196, 224, 244, .22) 100%);
+    box-shadow:
+        0 6px 20px rgba(45, 100, 155, .10),
+        inset 0 1px 0 rgba(255, 255, 255, .45);
+    backdrop-filter: blur(8px) saturate(140%);
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     padding: 18px 20px;
-    min-height: 96px;
-    border-radius: 18px;
-    border: 1px solid rgba(180, 220, 245, .45);
-    background:
-        linear-gradient(135deg, rgba(255, 255, 255, .38) 0%, rgba(220, 238, 252, .26) 100%);
+}
+
+.stats-card:hover {
+    transform: translateY(-4px);
     box-shadow:
-        0 6px 22px rgba(45, 100, 155, .10),
-        inset 0 1px 0 rgba(255, 255, 255, .55);
-    backdrop-filter: blur(8px) saturate(160%);
-    -webkit-backdrop-filter: blur(8px) saturate(160%);
-    transition: box-shadow .25s ease;
-    cursor: default;
-    user-select: none;
+        0 12px 32px rgba(45, 100, 155, .15),
+        inset 0 1px 0 rgba(255, 255, 255, .45);
 }
 .stats-card:hover {
     box-shadow:
@@ -483,11 +491,11 @@ input.api-search-box {
 }
 body {
     background:
-        linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
+        linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)),
         url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>') !important;
     background-size: cover, cover !important;
     background-position: center, center !important;
-    background-attachment: scroll, scroll !important;
+    background-attachment: fixed, fixed !important;
     background-repeat: no-repeat, no-repeat !important;
     min-height: 100vh;
 }
