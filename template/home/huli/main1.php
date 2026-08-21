@@ -16,6 +16,7 @@ $userTemplate = TemplateManager::getActiveUserTemplate();
 $userTemplateBaseUrl = "/template/User/{$userTemplate}/";
 $apis = [];
 $site_name = 'huliapi';
+$yn_token = '';
 try {
     $pdo = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -25,6 +26,7 @@ try {
     $error_apis_count = (int)$pdo->query("SELECT COUNT(*) FROM huli_apis WHERE status = 'error'")->fetchColumn();
     $stmt_site = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_name'");
     $site_name = $stmt_site->fetchColumn() ?: 'huliapi';
+    $yn_token = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'yn_github_token'")->fetchColumn() ?: '';
 } catch (PDOException $e) {
 }
 $announcement = null;
@@ -854,5 +856,6 @@ $(document).ready(function() {
     loadSidebarCategories();
 });
 </script>
+<?php include __DIR__ . '/yn_widget.php'; ?>
 </body>
 </html>

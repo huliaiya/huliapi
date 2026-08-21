@@ -343,7 +343,8 @@ INSERT INTO `huli_settings` (`setting_key`,`setting_value`) VALUES
 ('daily_free_points','100'),
 ('icp_record_number',''),
 ('police_record_number',''),
-('favicon_url','');
+('favicon_url',''),
+('yn_github_token','');
 
 DROP TABLE IF EXISTS `huli_temp_key_logs`;
 CREATE TABLE `huli_temp_key_logs` (
