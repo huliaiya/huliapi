@@ -91,12 +91,12 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.5;
     background:
-      linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
-      url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>');
-    background-size: cover, cover;
-    background-position: center, center;
-    background-attachment: scroll, scroll;
-    background-repeat: no-repeat, no-repeat;
+      linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)),
+      url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>') !important;
+    background-size: cover, cover !important;
+    background-position: center, center !important;
+    background-attachment: fixed, fixed !important;
+    background-repeat: no-repeat, no-repeat !important;
     color: var(--glass-text);
     font-size: 14px;
     min-height: 100vh;
@@ -152,10 +152,10 @@ body {
     background: linear-gradient(180deg, var(--glass-accent), var(--glass-accent-2));
 }
 .api-card {
-    background: rgba(255, 255, 255, .68);
-    backdrop-filter: blur(18px) saturate(180%);
-    -webkit-backdrop-filter: blur(18px) saturate(180%);
-    border: 1px solid var(--glass-border);
+    background: linear-gradient(140deg, rgba(255, 255, 255, .18) 0%, rgba(214, 234, 250, .12) 50%, rgba(196, 224, 244, .10) 100%);
+    backdrop-filter: blur(6px) saturate(120%);
+    -webkit-backdrop-filter: blur(6px) saturate(120%);
+    border: 1px solid rgba(255, 255, 255, .35);
     border-radius: 18px;
     margin-bottom: 18px;
     overflow: hidden;
@@ -166,7 +166,7 @@ body {
     box-shadow: 0 18px 44px rgba(64, 120, 180, .18);
 }
 .api-card .card-header {
-    background: linear-gradient(135deg, rgba(238, 247, 255, .85), rgba(219, 234, 254, .65));
+    background: linear-gradient(135deg, rgba(238, 247, 255, .35), rgba(219, 234, 254, .22));
     border-bottom: 1px solid rgba(180, 220, 245, .35);
     padding: 12px 18px;
     font-weight: 700;
