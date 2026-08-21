@@ -137,7 +137,7 @@ function getCallCountStyle($count) {
 }
  input.api-search-box {
     border-radius: 50px;
-    padding-left: 50px;
+    padding-left: 50px !important;
     height: 44px;
     background:
         linear-gradient(140deg, rgba(255, 255, 255, .68) 0%, rgba(232, 244, 255, .48) 100%);
@@ -229,7 +229,7 @@ function getCallCountStyle($count) {
     background: rgba(255, 255, 255, .65);
     border: 1px solid rgba(180, 220, 245, .55);
     color: #1f3a5f;
-    padding-left: 40px;
+    padding-left: 40px !important;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
