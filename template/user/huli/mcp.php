@@ -79,17 +79,24 @@ if ($newToken !== '') {
 }
 
 $mcpLogToday = 0;
+$mcpLogYesterday = 0;
 $mcpLogTotal = 0;
+$mcpLogSuccess = 0;
+$mcpLogError = 0;
 $mcpLogRecent = [];
 try {
     huli_mcp_ensure_log_schema();
     $pdo_log = huli_mcp_pdo();
     $mcpLogToday = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE role = 'user' AND user_id = " . (int)$user_id . " AND DATE(request_time) = CURDATE()")->fetchColumn();
+    $mcpLogYesterday = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE role = 'user' AND user_id = " . (int)$user_id . " AND DATE(request_time) = CURDATE() - INTERVAL 1 DAY")->fetchColumn();
     $mcpLogTotal = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE role = 'user' AND user_id = " . (int)$user_id)->fetchColumn();
-    $stmt_log = $pdo_log->prepare("SELECT request_time, method, tool_name, status, latency_ms, ip_address FROM huli_mcp_logs WHERE role = 'user' AND user_id = ? ORDER BY id DESC LIMIT 5");
+    $mcpLogSuccess = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE role = 'user' AND user_id = " . (int)$user_id . " AND status = 'success'")->fetchColumn();
+    $mcpLogError = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE role = 'user' AND user_id = " . (int)$user_id . " AND status IN ('error','invalid')")->fetchColumn();
+    $stmt_log = $pdo_log->prepare("SELECT request_time, method, tool_name, status, latency_ms, ip_address FROM huli_mcp_logs WHERE role = 'user' AND user_id = ? ORDER BY id DESC LIMIT 8");
     $stmt_log->execute([$user_id]);
     $mcpLogRecent = $stmt_log->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {}
+$mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 100, 1) : 0.0;
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -298,13 +305,21 @@ try {
         </div>
         <div class="card-body">
             <div class="row g-3 mb-3">
-                <div class="col-6 col-md-4">
+                <div class="col-6 col-md-3">
                     <div class="text-muted small">今日调用</div>
                     <div class="h4 mb-0 text-primary"><?php echo number_format($mcpLogToday); ?></div>
                 </div>
-                <div class="col-6 col-md-4">
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">昨日调用</div>
+                    <div class="h4 mb-0 text-secondary"><?php echo number_format($mcpLogYesterday); ?></div>
+                </div>
+                <div class="col-6 col-md-3">
                     <div class="text-muted small">历史累计</div>
                     <div class="h4 mb-0"><?php echo number_format($mcpLogTotal); ?></div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">成功率</div>
+                    <div class="h4 mb-0 text-success"><?php echo $mcpLogSuccessRate; ?>%</div>
                 </div>
             </div>
             <?php if (empty($mcpLogRecent)): ?>
