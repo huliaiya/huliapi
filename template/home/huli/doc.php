@@ -90,24 +90,16 @@ foreach($params as $p) {
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.5;
-    position: relative;
-    color: var(--glass-text);
-    font-size: 14px;
-    min-height: 100vh;
-}
-body::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
     background:
       linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)),
       url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>');
     background-size: cover, cover;
     background-position: center, center;
+    background-attachment: fixed, fixed;
     background-repeat: no-repeat, no-repeat;
-    background-attachment: scroll, scroll;
-    pointer-events: none;
+    color: var(--glass-text);
+    font-size: 14px;
+    min-height: 100vh;
 }
 .container-fluid {
     padding: 18px 20px !important;
@@ -160,12 +152,7 @@ body::before {
     background: linear-gradient(180deg, var(--glass-accent), var(--glass-accent-2));
 }
 .api-card {
-    background:
-        linear-gradient(140deg, rgba(255, 255, 255, .22) 0%, rgba(214, 234, 250, .16) 50%, rgba(196, 224, 244, .14) 100%),
-        url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>');
-    background-size: auto, cover;
-    background-position: 0 0, center;
-    background-repeat: no-repeat, no-repeat;
+    background: linear-gradient(140deg, rgba(255, 255, 255, .22) 0%, rgba(214, 234, 250, .14) 50%, rgba(196, 224, 244, .12) 100%);
     backdrop-filter: blur(6px) saturate(120%);
     -webkit-backdrop-filter: blur(6px) saturate(120%);
     border: 1px solid rgba(255, 255, 255, .35);
