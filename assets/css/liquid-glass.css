@@ -74,7 +74,6 @@ body.center-vh {
 .lyear-layout-sidebar,
 .lyear-layout-header,
 .card:not([class*="bg-"]),
-.api-card,
 .info-card,
 .glass-card,
 .modal-content,
@@ -96,6 +95,16 @@ body.center-vh {
         inset 0 1px 0 rgba(255, 255, 255, .65) !important;
     backdrop-filter: blur(18px) saturate(150%) !important;
     -webkit-backdrop-filter: blur(18px) saturate(150%) !important;
+}
+
+/* api-card 单独设为透明，让背景图透出 */
+.api-card {
+    border-radius: var(--glass-radius);
+    background: rgba(255, 255, 255, .12) !important;
+    border: 1px solid rgba(255, 255, 255, .35) !important;
+    box-shadow: 0 4px 18px rgba(45, 100, 155, .12) !important;
+    backdrop-filter: blur(3px) saturate(110%) !important;
+    -webkit-backdrop-filter: blur(3px) saturate(110%) !important;
 }
 
 .api-card .card-title,
@@ -636,15 +645,19 @@ body[data-theme='dark'] .floating-sidebar-btn .btn-float {
     .lyear-layout-sidebar,
     .lyear-layout-header,
     .card:not([class*="bg-"]),
-    .api-card,
     .info-card,
     .glass-card,
-    .auth-box,
+    .modal-content,
     .dropdown-menu,
     .offcanvas,
     .form-control,
     .form-select {
-        background: rgba(244, 250, 255, .85) !important;
+        background: rgba(244, 250, 255, .55) !important;
+    }
+    /* api-card 保持透明，透出 body 背景图 */
+    .api-card {
+        background: rgba(255, 255, 255, .12) !important;
+        box-shadow: 0 4px 18px rgba(45, 100, 155, .18) !important;
     }
 }
 
