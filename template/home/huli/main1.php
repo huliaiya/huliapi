@@ -104,6 +104,13 @@ function getCallCountStyle($count) {
     backdrop-filter: blur(3px) saturate(110%) !important;
     -webkit-backdrop-filter: blur(3px) saturate(110%) !important;
 }
+/* fallback 覆盖 liquid-glass.css 中 @supports not(backdrop-filter) 对 .api-card 的不透明强制 */
+@supports not ((backdrop-filter: blur(1px))) and (not (-webkit-backdrop-filter: blur(1px))) {
+    .api-card {
+        background: rgba(255, 255, 255, .10) !important;
+        box-shadow: 0 4px 18px rgba(45, 100, 155, .18) !important;
+    }
+}
 .api-card-link {
     display: block;
     color: inherit;
