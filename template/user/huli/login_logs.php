@@ -203,7 +203,55 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC'
 .pagination a,.pagination span{padding:7px 12px;border-radius:8px;background:rgba(255,255,255,.7);border:1px solid #e2e8f0;color:#1e293b;text-decoration:none;font-weight:600;font-size:13px;transition:all .2s;min-width:36px;text-align:center;}
 .pagination a:hover{border-color:#4f6ef7;color:#4f6ef7;}
 .pagination .current{background:linear-gradient(135deg,#4f6ef7,#6c8cff);color:#fff;border-color:transparent;}
-@media(max-width:900px){.stat-grid{grid-template-columns:repeat(2,1fr);}.content-wrapper{padding:16px;}.page-header h1{font-size:20px;}}
+@media(max-width:900px){
+    .stat-grid{grid-template-columns:repeat(2,1fr);}
+    .content-wrapper{padding:16px;}
+    .page-header h1{font-size:20px;}
+    .log-table thead{display:none;}
+    .log-table,.log-table tbody,.log-table tr,.log-table td{display:block;width:100%;}
+    .log-table{min-width:0;}
+    .log-table-wrap{overflow-x:visible;}
+    .log-table tr{
+        margin-bottom:14px;
+        padding:14px 16px;
+        border-radius:12px;
+        background:rgba(255,255,255,.92);
+        border:1px solid rgba(226,232,240,.6);
+        box-shadow:0 1px 3px rgba(0,0,0,.04);
+        position:relative;
+    }
+    .log-table tr:not(:last-child)::after{
+        content:'';
+        position:absolute;
+        left:24px;
+        right:24px;
+        bottom:-8px;
+        height:1px;
+    }
+    .log-table td{
+        padding:10px 0;
+        border-bottom:1px dashed rgba(226,232,240,.7);
+        display:flex;
+        align-items:flex-start;
+        gap:10px;
+    }
+    .log-table td:last-child{border-bottom:none;padding-bottom:0;}
+    .log-table td:first-child{padding-top:0;}
+    .log-table td::before{
+        content:attr(data-label);
+        flex-shrink:0;
+        width:80px;
+        font-size:11px;
+        font-weight:700;
+        color:#64748b;
+        letter-spacing:.3px;
+        padding-top:2px;
+    }
+    .cell-ua{flex-direction:row;}
+    .cell-time{flex-direction:column;align-items:flex-start !important;}
+    .cell-time::before{display:none;}
+    .cell-time .time-main{font-size:14px;}
+}
 </style>
 </head>
 <body>
@@ -277,13 +325,13 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC'
                     $is_recent = (time() - strtotime($r['login_at'])) < 86400;
                 ?>
                     <tr>
-                        <td class="cell-time <?php echo $is_recent ? 'ago' : ''; ?>">
+                        <td class="cell-time <?php echo $is_recent ? 'ago' : ''; ?>" data-label="登录时间">
                             <div class="time-main"><?php echo $ago; ?></div>
                             <div class="time-sub"><?php echo htmlspecialchars($r['login_at']); ?></div>
                         </td>
-                        <td class="cell-status"><span class="badge badge-<?php echo htmlspecialchars($r['status']); ?>"><?php echo $status_label[$r['status']] ?? $r['status']; ?></span></td>
-                        <td class="cell-ip"><span class="ip-main"><?php echo htmlspecialchars($r['ip']); ?></span></td>
-                        <td class="cell-geo">
+                        <td class="cell-status" data-label="状态"><span class="badge badge-<?php echo htmlspecialchars($r['status']); ?>"><?php echo $status_label[$r['status']] ?? $r['status']; ?></span></td>
+                        <td class="cell-ip" data-label="IP 地址"><span class="ip-main"><?php echo htmlspecialchars($r['ip']); ?></span></td>
+                        <td class="cell-geo" data-label="地理位置">
                             <?php if (!empty($r['country'])): ?>
                                 <div class="country-line"><span class="flag"><?php echo $flag; ?></span><?php echo htmlspecialchars($r['country']); ?></div>
                                 <?php if (!empty($r['region']) || !empty($r['city'])): ?>
@@ -293,8 +341,8 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC'
                                 <span class="empty">未知</span>
                             <?php endif; ?>
                         </td>
-                        <td class="cell-isp"><?php echo !empty($r['isp']) ? htmlspecialchars($r['isp']) : '<span style="color:#cbd5e1;">未知</span>'; ?></td>
-                        <td class="cell-ua">
+                        <td class="cell-isp" data-label="网络 / ISP"><?php echo !empty($r['isp']) ? htmlspecialchars($r['isp']) : '<span style="color:#cbd5e1;">未知</span>'; ?></td>
+                        <td class="cell-ua" data-label="设备">
                             <i class="mdi <?php echo $u['os_icon']; ?> ua-icon"></i>
                             <div class="ua-info">
                                 <div class="ua-os"><?php echo htmlspecialchars($u['os']); ?></div>
