@@ -271,6 +271,36 @@ $mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 
 
     <div class="card mb-4">
         <div class="card-header">
+            <div class="card-title"><i class="mdi mdi-robot-outline me-2"></i>AI 自动接入命令（一键复制）</div>
+        </div>
+        <div class="card-body">
+            <div class="small text-muted mb-2">复制下方命令并发送给你的 AI 编程助手（Claude Code / Codex / Cursor 等），它会自动下载指令文档并完成 MCP 接入：</div>
+            <?php if ($aiInstruction !== ''): ?>
+            <div class="mb-2"><i class="mdi mdi-link-variant me-1 text-muted"></i><a href="<?php echo htmlspecialchars($mcpAccessUrl); ?>" target="_blank" class="text-break"><?php echo htmlspecialchars($mcpAccessUrl); ?></a></div>
+            <div class="code-block" id="ai-instruction"><?php echo htmlspecialchars($aiInstruction); ?></div>
+            <button class="btn btn-primary btn-sm btn-copy" data-copy="#ai-instruction"><i class="mdi mdi-content-copy me-1"></i>一键复制接入命令</button>
+            <?php else: ?>
+            <div class="alert alert-warning mb-0 py-2"><i class="mdi mdi-alert-outline me-1"></i>接入命令中包含 Token。<?php echo $hasToken ? '请点击上方「重新生成 Token」后立即复制（Token 仅生成时可见）。' : '请先点击上方「生成 Token」，生成后即可一键复制接入命令。'; ?></div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="card-title"><i class="mdi mdi-shield-alert-outline me-2"></i>安全说明</div>
+        </div>
+        <div class="card-body small text-muted">
+            <ul class="mb-0 ps-3">
+                <li>管理员 MCP Token 拥有平台高级管理权限（用户余额/状态调整、API 状态变更等），请务必妥善保管，切勿泄露。</li>
+                <li>Token 以哈希形式存储在数据库，明文仅在生成时展示一次。</li>
+                <li>管理员 MCP 与用户 MCP 完全隔离，管理员 Token 无法调用用户侧工具，反之亦然。</li>
+                <li>如需停用，请点击「撤销 Token」，配置将立即失效。</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
             <div class="card-title"><i class="mdi mdi-history me-2"></i>MCP 调用日志（实时）</div>
         </div>
         <div class="card-body">
@@ -322,36 +352,6 @@ $mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 
                     </table>
                 </div>
             <?php endif; ?>
-        </div>
-    </div>
-
-    <div class="card mb-4">
-        <div class="card-header">
-            <div class="card-title"><i class="mdi mdi-robot-outline me-2"></i>AI 自动接入命令（一键复制）</div>
-        </div>
-        <div class="card-body">
-            <div class="small text-muted mb-2">复制下方命令并发送给你的 AI 编程助手（Claude Code / Codex / Cursor 等），它会自动下载指令文档并完成 MCP 接入：</div>
-            <?php if ($aiInstruction !== ''): ?>
-            <div class="mb-2"><i class="mdi mdi-link-variant me-1 text-muted"></i><a href="<?php echo htmlspecialchars($mcpAccessUrl); ?>" target="_blank" class="text-break"><?php echo htmlspecialchars($mcpAccessUrl); ?></a></div>
-            <div class="code-block" id="ai-instruction"><?php echo htmlspecialchars($aiInstruction); ?></div>
-            <button class="btn btn-primary btn-sm btn-copy" data-copy="#ai-instruction"><i class="mdi mdi-content-copy me-1"></i>一键复制接入命令</button>
-            <?php else: ?>
-            <div class="alert alert-warning mb-0 py-2"><i class="mdi mdi-alert-outline me-1"></i>接入命令中包含 Token。<?php echo $hasToken ? '请点击上方「重新生成 Token」后立即复制（Token 仅生成时可见）。' : '请先点击上方「生成 Token」，生成后即可一键复制接入命令。'; ?></div>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <div class="card mb-4">
-        <div class="card-header">
-            <div class="card-title"><i class="mdi mdi-shield-alert-outline me-2"></i>安全说明</div>
-        </div>
-        <div class="card-body small text-muted">
-            <ul class="mb-0 ps-3">
-                <li>管理员 MCP Token 拥有平台高级管理权限（用户余额/状态调整、API 状态变更等），请务必妥善保管，切勿泄露。</li>
-                <li>Token 以哈希形式存储在数据库，明文仅在生成时展示一次。</li>
-                <li>管理员 MCP 与用户 MCP 完全隔离，管理员 Token 无法调用用户侧工具，反之亦然。</li>
-                <li>如需停用，请点击「撤销 Token」，配置将立即失效。</li>
-            </ul>
         </div>
     </div>
 </div>
