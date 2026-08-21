@@ -156,6 +156,7 @@ a.api-card:focus {
     background:
         linear-gradient(140deg, rgba(255, 255, 255, .22) 0%, rgba(214, 234, 250, .14) 50%, rgba(196, 224, 244, .12) 100%) !important;
     border: 1px solid rgba(255, 255, 255, .35) !important;
+    border-radius: 22px;
     box-shadow:
         0 8px 24px rgba(45, 100, 155, .10),
         inset 0 1px 0 rgba(255, 255, 255, .35) !important;
@@ -163,7 +164,7 @@ a.api-card:focus {
     -webkit-backdrop-filter: blur(3px) saturate(110%);
 }
 input.api-search-box {
-    border-radius: 50px;
+    border-radius: 50px !important;
     padding-left: 50px !important;
     height: 44px;
     background:

@@ -474,7 +474,6 @@ body {
     margin: 10px 0 20px 0;
     position: relative;
     padding-left: 10px;
-    border-left: 3px solid #4096ff;
 }
 .api-card {
     background: #fff;
