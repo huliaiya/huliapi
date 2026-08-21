@@ -10,6 +10,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
 require_once ROOT_PATH . 'common/url_helper.php';
+require_once ROOT_PATH . 'common/gallery.php';
 $template = TemplateManager::getActiveUserTemplate();
 $template_base_url = "/template/user/{$template}/";
 $is_logged_in = isset($_SESSION['user_id']);
@@ -90,10 +91,12 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.5;
     background:
-      radial-gradient(circle at 12% 8%, rgba(186, 224, 255, .55), transparent 28rem),
-      radial-gradient(circle at 88% 92%, rgba(196, 232, 240, .45), transparent 30rem),
-      linear-gradient(135deg, #eef5fb 0%, #f5fafd 50%, #eaf3fb 100%);
-    background-attachment: fixed;
+      linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
+      url('<?php echo htmlspecialchars(huli_random_gallery_image()); ?>');
+    background-size: cover, cover;
+    background-position: center, center;
+    background-attachment: fixed, fixed;
+    background-repeat: no-repeat, no-repeat;
     color: var(--glass-text);
     font-size: 14px;
     min-height: 100vh;

@@ -566,21 +566,6 @@ function getCallCountStyle($count) {
                     </span>
                 <?php endif; ?>
                 <p class="card-text text-muted mb-3"><?php echo htmlspecialchars($api['description']); ?></p>
-                <div class="api-status-codes mb-3">
-                    <span class="api-status-code s-200" title="200 请求成功，服务器已成功处理了请求。">200</span>
-                    <span class="api-status-code s-201" title="201 已创建。请求成功并且服务器已创建了新的资源。">201</span>
-                    <span class="api-status-code s-204" title="204 无内容。服务器成功处理了请求，但不需要返回任何实体内容。">204</span>
-                    <span class="api-status-code s-400" title="400 错误请求。服务器无法理解请求的格式，请检查请求参数是否正确。">400</span>
-                    <span class="api-status-code s-401" title="401 未授权。请求需要身份验证，请提供有效的身份凭据。">401</span>
-                    <span class="api-status-code s-403" title="403 服务器拒绝请求。这可能是由于缺少必要的认证凭据（如API密钥）或权限不足。">403</span>
-                    <span class="api-status-code s-404" title="404 请求的资源未找到。请检查您的请求地址是否正确。">404</span>
-                    <span class="api-status-code s-405" title="405 方法不允许。请求使用的 HTTP 方法不被该接口支持。">405</span>
-                    <span class="api-status-code s-429" title="429 请求过于频繁。您已超出速率限制，请稍后再试。">429</span>
-                    <span class="api-status-code s-500" title="500 服务器内部错误。服务器在执行请求时遇到了问题。">500</span>
-                    <span class="api-status-code s-502" title="502 网关错误。作为网关或代理的服务器从上游收到了无效响应。">502</span>
-                    <span class="api-status-code s-503" title="503 服务不可用。服务器暂时无法处理请求，请稍后重试。">503</span>
-                    <span class="api-status-code s-504" title="504 网关超时。作为网关或代理的服务器未能及时从上游收到请求。">504</span>
-                </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="me-3 <?php echo $style['color']; ?>">
