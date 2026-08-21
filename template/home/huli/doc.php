@@ -90,16 +90,29 @@ foreach($params as $p) {
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.5;
+    background: transparent;
+    color: var(--glass-text);
+    font-size: 14px;
+    min-height: 100vh;
+}
+.huli-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
     background:
       linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)),
       url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>');
     background-size: cover, cover;
     background-position: center, center;
-    background-attachment: fixed, fixed;
     background-repeat: no-repeat, no-repeat;
-    color: var(--glass-text);
-    font-size: 14px;
-    min-height: 100vh;
+    pointer-events: none;
+}
+.container-fluid {
+    position: relative;
+    z-index: 1;
 }
 .container-fluid {
     padding: 18px 20px !important;
@@ -701,7 +714,8 @@ body {
 }
 </style>
 </head>
-<body>
+ <body>
+    <div class="huli-bg" aria-hidden="true"></div>
     <div class="container-fluid">
         <div class="d-flex align-items-center mb-3 gap-2">
             <a href="<?= $homeTemplateBaseUrl ?>main1.php" class="btn-back-home">
