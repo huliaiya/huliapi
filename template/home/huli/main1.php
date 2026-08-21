@@ -97,7 +97,11 @@ function getCallCountStyle($count) {
     border-radius: 22px;
     height: 100%;
     background:
-        linear-gradient(140deg, rgba(255, 255, 255, .10) 0%, rgba(214, 234, 250, .06) 50%, rgba(196, 224, 244, .05) 100%);
+        linear-gradient(140deg, rgba(255, 255, 255, .20) 0%, rgba(214, 234, 250, .14) 50%, rgba(196, 224, 244, .12) 100%),
+        url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>');
+    background-size: auto, cover;
+    background-position: 0 0, center;
+    background-repeat: no-repeat, no-repeat;
     box-shadow:
         0 8px 28px rgba(45, 100, 155, .12),
         inset 0 1px 0 rgba(255, 255, 255, .35);
@@ -138,7 +142,11 @@ function getCallCountStyle($count) {
 }
 .search-card-wrapper {
     background:
-        linear-gradient(140deg, rgba(255, 255, 255, .14) 0%, rgba(214, 234, 250, .10) 50%, rgba(196, 224, 244, .08) 100%) !important;
+        linear-gradient(140deg, rgba(255, 255, 255, .22) 0%, rgba(214, 234, 250, .16) 50%, rgba(196, 224, 244, .14) 100%),
+        url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>') !important;
+    background-size: auto, cover !important;
+    background-position: 0 0, center !important;
+    background-repeat: no-repeat, no-repeat !important;
     border: 1px solid rgba(255, 255, 255, .35) !important;
     box-shadow:
         0 8px 24px rgba(45, 100, 155, .10),
@@ -490,14 +498,22 @@ input.api-search-box {
     letter-spacing: .5px;
 }
 body {
-    background:
-        linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)),
-        url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>') !important;
-    background-size: cover, cover !important;
-    background-position: center, center !important;
-    background-attachment: fixed, fixed !important;
-    background-repeat: no-repeat, no-repeat !important;
+    position: relative;
     min-height: 100vh;
+}
+body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.30)),
+        url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>');
+    background-size: cover, cover;
+    background-position: center, center;
+    background-repeat: no-repeat, no-repeat;
+    background-attachment: scroll, scroll;
+    pointer-events: none;
 }
 </style>
 </head>
