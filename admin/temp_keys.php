@@ -55,6 +55,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <link rel="stylesheet" type="text/css" href="../assets/css/materialdesignicons.min.css">
     <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
+    <style>
+        @media (max-width: 768px) {
+            .d-col-id, .d-col-remaining, .d-col-created { display: none !important; }
+        }
+    </style>
 </head>
 <body>
 <div class="container-fluid">
@@ -78,13 +83,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <table class="table table-bordered">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>API Key</th>
-                  <th>剩余次数</th>
-                  <th>到期时间</th>
-                  <th>状态</th>
-                  <th>创建时间</th>
-                  <th>操作</th>
+                  <th class="d-col-id">ID</th>
+                  <th class="d-col-apikey">API Key</th>
+                  <th class="d-col-remaining">剩余次数</th>
+                  <th class="d-col-expire">到期时间</th>
+                  <th class="d-col-status">状态</th>
+                  <th class="d-col-created">创建时间</th>
+                  <th class="d-col-actions">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -95,19 +100,19 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <?php else: ?>
                     <?php foreach ($keys as $key): ?>
                     <tr>
-                        <td><?php echo $key['id']; ?></td>
-                        <td><code><?php echo htmlspecialchars($key['api_key']); ?></code></td>
-                        <td><?php echo $key['call_limit'] !== null ? number_format($key['call_limit']) : '无限'; ?></td>
-                        <td><?php echo $key['expires_at'] ?: '永不'; ?></td>
-                        <td>
+                        <td class="d-col-id"><?php echo $key['id']; ?></td>
+                        <td class="d-col-apikey"><code><?php echo htmlspecialchars($key['api_key']); ?></code></td>
+                        <td class="d-col-remaining"><?php echo $key['call_limit'] !== null ? number_format($key['call_limit']) : '无限'; ?></td>
+                        <td class="d-col-expire"><?php echo $key['expires_at'] ?: '永不'; ?></td>
+                        <td class="d-col-status">
                             <span class="badge <?php
                                 echo $key['status'] === 'active' ? 'badge-green' :
                                     ($key['status'] === 'banned' ? 'badge-red' : 'badge-yellow'); ?>">
                                 <?php echo htmlspecialchars($key['status']); ?>
                             </span>
                         </td>
-                        <td><?php echo $key['created_at']; ?></td>
-                        <td>
+                        <td class="d-col-created"><?php echo $key['created_at']; ?></td>
+                        <td class="d-col-actions">
                             <div class="btn-group btn-group-sm">
                                 <a class="btn btn-default" href="temp_key_edit.php?id=<?php echo $key['id']; ?>" data-bs-toggle="tooltip" title="编辑">
                                     <i class="mdi mdi-pencil"></i>

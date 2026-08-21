@@ -147,6 +147,9 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
         .form-check-input { position: relative; margin-left: 0; }
         .points-highlight { color: #1e40af; font-weight: 500; }
         .expire-permanent { color: #10b981; font-weight: 500; }
+        @media (max-width: 768px) {
+            .d-col-check, .d-col-id, .d-col-email, .d-col-apikey, .d-col-balance, .d-col-points, .d-col-level, .d-col-expire { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -214,22 +217,22 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
               <table class="table table-bordered">
                 <thead>
                   <tr>
-                    <th width="50">
+                    <th width="50" class="d-col-check">
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="check-all">
                         <label class="form-check-label" for="check-all"></label>
                       </div>
                     </th>
-                    <th>ID</th>
-                    <th>用户名</th>
-                    <th>邮箱</th>
-                    <th>API Key</th>
-                    <th>余额</th>
-                    <th>点数</th>
-                    <th>会员等级</th>
-                    <th>会员有效期</th>
-                    <th>状态</th>
-                    <th width="150">操作</th>
+                    <th class="d-col-id">ID</th>
+                    <th class="d-col-username">用户名</th>
+                    <th class="d-col-email">邮箱</th>
+                    <th class="d-col-apikey">API Key</th>
+                    <th class="d-col-balance">余额</th>
+                    <th class="d-col-points">点数</th>
+                    <th class="d-col-level">会员等级</th>
+                    <th class="d-col-expire">会员有效期</th>
+                    <th class="d-col-status">状态</th>
+                    <th width="150" class="d-col-actions">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -240,19 +243,19 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
                   <?php else: ?>
                   <?php foreach ($users as $user): ?>
                   <tr>
-                    <td>
+                    <td class="d-col-check">
                       <div class="form-check">
                         <input type="checkbox" class="form-check-input ids" name="ids[]" value="<?php echo $user['id']; ?>" id="ids-<?php echo $user['id']; ?>">
                         <label class="form-check-label" for="ids-<?php echo $user['id']; ?>"></label>
                       </div>
                     </td>
-                    <td><?php echo $user['id']; ?></td>
-                    <td><?php echo htmlspecialchars($user['username']); ?></td>
-                    <td><?php echo htmlspecialchars($user['email']); ?></td>
-                    <td><span class="api-key"><?php echo htmlspecialchars($user['api_key']); ?></span></td>
-                    <td>¥ <?php echo number_format($user['balance'], 3); ?></td>
-                    <td><span class="points-highlight"><?php echo number_format($user['points']); ?></span></td>
-                    <td>
+<td class="d-col-id"><?php echo $user['id']; ?></td>
+                    <td class="d-col-username"><?php echo htmlspecialchars($user['username']); ?></td>
+                    <td class="d-col-email"><?php echo htmlspecialchars($user['email']); ?></td>
+                    <td class="d-col-apikey"><span class="api-key"><?php echo htmlspecialchars($user['api_key']); ?></span></td>
+                    <td class="d-col-balance">&yen; <?php echo number_format($user['balance'], 3); ?></td>
+                    <td class="d-col-points"><span class="points-highlight"><?php echo number_format($user['points']); ?></span></td>
+                    <td class="d-col-level">
                       <?php
                         $level = $user['membership_level'] ?? 'normal';
                         $level_text = $level_map[$level] ?? $level;
@@ -265,7 +268,7 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
                       ?>
                       <span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($level_text); ?></span>
                     </td>
-                    <td>
+                    <td class="d-col-expire">
                       <?php
                         $expire = $user['membership_expire'] ?? 0;
                         if ($expire == 0) {
@@ -278,7 +281,7 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
                         }
                       ?>
                     </td>
-                    <td>
+                    <td class="d-col-status">
                       <span class="badge <?php
                         echo $user['status'] === 'active' ? 'badge-active' :
                              ($user['status'] === 'banned' ? 'badge-banned' :
@@ -287,7 +290,7 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
                         <?php echo $status_map[$user['status']] ?? $user['status']; ?>
                       </span>
                     </td>
-                    <td>
+                    <td class="d-col-actions">
                       <div class="btn-group btn-group-sm">
                         <a class="btn btn-default" href="user_edit.php?id=<?php echo $user['id']; ?>" data-bs-toggle="tooltip" title="编辑/调额/调整点数/等级"><i class="mdi mdi-pencil"></i></a>
                         <?php if ($user['status'] === 'active'): ?>

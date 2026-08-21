@@ -54,6 +54,9 @@ try {
     font-size: 0.8rem;
     padding: 0.3rem 0.6rem;
 }
+@media (max-width: 768px) {
+    .d-col-id, .d-col-link, .d-col-contact, .d-col-sort, .d-col-created { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -82,36 +85,36 @@ try {
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>标题</th>
-                                    <th>链接</th>
-                                    <th>站长联系方式</th>
-                                    <th width="80">排序</th>
-                                    <th width="100">状态</th>
-                                    <th width="150">创建时间</th>
-                                    <th width="150">操作</th>
+                                    <th class="d-col-id">ID</th>
+                                    <th class="d-col-title">标题</th>
+                                    <th class="d-col-link">链接</th>
+                                    <th class="d-col-contact">站长联系方式</th>
+                                    <th width="80" class="d-col-sort">排序</th>
+                                    <th width="100" class="d-col-status">状态</th>
+                                    <th width="150" class="d-col-created">创建时间</th>
+                                    <th width="150" class="d-col-actions">操作</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if (!empty($ads)): ?>
                                     <?php foreach ($ads as $ad): ?>
                                     <tr>
-                                        <td><?= $ad['id'] ?></td>
-                                        <td><?= htmlspecialchars($ad['title']) ?></td>
-                                        <td>
+                                        <td class="d-col-id"><?= $ad['id'] ?></td>
+                                        <td class="d-col-title"><?= htmlspecialchars($ad['title']) ?></td>
+                                        <td class="d-col-link">
                                             <a href="<?= htmlspecialchars($ad['link_url']) ?>" target="_blank" class="text-truncate d-inline-block" style="max-width: 200px;">
                                                 <?= htmlspecialchars($ad['link_url']) ?>
                                             </a>
                                         </td>
-                                        <td><?= htmlspecialchars($ad['contact']) ?></td>
-                                        <td><?= $ad['sort_order'] ?></td>
-                                        <td>
+                                        <td class="d-col-contact"><?= htmlspecialchars($ad['contact']) ?></td>
+                                        <td class="d-col-sort"><?= $ad['sort_order'] ?></td>
+                                        <td class="d-col-status">
                                             <span class="badge status-badge bg-<?= $ad['status'] === 'active' ? 'success' : 'secondary' ?>">
                                                 <?= $ad['status'] === 'active' ? '启用' : '禁用' ?>
                                             </span>
                                         </td>
-                                        <td><?= date('Y-m-d H:i', strtotime($ad['created_at'])) ?></td>
-                                        <td>
+                                        <td class="d-col-created"><?= date('Y-m-d H:i', strtotime($ad['created_at'])) ?></td>
+                                        <td class="d-col-actions">
                                             <div class="btn-group btn-group-sm">
                                                 <a href="edit_advertisement.php?id=<?= $ad['id'] ?>" class="btn btn-outline-primary">
                                                     <i class="mdi mdi-pencil"></i>

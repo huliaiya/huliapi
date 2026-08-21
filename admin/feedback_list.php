@@ -161,6 +161,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
             background-color: #dcfce7;
             color: #166534;
         }
+        @media (max-width: 768px) {
+            .d-col-id, .d-col-type, .d-col-contact { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -182,13 +185,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <table class="table table-bordered">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>反馈内容</th>
-                  <th>类型</th>
-                  <th>用户</th>
-                  <th>联系方式</th>
-                  <th>状态</th>
-                  <th>操作</th>
+                  <th class="d-col-id">ID</th>
+                  <th class="d-col-content">反馈内容</th>
+                  <th class="d-col-type">类型</th>
+                  <th class="d-col-user">用户</th>
+                  <th class="d-col-contact">联系方式</th>
+                  <th class="d-col-status">状态</th>
+                  <th class="d-col-actions">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -199,11 +202,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <?php else: ?>
                 <?php foreach ($feedbacks as $item): ?>
                 <tr>
-                  <td><?php echo $item['id']; ?></td>
-                  <td class="content-cell" title="<?php echo htmlspecialchars($item['content']); ?>">
+                  <td class="d-col-id"><?php echo $item['id']; ?></td>
+                  <td class="d-col-content content-cell" title="<?php echo htmlspecialchars($item['content']); ?>">
                     <?php echo htmlspecialchars($item['content']); ?>
                   </td>
-                  <td>
+                  <td class="d-col-type">
                     <?php if ($item['type'] === 'api'): ?>
                     <span class="badge bg-primary">接口问题</span>
                     <?php if ($item['api_name']): ?>
@@ -213,9 +216,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <span class="badge bg-info">意见建议</span>
                     <?php endif; ?>
                   </td>
-                  <td><?php echo htmlspecialchars($item['username'] ?: '游客'); ?></td>
-                  <td><?php echo htmlspecialchars($item['contact']); ?></td>
-                  <td>
+                  <td class="d-col-user"><?php echo htmlspecialchars($item['username'] ?: '游客'); ?></td>
+                  <td class="d-col-contact"><?php echo htmlspecialchars($item['contact']); ?></td>
+                  <td class="d-col-status">
                     <?php if ($item['status'] === 'pending'): ?>
                       <span class="badge badge-pending">待处理</span>
                     <?php elseif ($item['status'] === 'viewed'): ?>
@@ -224,7 +227,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                       <span class="badge badge-resolved">已解决</span>
                     <?php endif; ?>
                   </td>
-                  <td>
+                  <td class="d-col-actions">
                     <div class="btn-group btn-group-sm">
                       <?php if ($item['status'] === 'pending'): ?>
                         <?php echo huli_post_action_button('feedback_list.php', ['action' => 'update_status', 'id' => $item['id'], 'status' => 'viewed'], '<i class="mdi mdi-eye-check"></i>', 'btn btn-primary', '', 'data-bs-toggle="tooltip" title="标记为已查看"'); ?>

@@ -77,6 +77,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
         .badge-pending { background-color: #fef3c7; color: #92400e; }
         .badge-paid { background-color: #d1fae5; color: #065f46; }
         .badge-failed { background-color: #fee2e2; color: #991b1b; }
+        @media (max-width: 768px) {
+            .d-col-index, .d-col-remark, .d-col-user, .d-col-plan, .d-col-amount, .d-col-time { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -155,15 +158,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <table class="table table-bordered">
               <thead>
                 <tr>
-                  <th>编号</th>
-                  <th>订单号</th>
-                  <th>备注码</th>
-                  <th>用户</th>
-                  <th>购买方案</th>
-                  <th>金额</th>
-                  <th>状态</th>
-                  <th>创建时间</th>
-                  <th>操作</th>
+                  <th class="d-col-index">编号</th>
+                  <th class="d-col-order">订单号</th>
+                  <th class="d-col-remark">备注码</th>
+                  <th class="d-col-user">用户</th>
+                  <th class="d-col-plan">购买方案</th>
+                  <th class="d-col-amount">金额</th>
+                  <th class="d-col-status">状态</th>
+                  <th class="d-col-time">创建时间</th>
+                  <th class="d-col-actions">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -174,13 +177,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <?php else: ?>
                   <?php foreach ($orders as $index => $order): ?>
                   <tr>
-                    <td><?php echo ($page - 1) * $results_per_page + $index + 1; ?></td>
-                    <td><code><?php echo htmlspecialchars($order['order_id']); ?></code></td>
-                    <td><code><?php echo htmlspecialchars($order['match_code'] ?? ''); ?></code></td>
-                    <td><?php echo htmlspecialchars($order['username'] ?: '未知用户'); ?></td>
-                    <td><?php echo htmlspecialchars($order['plan_name'] ?: '未知方案'); ?></td>
-                    <td>¥ <?php echo number_format($order['amount'], 2); ?></td>
-                    <td>
+<td class="d-col-index"><?php echo ($page - 1) * $results_per_page + $index + 1; ?></td>
+                    <td class="d-col-order"><code><?php echo htmlspecialchars($order['order_id']); ?></code></td>
+                    <td class="d-col-remark"><code><?php echo htmlspecialchars($order['match_code'] ?? ''); ?></code></td>
+                    <td class="d-col-user"><?php echo htmlspecialchars($order['username'] ?: '未知用户'); ?></td>
+                    <td class="d-col-plan"><?php echo htmlspecialchars($order['plan_name'] ?: '未知方案'); ?></td>
+                    <td class="d-col-amount">&yen; <?php echo number_format($order['amount'], 2); ?></td>
+                    <td class="d-col-status">
                       <?php if ($order['status'] === 'pending'): ?>
                         <span class="badge badge-pending">待支付</span>
                       <?php elseif ($order['status'] === 'paid'): ?>
@@ -189,8 +192,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <span class="badge badge-failed">已失败</span>
                       <?php endif; ?>
                     </td>
-                    <td><?php echo $order['created_at']; ?></td>
-                    <td>
+                    <td class="d-col-time"><?php echo $order['created_at']; ?></td>
+                    <td class="d-col-actions">
                       <div class="btn-group btn-group-sm">
                         <?php if ($order['status'] === 'pending'): ?>
                           <?php echo huli_post_action_button('order_list.php', ['action' => 'mark_paid', 'id' => $order['id']], '<i class="mdi mdi-check"></i>', 'btn btn-success', '确定要手动将此订单标记为已支付吗？系统将为用户增加相应余额。', 'data-bs-toggle="tooltip" title="标记为已支付"'); ?>
