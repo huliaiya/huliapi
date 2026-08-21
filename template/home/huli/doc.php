@@ -339,6 +339,11 @@ body {
     display: flex;
     gap: 6px;
     margin-bottom: 10px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 2px;
 }
 .tab-btn {
     padding: 6px 14px;
@@ -351,6 +356,8 @@ body {
     cursor: pointer;
     border-bottom: none;
     transition: all .2s;
+    white-space: nowrap;
+    flex: 0 0 auto;
 }
 .tab-btn:hover {
     background: rgba(238, 247, 255, .85);
@@ -608,6 +615,11 @@ body {
     display: flex;
     gap: 5px;
     margin-bottom: 10px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 2px;
 }
 .tab-btn {
     padding: 4px 10px;
@@ -617,6 +629,8 @@ body {
     font-size: 12px;
     cursor: pointer;
     border-bottom: none;
+    white-space: nowrap;
+    flex: 0 0 auto;
 }
 .tab-btn.active {
     background-color: #4096ff;
