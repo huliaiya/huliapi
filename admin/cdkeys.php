@@ -238,6 +238,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         .btn-group {
             flex-wrap: wrap;
         }
+        .d-col-index, .d-col-cdkey, .d-col-type, .d-col-value, .d-col-user, .d-col-used { display: none !important; }
     }
 </style>
 </head>
@@ -318,14 +319,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <table class="table table-bordered table-hover">
                             <thead class="table-light">
                                 <tr>
-                                    <th width="5%">#</th>
-                                    <th width="20%">卡密 (CDKey)</th>
-                                    <th width="10%">类型</th>
-                                    <th width="10%">价值</th>
-                                    <th width="10%">状态</th>
-                                    <th width="15%">使用者</th>
-                                    <th width="15%">使用时间</th>
-                                    <th width="15%">操作</th>
+                                    <th width="5%" class="d-col-index">#</th>
+                                    <th width="20%" class="d-col-cdkey">卡密 (CDKey)</th>
+                                    <th width="10%" class="d-col-type">类型</th>
+                                    <th width="10%" class="d-col-value">价值</th>
+                                    <th width="10%" class="d-col-status">状态</th>
+                                    <th width="15%" class="d-col-user">使用者</th>
+                                    <th width="15%" class="d-col-used">使用时间</th>
+                                    <th width="15%" class="d-col-actions">操作</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -336,12 +337,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 <?php else: ?>
                                     <?php foreach ($keys as $index => $key): ?>
                                     <tr>
-                                        <td><?php echo $offset + $index + 1; ?></td>
-                                        <td class="copyable" onclick="copyToClipboard(this, '<?php echo htmlspecialchars($key['cdkey'], ENT_QUOTES, 'UTF-8'); ?>')">
+                                        <td class="d-col-index"><?php echo $offset + $index + 1; ?></td>
+                                        <td class="d-col-cdkey copyable" onclick="copyToClipboard(this, '<?php echo htmlspecialchars($key['cdkey'], ENT_QUOTES, 'UTF-8'); ?>')">
                                             <code><?php echo htmlspecialchars($key['cdkey'], ENT_QUOTES, 'UTF-8'); ?></code>
                                             <span class="copy-tooltip">点击复制</span>
                                         </td>
-                                        <td>
+                                        <td class="d-col-type">
                                             <?php if ($key['type'] === 'balance'): ?>
                                                 <span class="badge badge-balance">余额</span>
                                             <?php elseif ($key['type'] === 'points'): ?>
@@ -350,7 +351,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                 <span class="badge badge-warning">会员</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td>
+                                        <td class="d-col-value">
                                             <?php if ($key['type'] === 'balance'): ?>
                                                 ¥ <?php echo number_format($key['balance'], 2); ?>
                                             <?php elseif ($key['type'] === 'points'): ?>
@@ -359,16 +360,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                 <?php echo number_format($key['membership_days']); ?> 天
                                             <?php endif; ?>
                                         </td>
-                                        <td>
+                                        <td class="d-col-status">
                                             <?php if ($key['status'] === 'unused'): ?>
                                                 <span class="badge bg-success">未使用</span>
                                             <?php else: ?>
                                                 <span class="badge bg-secondary">已使用</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?php echo $key['username'] ? htmlspecialchars($key['username'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?></td>
-                                        <td><?php echo $key['used_at'] ? date('Y-m-d H:i:s', strtotime($key['used_at'])) : 'N/A'; ?></td>
-                                        <td>
+                                        <td class="d-col-user"><?php echo $key['username'] ? htmlspecialchars($key['username'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?></td>
+                                        <td class="d-col-used"><?php echo $key['used_at'] ? date('Y-m-d H:i:s', strtotime($key['used_at'])) : 'N/A'; ?></td>
+                                        <td class="d-col-actions">
                                             <div class="btn-group btn-group-sm">
                                                 <?php echo huli_post_action_button('cdkeys.php', ['action' => 'delete', 'id' => $key['id']], '<i class="mdi mdi-delete"></i>', 'btn btn-outline-danger', '确定要删除这个卡密吗？此操作不可恢复！', 'data-bs-toggle="tooltip" title="删除"'); ?>
                                             </div>

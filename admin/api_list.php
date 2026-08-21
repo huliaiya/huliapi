@@ -344,6 +344,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
     padding: 0.5rem 0.75rem;
     vertical-align: middle;
 }
+@media (max-width: 768px) {
+    .d-col-check, .d-col-endpoint, .d-col-type, .d-col-permission, .d-col-category, .d-col-calls { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -475,20 +478,20 @@ $current_page = basename($_SERVER['PHP_SELF']);
               <table class="table table-bordered">
                 <thead>
                   <tr>
-                    <th width="40">
+                    <th width="40" class="d-col-check">
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="check-all">
                         <label class="form-check-label" for="check-all"></label>
                       </div>
                     </th>
-                    <th>接口名称</th>
-                    <th>调用地址</th>
-                    <th width="100">类型</th>
-                    <th width="160">权限详情</th>
-                    <th width="100">状态</th>
-                    <th width="100">接口分类</th>
-                    <th width="120">调用次数</th>
-                    <th width="120">操作</th>
+                    <th class="d-col-name">接口名称</th>
+                    <th class="d-col-endpoint">调用地址</th>
+                    <th width="100" class="d-col-type">类型</th>
+                    <th width="160" class="d-col-permission">权限详情</th>
+                    <th class="d-col-status">状态</th>
+                    <th width="100" class="d-col-category">接口分类</th>
+                    <th width="120" class="d-col-calls">调用次数</th>
+                    <th width="120" class="d-col-actions">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -513,32 +516,32 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         );
                     ?>
                     <tr>
-                      <td>
+                      <td class="d-col-check">
                         <div class="form-check">
                           <input type="checkbox" class="form-check-input ids" name="ids[]" value="<?php echo $api['id']; ?>" id="ids-<?php echo $api['id']; ?>">
                           <label class="form-check-label" for="ids-<?php echo $api['id']; ?>"></label>
                         </div>
                       </td>
-                      <td><?php echo htmlspecialchars($api['name']); ?></td>
-                      <td><code>/API/<?php echo htmlspecialchars(rawurldecode($api['endpoint'])); ?>.php</code></td>
-                      <td>
+                      <td class="d-col-name"><?php echo htmlspecialchars($api['name']); ?></td>
+                      <td class="d-col-endpoint"><code>/API/<?php echo htmlspecialchars(rawurldecode($api['endpoint'])); ?>.php</code></td>
+                      <td class="d-col-type">
                         <span class="badge bg-primary bg-opacity-10 text-primary">
                           <?php echo $api['type'] === 'local' ? '本地' : '远程'; ?>
                         </span>
                       </td>
-                      <td>
+                      <td class="d-col-permission">
                         <span class="badge <?php echo $permission['class']; ?>">
                           <?php echo $permission['text']; ?>
                         </span>
                       </td>
-                      <td>
+                      <td class="d-col-status">
                         <?php echo getStatusBadge($api['status']); ?>
                       </td>
-                      <td>
+                      <td class="d-col-category">
                         <?php echo getCategoryName($pdo, $api['category_id']); ?>
                       </td>
-                      <td><?php echo number_format($api['total_calls']); ?></td>
-                      <td>
+                      <td class="d-col-calls"><?php echo number_format($api['total_calls']); ?></td>
+                      <td class="d-col-actions">
                         <div class="btn-group btn-group-sm">
                           <a href="api_edit.php?id=<?php echo $api['id']; ?>" class="btn btn-default" data-bs-toggle="tooltip" title="编辑">
                             <i class="mdi mdi-pencil"></i>

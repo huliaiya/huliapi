@@ -79,6 +79,11 @@ try {
 <link rel="stylesheet" type="text/css" href="../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
+<style>
+@media (max-width: 768px) {
+    .d-col-ip, .d-col-location, .d-col-network, .d-col-ua { display: none !important; }
+}
+</style>
 </head>
 <body>
 <div class="container-fluid">
@@ -142,13 +147,13 @@ try {
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th>时间</th>
-                                <th>账号</th>
-                                <th>状态</th>
-                                <th>IP 地址</th>
-                                <th>地理位置</th>
-                                <th>网络</th>
-                                <th>UA</th>
+                                <th class="d-col-time">时间</th>
+                                <th class="d-col-account">账号</th>
+                                <th class="d-col-status">状态</th>
+                                <th class="d-col-ip">IP 地址</th>
+                                <th class="d-col-location">地理位置</th>
+                                <th class="d-col-network">网络</th>
+                                <th class="d-col-ua">UA</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -156,19 +161,19 @@ try {
                                 <tr><td colspan="7" class="text-center text-muted py-4">暂无登录日志</td></tr>
                             <?php else: foreach ($logs as $l): ?>
                                 <tr>
-                                    <td><?php echo htmlspecialchars($l['login_at']); ?></td>
-                                    <td><?php echo htmlspecialchars($l['actor_name'] ?: '-'); ?></td>
-                                    <td>
+                                    <td class="d-col-time"><?php echo htmlspecialchars($l['login_at']); ?></td>
+                                    <td class="d-col-account"><?php echo htmlspecialchars($l['actor_name'] ?: '-'); ?></td>
+                                    <td class="d-col-status">
                                         <?php if ($l['status'] === 'success'): ?>
                                             <span class="badge bg-success">成功</span>
                                         <?php else: ?>
                                             <span class="badge bg-danger">失败</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td><code><?php echo htmlspecialchars($l['ip']); ?></code></td>
-                                    <td><?php echo htmlspecialchars(trim(($l['country'] ?? '') . ' ' . ($l['region'] ?? '') . ' ' . ($l['city'] ?? ''))); ?></td>
-                                    <td><small class="text-muted"><?php echo htmlspecialchars($l['isp'] ?? ''); ?></small></td>
-                                    <td><small class="text-muted" title="<?php echo htmlspecialchars($l['user_agent']); ?>"><?php echo htmlspecialchars(mb_substr($l['user_agent'], 0, 40)); ?><?php echo mb_strlen($l['user_agent']) > 40 ? '…' : ''; ?></small></td>
+                                    <td class="d-col-ip"><code><?php echo htmlspecialchars($l['ip']); ?></code></td>
+                                    <td class="d-col-location"><?php echo htmlspecialchars(trim(($l['country'] ?? '') . ' ' . ($l['region'] ?? '') . ' ' . ($l['city'] ?? ''))); ?></td>
+                                    <td class="d-col-network"><small class="text-muted"><?php echo htmlspecialchars($l['isp'] ?? ''); ?></small></td>
+                                    <td class="d-col-ua"><small class="text-muted" title="<?php echo htmlspecialchars($l['user_agent']); ?>"><?php echo htmlspecialchars(mb_substr($l['user_agent'], 0, 40)); ?><?php echo mb_strlen($l['user_agent']) > 40 ? '…' : ''; ?></small></td>
                                 </tr>
                             <?php endforeach; endif; ?>
                         </tbody>

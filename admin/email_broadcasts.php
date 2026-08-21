@@ -62,6 +62,9 @@ try {
     background-color:rgba(215,244,252,.92)!important;
     background-image:linear-gradient(135deg,rgba(210,241,250,.96),rgba(229,251,251,.94))!important}
 .table>thead>tr>th:last-child{z-index:3}
+@media (max-width: 768px) {
+    .d-col-id, .d-col-mode, .d-col-progress, .d-col-schedule, .d-col-last, .d-col-created { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -71,7 +74,7 @@ try {
 <div class="card-body">
 <?php if ($feedback_msg): ?><div class="alert alert-<?= $feedback_type==='success'?'success':'danger' ?> alert-dismissible fade show mb-3"><?= htmlspecialchars($feedback_msg) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
 <div class="table-responsive"><table class="table table-hover">
-<thead><tr><th>ID</th><th>标题</th><th>状态</th><th>模式</th><th>进度</th><th>计划/每日时刻</th><th>上次发送</th><th>创建时间</th><th width="280">操作</th></tr></thead>
+<thead><tr><th class="d-col-id">ID</th><th class="d-col-title">标题</th><th class="d-col-status">状态</th><th class="d-col-mode">模式</th><th class="d-col-progress">进度</th><th class="d-col-schedule">计划/每日时刻</th><th class="d-col-last">上次发送</th><th class="d-col-created">创建时间</th><th width="280" class="d-col-actions">操作</th></tr></thead>
 <tbody>
 <?php if (!empty($broadcasts)): foreach ($broadcasts as $b):
 $statusLabels=['draft'=>'草稿','scheduled'=>'已预约','sending'=>'发送中','sent'=>'已发送'];
@@ -79,17 +82,17 @@ $statusColors=['draft'=>'secondary','scheduled'=>'info','sending'=>'warning','se
 $typeLabels=['once'=>'仅一次','daily'=>'每天'];
 ?>
 <tr>
-<td><?= $b['id'] ?></td>
-<td><a href="email_broadcast_create.php?id=<?= $b['id'] ?>" class="text-decoration-none text-dark" title="点击修改"><?= htmlspecialchars($b['title']) ?></a>
+<td class="d-col-id"><?= $b['id'] ?></td>
+<td class="d-col-title"><a href="email_broadcast_create.php?id=<?= $b['id'] ?>" class="text-decoration-none text-dark" title="点击修改"><?= htmlspecialchars($b['title']) ?></a>
 <?php if (!empty($b['last_error'])): ?><div class="text-danger small mt-1" title="<?= htmlspecialchars($b['last_error']) ?>"><i class="mdi mdi-alert-circle"></i> <?= htmlspecialchars(mb_substr($b['last_error'], 0, 60)) ?></div><?php endif; ?>
 </td>
-<td><span class="badge status-badge bg-<?= $statusColors[$b['status']] ?>"><?= $statusLabels[$b['status']] ?></span></td>
-<td><span class="badge status-badge bg-<?= $b['send_type']==='daily'?'warning':'secondary' ?>"><?= $typeLabels[$b['send_type']] ?? $b['send_type'] ?></span></td>
-<td><?= $b['sent_count'] ?>/<?= $b['total_count'] ?: '?' ?></td>
-<td><?= $b['scheduled_at'] ?: '-' ?></td>
-<td><?= $b['last_run_at'] ?: '-' ?></td>
-<td><?= date('Y-m-d H:i', strtotime($b['created_at'])) ?></td>
-<td><div class="d-flex flex-wrap gap-1">
+<td class="d-col-status"><span class="badge status-badge bg-<?= $statusColors[$b['status']] ?>"><?= $statusLabels[$b['status']] ?></span></td>
+<td class="d-col-mode"><span class="badge status-badge bg-<?= $b['send_type']==='daily'?'warning':'secondary' ?>"><?= $typeLabels[$b['send_type']] ?? $b['send_type'] ?></span></td>
+<td class="d-col-progress"><?= $b['sent_count'] ?>/<?= $b['total_count'] ?: '?' ?></td>
+<td class="d-col-schedule"><?= $b['scheduled_at'] ?: '-' ?></td>
+<td class="d-col-last"><?= $b['last_run_at'] ?: '-' ?></td>
+<td class="d-col-created"><?= date('Y-m-d H:i', strtotime($b['created_at'])) ?></td>
+<td class="d-col-actions"><div class="d-flex flex-wrap gap-1">
 <a href="email_broadcast_create.php?id=<?= $b['id'] ?>" class="btn btn-primary btn-sm"><i class="mdi mdi-pencil"></i> 修改</a>
 <?php if (in_array($b['status'], ['draft', 'scheduled'])): ?>
 <?php echo huli_post_action_button('email_broadcasts.php', ['action' => 'send_now', 'id' => $b['id']], '<i class="mdi mdi-send"></i> 发送', 'btn btn-success btn-sm', '确定立即发送？系统会向所有注册用户发送邮件。'); ?>

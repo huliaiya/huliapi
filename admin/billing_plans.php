@@ -81,6 +81,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
         .badge-points { background-color: #dbeafe; color: #1e40af; }
         .badge-card { background-color: #fef3c7; color: #92400e; }
         .badge-normal { background-color: #eff6ff; color: #2563eb; }
+        @media (max-width: 768px) {
+            .d-col-id, .d-col-price, .d-col-billing, .d-col-quantity, .d-col-type { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -105,14 +108,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <table class="table table-bordered">
               <thead>
                 <tr>
-                  <th width="50">ID</th>
-                  <th>方案名称</th>
-                  <th>售价</th>
-                  <th>计费类型</th>
-                  <th>获得数量</th>
-                  <th>类型</th>
-                  <th width="100">状态</th>
-                  <th width="220">操作</th>
+                  <th width="50" class="d-col-id">ID</th>
+                  <th class="d-col-name">方案名称</th>
+                  <th class="d-col-price">售价</th>
+                  <th class="d-col-billing">计费类型</th>
+                  <th class="d-col-quantity">获得数量</th>
+                  <th class="d-col-type">类型</th>
+                  <th width="100" class="d-col-status">状态</th>
+                  <th width="220" class="d-col-actions">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -123,10 +126,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <?php else: ?>
                     <?php foreach ($plans as $plan): ?>
                     <tr>
-                        <td><?php echo $plan['id']; ?></td>
-                        <td><?php echo htmlspecialchars($plan['name']); ?></td>
-                        <td>¥ <?php echo number_format($plan['price'], 2); ?></td>
-                        <td>
+<td class="d-col-id"><?php echo $plan['id']; ?></td>
+                        <td class="d-col-name"><?php echo htmlspecialchars($plan['name']); ?></td>
+                        <td class="d-col-price">&yen; <?php echo number_format($plan['price'], 2); ?></td>
+                        <td class="d-col-billing">
                             <?php if ($plan['billing_type'] === 'balance'): ?>
                                 <span class="badge badge-balance">余额方案</span>
                             <?php elseif ($plan['billing_type'] === 'points'): ?>
@@ -135,30 +138,30 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 <span class="badge bg-warning text-dark">会员方案</span>
                             <?php endif; ?>
                         </td>
-                        <td>
+<td class="d-col-quantity">
                             <?php if ($plan['billing_type'] === 'balance'): ?>
-                                ¥ <?php echo number_format($plan['balance_to_add'], 2); ?>
+                                &yen; <?php echo number_format($plan['balance_to_add'], 2); ?>
                             <?php elseif ($plan['billing_type'] === 'points'): ?>
                                 <?php echo number_format($plan['points_to_add']); ?> 点
                             <?php else: ?>
                                 <?php echo number_format($plan['membership_days']); ?> 天
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td class="d-col-type">
                             <?php if ($plan['is_card']): ?>
                                 <span class="badge badge-card">卡密方案</span>
                             <?php else: ?>
                                 <span class="badge badge-normal">直接充值</span>
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td class="d-col-status">
                             <?php if ($plan['is_active']): ?>
                                 <span class="badge bg-success">上架</span>
                             <?php else: ?>
                                 <span class="badge bg-secondary">下架</span>
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td class="d-col-actions">
                             <div class="btn-group btn-group-sm">
                                 <a href="billing_plan_edit.php?id=<?php echo $plan['id']; ?>" class="btn btn-default" data-bs-toggle="tooltip" title="编辑">
                                     <i class="mdi mdi-pencil"></i>

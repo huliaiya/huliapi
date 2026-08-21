@@ -60,6 +60,11 @@ try {
     <link rel="stylesheet" type="text/css" href="../assets/css/materialdesignicons.min.css">
     <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
+    <style>
+        @media (max-width: 768px) {
+            .d-col-id, .d-col-desc, .d-col-count, .d-col-created { display: none !important; }
+        }
+    </style>
 </head>
 <body>
 <div class="container-fluid">
@@ -81,12 +86,12 @@ try {
                 <table class="table table-bordered">
                     <thead>
                         <tr>
-                            <th width="50">ID</th>
-                            <th>分类名称</th>
-                            <th>描述</th>
-                            <th width="100">API数量</th>
-                            <th width="120">创建时间</th>
-                            <th width="120">操作</th>
+                            <th width="50" class="d-col-id">ID</th>
+                            <th class="d-col-name">分类名称</th>
+                            <th class="d-col-desc">描述</th>
+                            <th width="100" class="d-col-count">API数量</th>
+                            <th width="120" class="d-col-created">创建时间</th>
+                            <th width="120" class="d-col-actions">操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -99,12 +104,12 @@ try {
                         <?php else: ?>
                             <?php foreach ($categories as $cat): ?>
                             <tr>
-                                <td><?php echo $cat['id']; ?></td>
-                                <td><?php echo htmlspecialchars($cat['name']); ?></td>
-                                <td><?php echo htmlspecialchars($cat['description']); ?></td>
-                                <td><?php echo $cat['api_count']; ?></td>
-                                <td><?php echo date('Y-m-d', strtotime($cat['created_at'])); ?></td>
-                                <td>
+                                <td class="d-col-id"><?php echo $cat['id']; ?></td>
+                                <td class="d-col-name"><?php echo htmlspecialchars($cat['name']); ?></td>
+                                <td class="d-col-desc"><?php echo htmlspecialchars($cat['description']); ?></td>
+                                <td class="d-col-count"><?php echo $cat['api_count']; ?></td>
+                                <td class="d-col-created"><?php echo date('Y-m-d', strtotime($cat['created_at'])); ?></td>
+                                <td class="d-col-actions">
                                     <div class="btn-group btn-group-sm">
                                         <a href="category_edit.php?id=<?php echo $cat['id']; ?>" class="btn btn-default" data-bs-toggle="tooltip" title="编辑">
                                             <i class="mdi mdi-pencil"></i>
