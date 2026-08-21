@@ -75,6 +75,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/avatar.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
+require_once ROOT_PATH . 'common/gallery.php';
 
 function checkUserLoginStatus() {
     if (!isset($_SESSION['user_id'])) {
@@ -188,12 +189,13 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
     box-shadow: 0 0 0 3px rgba(64, 150, 255, 0.1);
 }
 body {
-    background: 
-        radial-gradient(circle at 5% 5%, rgba(93, 177, 255, 0.35), transparent 35%),
-        radial-gradient(circle at 95% 95%, rgba(38, 208, 194, 0.3), transparent 40%),
-        radial-gradient(circle at 50% 10%, rgba(113, 132, 255, 0.22), transparent 45%),
-        linear-gradient(135deg, #f5f8fc 0%, #eef3fa 100%) !important;
-    background-attachment: fixed !important;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
+        url('<?php echo htmlspecialchars(huli_random_gallery_image()); ?>') !important;
+    background-size: cover, cover !important;
+    background-position: center, center !important;
+    background-attachment: fixed, fixed !important;
+    background-repeat: no-repeat, no-repeat !important;
 }
 .lyear-layout-sidebar {
     background: rgba(255, 255, 255, 0.45) !important;
