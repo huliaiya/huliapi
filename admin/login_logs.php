@@ -79,11 +79,7 @@ try {
 <link rel="stylesheet" type="text/css" href="../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
-<style>
-@media (max-width: 768px) {
-    .d-col-ip, .d-col-location, .d-col-network, .d-col-ua { display: none !important; }
-}
-</style>
+
 </head>
 <body>
 <div class="container-fluid">
