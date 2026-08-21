@@ -92,7 +92,7 @@ body {
     line-height: 1.5;
     background:
       linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
-      url('<?php echo htmlspecialchars(huli_random_gallery_image()); ?>');
+      url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>');
     background-size: cover, cover;
     background-position: center, center;
     background-attachment: fixed, fixed;

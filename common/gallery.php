@@ -43,3 +43,19 @@ function huli_random_gallery_image() {
     $pick = $files[array_rand($files)];
     return huli_gallery_url_path() . $pick;
 }
+
+function huli_session_gallery_image() {
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        @session_start();
+    }
+    if (!empty($_SESSION['huli_gallery_bg']) && is_string($_SESSION['huli_gallery_bg'])) {
+        return huli_gallery_url_path() . $_SESSION['huli_gallery_bg'];
+    }
+    $files = huli_list_gallery_images();
+    if (empty($files)) {
+        return '';
+    }
+    $pick = $files[array_rand($files)];
+    $_SESSION['huli_gallery_bg'] = $pick;
+    return huli_gallery_url_path() . $pick;
+}

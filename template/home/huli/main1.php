@@ -97,12 +97,12 @@ function getCallCountStyle($count) {
     border-radius: 22px;
     height: 100%;
     background:
-        linear-gradient(140deg, rgba(255, 255, 255, .55) 0%, rgba(214, 234, 250, .42) 50%, rgba(196, 224, 244, .35) 100%);
+        linear-gradient(140deg, rgba(255, 255, 255, .32) 0%, rgba(214, 234, 250, .22) 50%, rgba(196, 224, 244, .18) 100%);
     box-shadow:
         0 8px 28px rgba(45, 100, 155, .10),
-        inset 0 1px 0 rgba(255, 255, 255, .65);
-    backdrop-filter: blur(18px) saturate(150%);
-    -webkit-backdrop-filter: blur(18px) saturate(150%);
+        inset 0 1px 0 rgba(255, 255, 255, .55);
+    backdrop-filter: blur(10px) saturate(150%);
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
 }
 .api-card-link {
     display: block;
@@ -418,12 +418,12 @@ function getCallCountStyle($count) {
     border-radius: 18px;
     border: 1px solid rgba(180, 220, 245, .45);
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, .62) 0%, rgba(220, 238, 252, .48) 100%);
+        linear-gradient(135deg, rgba(255, 255, 255, .38) 0%, rgba(220, 238, 252, .26) 100%);
     box-shadow:
         0 6px 22px rgba(45, 100, 155, .10),
-        inset 0 1px 0 rgba(255, 255, 255, .65);
-    backdrop-filter: blur(14px) saturate(160%);
-    -webkit-backdrop-filter: blur(14px) saturate(160%);
+        inset 0 1px 0 rgba(255, 255, 255, .55);
+    backdrop-filter: blur(8px) saturate(160%);
+    -webkit-backdrop-filter: blur(8px) saturate(160%);
     transition: box-shadow .25s ease;
     cursor: default;
     user-select: none;
@@ -478,7 +478,7 @@ function getCallCountStyle($count) {
 body {
     background:
         linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
-        url('<?php echo htmlspecialchars(huli_random_gallery_image()); ?>') !important;
+        url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>') !important;
     background-size: cover, cover !important;
     background-position: center, center !important;
     background-attachment: fixed, fixed !important;
