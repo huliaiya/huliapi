@@ -208,7 +208,7 @@ if ($currentTemplate !== $activeTemplate) {
             <a href="javascript:void(0)" data-bs-toggle="dropdown" class="dropdown-toggle d-flex align-items-center">
               <?php if ($is_logged_in): ?>
                 <img class="avatar-md rounded-circle me-2" src="<?php echo htmlspecialchars(huli_avatar_url($_SESSION['user_qq'] ?? '')); ?>" alt="" style="width:40px;height:40px;object-fit:cover;">
-                <span><?php echo htmlspecialchars($user_info['username'], ENT_QUOTES, 'UTF-8'); ?></span>
+                <span style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:middle;"><?php echo htmlspecialchars($user_info['username'], ENT_QUOTES, 'UTF-8'); ?></span>
               <?php else: ?>
                 <img class="avatar-md rounded-circle me-2" src="<?php echo htmlspecialchars(huli_avatar_url('')); ?>" alt="" style="width:40px;height:40px;object-fit:cover;">
                 <span>未登录</span>

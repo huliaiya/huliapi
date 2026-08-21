@@ -116,7 +116,7 @@ try {
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
     <title>用户注册 - <?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?></title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
@@ -132,7 +132,7 @@ body {
         url('<?php echo htmlspecialchars(huli_random_gallery_image()); ?>');
     background-size: cover, cover;
     background-position: center, center;
-    background-attachment: fixed, fixed;
+    background-attachment: scroll, scroll;
     background-repeat: no-repeat, no-repeat;
     display: flex;
     justify-content: center;
@@ -216,6 +216,11 @@ body {
 }
 .btn-primary:active {
     box-shadow: 0 6px 16px rgba(40, 121, 186, 0.3) !important;
+}
+@media (max-width: 576px) {
+    .glass-card {
+        padding: 1.5rem !important;
+    }
 }
 </style>
 </head>

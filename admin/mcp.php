@@ -162,6 +162,13 @@ $mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 
             margin-bottom: 14px;
         }
         .badge-role { font-size: 12px; }
+        /* 移动端：隐藏次要列 */
+        @media (max-width: 768px) {
+            .mcp-col-role,
+            .mcp-col-user,
+            .mcp-col-device { display: none !important; }
+            .card-body { padding: 0.8rem !important; }
+        }
     </style>
 </head>
 <body>
@@ -327,13 +334,13 @@ $mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 
             <?php else: ?>
                 <div class="table-responsive">
                     <table class="table table-sm mb-0 align-middle">
-                        <thead><tr><th>时间</th><th>角色</th><th>用户</th><th>方法</th><th>工具</th><th>状态</th><th>设备</th><th class="text-end">耗时</th></tr></thead>
+                        <thead><tr><th>时间</th><th class="mcp-col-role">角色</th><th class="mcp-col-user">用户</th><th>方法</th><th>工具</th><th>状态</th><th class="mcp-col-device">设备</th><th class="text-end">耗时</th></tr></thead>
                         <tbody>
                         <?php foreach ($mcpLogRecent as $lr): ?>
                             <tr>
                                 <td class="small text-muted"><?php echo htmlspecialchars($lr['request_time']); ?></td>
-                                <td><?php echo $lr['role'] === 'admin' ? '<span class="badge bg-danger">管理</span>' : '<span class="badge bg-info">用户</span>'; ?></td>
-                                <td class="small"><?php echo htmlspecialchars($lr['username']); ?></td>
+                                <td class="mcp-col-role"><?php echo $lr['role'] === 'admin' ? '<span class="badge bg-danger">管理</span>' : '<span class="badge bg-info">用户</span>'; ?></td>
+                                <td class="small mcp-col-user"><?php echo htmlspecialchars($lr['username']); ?></td>
                                 <td><span class="badge bg-light text-dark"><?php echo htmlspecialchars($lr['method']); ?></span></td>
                                 <td><?php echo $lr['tool_name'] ? '<code>' . htmlspecialchars($lr['tool_name']) . '</code>' : '<span class="text-muted">-</span>'; ?></td>
                                 <td>
@@ -345,7 +352,7 @@ $mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 
                                         <span class="badge bg-danger" title="<?php echo htmlspecialchars($lr['error_msg'] ?? ''); ?>">失败</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="small" title="<?php echo htmlspecialchars($lr['user_agent'] ?? ''); ?>"><?php echo htmlspecialchars(huli_device_label($lr['user_agent'] ?? '')); ?></td>
+                                <td class="small mcp-col-device" title="<?php echo htmlspecialchars($lr['user_agent'] ?? ''); ?>"><?php echo htmlspecialchars(huli_device_label($lr['user_agent'] ?? '')); ?></td>
                                 <td class="text-end small"><?php echo (int)$lr['latency_ms']; ?> ms</td>
                             </tr>
                         <?php endforeach; ?>

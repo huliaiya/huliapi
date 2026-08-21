@@ -23,7 +23,7 @@ try {
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <title>找回密码 - huliapi</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
@@ -39,7 +39,7 @@ body {
         radial-gradient(circle at 90% 80%, rgba(38, 208, 194, 0.38), transparent 48%),
         radial-gradient(circle at 50% 50%, rgba(113, 132, 255, 0.28), transparent 50%),
         linear-gradient(135deg, #f5f8fc 0%, #eef3fa 100%);
-    background-attachment: fixed;
+    background-attachment: scroll;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -98,6 +98,11 @@ body {
 }
 .btn-primary:active {
     box-shadow: 0 6px 16px rgba(40, 121, 186, 0.3) !important;
+}
+@media (max-width: 576px) {
+    .glass-card {
+        padding: 1.5rem !important;
+    }
 }
 </style>
 </head>

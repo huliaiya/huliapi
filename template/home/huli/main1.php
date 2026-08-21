@@ -424,6 +424,21 @@ input.api-search-box {
 .ad-placeholder:hover {
     background: #e9ecef;
 }
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .ad-list {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    .ad-item {
+        height: 40px;
+        line-height: 40px;
+    }
+    .container-fluid {
+        padding-left: 14px !important;
+        padding-right: 14px !important;
+    }
+}
 .stats-card-row .card-body {
     display: flex;
     flex-direction: column;

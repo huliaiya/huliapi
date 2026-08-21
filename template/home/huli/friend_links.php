@@ -264,7 +264,7 @@ $csrf_token = createCsrfToken();
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="yinq">
 <title>友情链接 - huliapi</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -326,6 +326,13 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
     .stats-card .stat-value { font-size: 1.5rem; }
     .friend-card-grid { grid-template-columns: 1fr; }
     .modal-dialog { margin: 1rem; }
+    .card-header.d-flex {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .card-header .login-tip {
+        font-size: 0.85rem;
+    }
 }
 .loading-skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; }
 @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
