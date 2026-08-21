@@ -189,22 +189,14 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
     box-shadow: 0 0 0 3px rgba(64, 150, 255, 0.1);
 }
 body {
-    position: relative;
-    min-height: 100vh;
-}
-body::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
     background:
         linear-gradient(rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.30)),
         url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>');
     background-size: cover, cover;
     background-position: center, center;
+    background-attachment: fixed, fixed;
     background-repeat: no-repeat, no-repeat;
-    background-attachment: scroll, scroll;
-    pointer-events: none;
+    min-height: 100vh;
 }
 .lyear-layout-sidebar {
     background: rgba(255, 255, 255, 0.45) !important;
