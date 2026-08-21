@@ -506,18 +506,32 @@ input.api-search-box {
     letter-spacing: .5px;
 }
 body {
+    min-height: 100vh;
+    background: transparent;
+}
+.huli-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
     background:
         linear-gradient(rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.30)),
         url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>');
     background-size: cover, cover;
     background-position: center, center;
-    background-attachment: fixed, fixed;
     background-repeat: no-repeat, no-repeat;
-    min-height: 100vh;
+    pointer-events: none;
+}
+.container-fluid {
+    position: relative;
+    z-index: 1;
 }
 </style>
 </head>
 <body>
+<div class="huli-bg" aria-hidden="true"></div>
 <div class="container-fluid py-4">
 <ul class="ad-list">
     <?php if (!empty($advertisements)): ?>
