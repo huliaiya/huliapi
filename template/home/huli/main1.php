@@ -89,9 +89,15 @@ function getCallCountStyle($count) {
 <link rel="stylesheet" type="text/css" href="../../../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" type="text/css" href="../../../assets/css/bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="../../../assets/css/style.min.css">
-<link rel="stylesheet" type="text/css" href="../../../assets/css/liquid-glass.css">
+<link rel="stylesheet" type="text/css" href="../../../assets/css/liquid-glass.css?v=3">
 <style>
-.api-card {
+.api-card,
+a.api-card,
+a.api-card:link,
+a.api-card:visited,
+a.api-card:hover,
+a.api-card:active,
+a.api-card:focus {
     transition: all 0.3s ease;
     border: 1px solid rgba(255, 255, 255, .35) !important;
     border-radius: 22px;
@@ -103,6 +109,9 @@ function getCallCountStyle($count) {
         inset 0 1px 0 rgba(255, 255, 255, .35) !important;
     backdrop-filter: blur(3px) saturate(110%) !important;
     -webkit-backdrop-filter: blur(3px) saturate(110%) !important;
+    background-color: transparent !important;
+    background-image:
+        linear-gradient(140deg, rgba(255, 255, 255, .14) 0%, rgba(214, 234, 250, .08) 50%, rgba(196, 224, 244, .06) 100%) !important;
 }
 /* fallback 覆盖 liquid-glass.css 中 @supports not(backdrop-filter) 对 .api-card 的不透明强制 */
 @supports not ((backdrop-filter: blur(1px))) and (not (-webkit-backdrop-filter: blur(1px))) {

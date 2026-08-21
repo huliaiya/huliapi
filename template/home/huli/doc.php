@@ -80,7 +80,7 @@ foreach($params as $p) {
     <title><?php echo htmlspecialchars($api['name']); ?> - API详情 - <?php echo htmlspecialchars($site_name); ?></title>
     <link rel="stylesheet" type="text/css" href="../../../assets/css/materialdesignicons.min.css">
     <link rel="stylesheet" type="text/css" href="../../../assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="../../../assets/css/liquid-glass.css">
+    <link rel="stylesheet" type="text/css" href="../../../assets/css/liquid-glass.css?v=3">
     <style>
 * {
     margin: 0;
