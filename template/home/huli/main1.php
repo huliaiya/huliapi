@@ -212,10 +212,18 @@ function getCallCountStyle($count) {
     font-family: 'JetBrains Mono','SF Mono','Courier New',monospace;
 }
 .api-status-code.s-200 { background: #ecfdf5; color: #059669; border: 1px solid rgba(5,150,105,.18); }
+.api-status-code.s-201 { background: #ecfdf5; color: #047857; border: 1px solid rgba(4,120,87,.18); }
+.api-status-code.s-204 { background: #f0fdf4; color: #15803d; border: 1px solid rgba(21,128,61,.18); }
+.api-status-code.s-400 { background: #fffbeb; color: #b45309; border: 1px solid rgba(180,83,9,.18); }
+.api-status-code.s-401 { background: #fffbeb; color: #c2410c; border: 1px solid rgba(194,65,12,.18); }
 .api-status-code.s-403 { background: #fef2f2; color: #dc2626; border: 1px solid rgba(220,38,38,.18); }
 .api-status-code.s-404 { background: #fffbeb; color: #d97706; border: 1px solid rgba(217,119,6,.18); }
+.api-status-code.s-405 { background: #fef2f2; color: #e11d48; border: 1px solid rgba(225,29,72,.18); }
 .api-status-code.s-429 { background: #fff7ed; color: #ea580c; border: 1px solid rgba(234,88,12,.18); }
 .api-status-code.s-500 { background: #fef2f2; color: #b91c1c; border: 1px solid rgba(185,28,28,.18); }
+.api-status-code.s-502 { background: #fdf2f8; color: #be185d; border: 1px solid rgba(190,24,93,.18); }
+.api-status-code.s-503 { background: #fdf2f8; color: #9d174d; border: 1px solid rgba(157,23,77,.18); }
+.api-status-code.s-504 { background: #fdf2f8; color: #831843; border: 1px solid rgba(131,24,67,.18); }
 .offcanvas-start {
     width: 300px;
     background: linear-gradient(165deg, rgba(232, 244, 255, .92), rgba(214, 234, 250, .88));
@@ -560,10 +568,18 @@ function getCallCountStyle($count) {
                 <p class="card-text text-muted mb-3"><?php echo htmlspecialchars($api['description']); ?></p>
                 <div class="api-status-codes mb-3">
                     <span class="api-status-code s-200" title="200 请求成功，服务器已成功处理了请求。">200</span>
+                    <span class="api-status-code s-201" title="201 已创建。请求成功并且服务器已创建了新的资源。">201</span>
+                    <span class="api-status-code s-204" title="204 无内容。服务器成功处理了请求，但不需要返回任何实体内容。">204</span>
+                    <span class="api-status-code s-400" title="400 错误请求。服务器无法理解请求的格式，请检查请求参数是否正确。">400</span>
+                    <span class="api-status-code s-401" title="401 未授权。请求需要身份验证，请提供有效的身份凭据。">401</span>
                     <span class="api-status-code s-403" title="403 服务器拒绝请求。这可能是由于缺少必要的认证凭据（如API密钥）或权限不足。">403</span>
                     <span class="api-status-code s-404" title="404 请求的资源未找到。请检查您的请求地址是否正确。">404</span>
+                    <span class="api-status-code s-405" title="405 方法不允许。请求使用的 HTTP 方法不被该接口支持。">405</span>
                     <span class="api-status-code s-429" title="429 请求过于频繁。您已超出速率限制，请稍后再试。">429</span>
                     <span class="api-status-code s-500" title="500 服务器内部错误。服务器在执行请求时遇到了问题。">500</span>
+                    <span class="api-status-code s-502" title="502 网关错误。作为网关或代理的服务器从上游收到了无效响应。">502</span>
+                    <span class="api-status-code s-503" title="503 服务不可用。服务器暂时无法处理请求，请稍后重试。">503</span>
+                    <span class="api-status-code s-504" title="504 网关超时。作为网关或代理的服务器未能及时从上游收到请求。">504</span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
