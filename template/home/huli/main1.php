@@ -9,6 +9,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
+require_once ROOT_PATH . 'common/gallery.php';
 $homeTemplate = TemplateManager::getActiveHomeTemplate();
 $homeTemplateBaseUrl = "/template/home/{$homeTemplate}/";
 $userTemplate = TemplateManager::getActiveUserTemplate();
@@ -473,6 +474,15 @@ function getCallCountStyle($count) {
     color: #4a7290;
     margin-top: 4px;
     letter-spacing: .5px;
+}
+body {
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
+        url('<?php echo htmlspecialchars(huli_random_gallery_image()); ?>') !important;
+    background-size: cover, cover !important;
+    background-position: center, center !important;
+    background-attachment: fixed, fixed !important;
+    background-repeat: no-repeat, no-repeat !important;
 }
 </style>
 </head>
