@@ -93,16 +93,16 @@ function getCallCountStyle($count) {
 <style>
 .api-card {
     transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, .35);
+    border: 1px solid rgba(255, 255, 255, .35) !important;
     border-radius: 22px;
     height: 100%;
     background:
-        linear-gradient(140deg, rgba(255, 255, 255, .22) 0%, rgba(214, 234, 250, .14) 50%, rgba(196, 224, 244, .12) 100%);
+        linear-gradient(140deg, rgba(255, 255, 255, .14) 0%, rgba(214, 234, 250, .08) 50%, rgba(196, 224, 244, .06) 100%) !important;
     box-shadow:
         0 8px 28px rgba(45, 100, 155, .12),
-        inset 0 1px 0 rgba(255, 255, 255, .35);
-    backdrop-filter: blur(3px) saturate(110%);
-    -webkit-backdrop-filter: blur(3px) saturate(110%);
+        inset 0 1px 0 rgba(255, 255, 255, .35) !important;
+    backdrop-filter: blur(3px) saturate(110%) !important;
+    -webkit-backdrop-filter: blur(3px) saturate(110%) !important;
 }
 .api-card-link {
     display: block;
@@ -549,7 +549,7 @@ body {
     </div>
     <?php endforeach; ?>
 </div>
-<div class="card mb-4 glass-card search-card-wrapper">
+<div class="mb-4 search-card-wrapper">
     <div class="card-body p-3">
         <div class="d-flex align-items-center gap-2">
             <div class="position-relative flex-grow-1">
@@ -570,7 +570,7 @@ body {
         $api['points_per_call'] = isset($api['points_per_call']) ? $api['points_per_call'] : 0;
     ?>
     <div class="col-md-6 col-lg-4 mb-4 api-card-item" data-name="<?php echo htmlspecialchars(strtolower($api['name'])); ?>" data-desc="<?php echo htmlspecialchars(strtolower($api['description'])); ?>" data-category="<?php echo $api['category_id'] ?? '0'; ?>">
-        <a href="<?= $homeTemplateBaseUrl ?>doc.php?id=<?php echo $api['id']; ?>" class="card h-100 api-card api-card-link text-decoration-none">
+        <a href="<?= $homeTemplateBaseUrl ?>doc.php?id=<?php echo $api['id']; ?>" class="h-100 api-card api-card-link text-decoration-none">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <h4 class="card-title mb-0"><?php echo htmlspecialchars($api['name']); ?></h4>
