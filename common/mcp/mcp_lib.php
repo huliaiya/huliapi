@@ -125,8 +125,8 @@ function huli_mcp_ensure_log_schema() {
     $done = true;
     $pdo = huli_mcp_pdo();
     $exists = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'huli_mcp_logs'")->fetchColumn();
-    if ($exists) { return; }
-    $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_mcp_logs` (
+    if (!$exists) {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_mcp_logs` (
       `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
       `request_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       `role` ENUM('user','admin') NOT NULL,
@@ -135,6 +135,7 @@ function huli_mcp_ensure_log_schema() {
       `method` VARCHAR(64) NOT NULL DEFAULT '',
       `tool_name` VARCHAR(64) NULL DEFAULT NULL,
       `ip_address` VARCHAR(64) NOT NULL DEFAULT '',
+      `user_agent` VARCHAR(255) NOT NULL DEFAULT '',
       `status` ENUM('success','error','invalid') NOT NULL DEFAULT 'success',
       `error_msg` VARCHAR(500) NULL DEFAULT NULL,
       `latency_ms` INT UNSIGNED NOT NULL DEFAULT 0,
@@ -145,13 +146,19 @@ function huli_mcp_ensure_log_schema() {
       KEY `idx_method` (`method`),
       KEY `idx_tool` (`tool_name`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MCP 请求日志'");
+        return;
+    }
+    $col = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'huli_mcp_logs' AND column_name = 'user_agent'")->fetchColumn();
+    if (!$col) {
+        $pdo->exec("ALTER TABLE `huli_mcp_logs` ADD COLUMN `user_agent` VARCHAR(255) NOT NULL DEFAULT '' AFTER `ip_address`");
+    }
 }
 
 function huli_mcp_log($ctx, $method, $toolName, $status, $errorMsg = '', $latencyMs = 0) {
     try {
         huli_mcp_ensure_log_schema();
         $pdo = huli_mcp_pdo();
-        $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, user_agent, status, error_msg, latency_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $ctx['role'] ?? 'user',
             (int)($ctx['id'] ?? 0),
@@ -159,6 +166,7 @@ function huli_mcp_log($ctx, $method, $toolName, $status, $errorMsg = '', $latenc
             (string)$method,
             $toolName,
             (string)($_SERVER['REMOTE_ADDR'] ?? ''),
+            (string)($_SERVER['HTTP_USER_AGENT'] ?? ''),
             $status,
             $errorMsg !== '' ? mb_substr($errorMsg, 0, 500) : null,
             (int)$latencyMs,
@@ -166,4 +174,40 @@ function huli_mcp_log($ctx, $method, $toolName, $status, $errorMsg = '', $latenc
     } catch (Throwable $e) {
         // 日志写入失败不应影响主流程
     }
+}
+
+function huli_device_label($ua) {
+    $ua = (string)$ua;
+    if ($ua === '') {
+        return '-';
+    }
+    $device = '未知设备';
+    if (stripos($ua, 'iPhone') !== false) {
+        $device = 'iPhone';
+    } elseif (stripos($ua, 'iPad') !== false) {
+        $device = 'iPad';
+    } elseif (stripos($ua, 'Android') !== false) {
+        $device = 'Android';
+    } elseif (stripos($ua, 'Windows') !== false) {
+        $device = 'Windows';
+    } elseif (stripos($ua, 'Mac OS X') !== false || stripos($ua, 'Macintosh') !== false) {
+        $device = 'macOS';
+    } elseif (stripos($ua, 'Linux') !== false) {
+        $device = 'Linux';
+    }
+    $browser = '未知浏览器';
+    if (stripos($ua, 'Edg') !== false) {
+        $browser = 'Edge';
+    } elseif (stripos($ua, 'Claude') !== false) {
+        $browser = 'Claude';
+    } elseif (stripos($ua, 'Chrome') !== false) {
+        $browser = 'Chrome';
+    } elseif (stripos($ua, 'Safari') !== false) {
+        $browser = 'Safari';
+    } elseif (stripos($ua, 'Firefox') !== false) {
+        $browser = 'Firefox';
+    } elseif (stripos($ua, 'curl') !== false) {
+        $browser = 'curl';
+    }
+    return $device . ' / ' . $browser;
 }

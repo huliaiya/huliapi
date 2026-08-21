@@ -201,8 +201,8 @@ function huli_mcp_handle_request() {
         echo huli_mcp_json(huli_mcp_error(-32001, 'Unauthorized: 无效或缺失的 MCP Token', null));
         try {
             $pdo = huli_mcp_pdo();
-            $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES ('user', 0, '', 'auth', NULL, ?, 'error', 'Unauthorized', 0)");
-            $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? '')]);
+            $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, user_agent, status, error_msg, latency_ms) VALUES ('user', 0, '', 'auth', NULL, ?, ?, 'error', 'Unauthorized', 0)");
+            $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? ''), (string)($_SERVER['HTTP_USER_AGENT'] ?? '')]);
         } catch (Throwable $e) {}
         exit;
     }

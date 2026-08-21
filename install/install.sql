@@ -522,6 +522,7 @@ CREATE TABLE `huli_mcp_logs` (
   `method` varchar(64) NOT NULL DEFAULT '' COMMENT 'MCP 方法',
   `tool_name` varchar(64) DEFAULT NULL COMMENT '工具名（tools/call 时）',
   `ip_address` varchar(64) NOT NULL DEFAULT '' COMMENT '来源IP',
+  `user_agent` varchar(255) NOT NULL DEFAULT '' COMMENT '来源设备 User-Agent',
   `status` enum('success','error','invalid') NOT NULL DEFAULT 'success' COMMENT '结果',
   `error_msg` varchar(500) DEFAULT NULL COMMENT '错误信息',
   `latency_ms` int(10) unsigned NOT NULL DEFAULT 0 COMMENT '耗时(ms)',

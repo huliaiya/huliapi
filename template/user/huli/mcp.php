@@ -92,7 +92,7 @@ try {
     $mcpLogTotal = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE role = 'user' AND user_id = " . (int)$user_id)->fetchColumn();
     $mcpLogSuccess = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE role = 'user' AND user_id = " . (int)$user_id . " AND status = 'success'")->fetchColumn();
     $mcpLogError = (int)$pdo_log->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE role = 'user' AND user_id = " . (int)$user_id . " AND status IN ('error','invalid')")->fetchColumn();
-    $stmt_log = $pdo_log->prepare("SELECT request_time, method, tool_name, status, latency_ms, ip_address FROM huli_mcp_logs WHERE role = 'user' AND user_id = ? ORDER BY id DESC LIMIT 8");
+    $stmt_log = $pdo_log->prepare("SELECT request_time, method, tool_name, status, latency_ms, ip_address, user_agent FROM huli_mcp_logs WHERE role = 'user' AND user_id = ? ORDER BY id DESC LIMIT 8");
     $stmt_log->execute([$user_id]);
     $mcpLogRecent = $stmt_log->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {}
@@ -327,7 +327,7 @@ $mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 
             <?php else: ?>
                 <div class="table-responsive">
                     <table class="table table-sm mb-0 align-middle">
-                        <thead><tr><th>时间</th><th>方法</th><th>工具</th><th>状态</th><th class="text-end">耗时</th><th>IP</th></tr></thead>
+                        <thead><tr><th>时间</th><th>方法</th><th>工具</th><th>状态</th><th>设备</th><th class="text-end">耗时</th><th>IP</th></tr></thead>
                         <tbody>
                         <?php foreach ($mcpLogRecent as $lr): ?>
                             <tr>
@@ -343,6 +343,7 @@ $mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 
                                         <span class="badge bg-danger">失败</span>
                                     <?php endif; ?>
                                 </td>
+                                <td class="small" title="<?php echo htmlspecialchars($lr['user_agent'] ?? ''); ?>"><?php echo htmlspecialchars(huli_device_label($lr['user_agent'] ?? '')); ?></td>
                                 <td class="text-end small"><?php echo (int)$lr['latency_ms']; ?> ms</td>
                                 <td class="small text-muted"><?php echo htmlspecialchars($lr['ip_address']); ?></td>
                             </tr>
