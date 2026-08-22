@@ -51,7 +51,7 @@ $yn_token = $yn_token ?? '';
   color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;
 }
 .yn-close:hover{background:rgba(255,255,255,.8);}
-.yn-cover-wrap{width:100%;aspect-ratio:4/1;border-radius:12px;overflow:hidden;margin-bottom:10px;background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.06);}
+.yn-cover-wrap{width:100%;aspect-ratio:1;border-radius:14px;overflow:hidden;margin-bottom:10px;background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.06);}
 .yn-cover{width:100%;height:100%;object-fit:cover;display:block;}
 .yn-song{font-size:15px;font-weight:700;color:#1a2b4a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
 .yn-artist{font-size:12px;color:#5a6a7e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:10px;}
@@ -147,22 +147,40 @@ audio.addEventListener('ended', function(){
   loadTrack(getNext(), true);
 });
 
+var PL_JSON = 'https://cdn.jsdelivr.net/gh/' + REPO + '@' + BRANCH + '/' + DIR + '/playlist.json';
+
 async function fetchPlaylist(){
   try{
-    var headers = { 'Accept': 'application/vnd.github.v3+json' };
-    if (token) headers['Authorization'] = 'token ' + token;
-    var resp = await fetch(API_URL, { headers: headers });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    var data = await resp.json();
-    if (!Array.isArray(data)) throw new Error('bad response');
-    playlist = data.filter(function(f){
-      var e = f.name.split('.').pop().toLowerCase();
-      return EXTS.indexOf(e) !== -1;
-    }).map(function(f){
-      var info = parseName(f.name);
-      var encoded = encodeURIComponent(f.name).replace(/%2F/g, '/');
-      return { name: f.name, title: info.title, artist: info.artist, url: CDN + encoded, cover: COVER };
-    });
+    var tracks;
+    try{
+      var presp = await fetch(PL_JSON);
+      if (presp.ok) {
+        var pj = await presp.json();
+        if (Array.isArray(pj) && pj.length > 0) {
+          tracks = pj.map(function(f){
+            var encoded = encodeURIComponent(f.name).replace(/%2F/g, '/');
+            return { name: f.name, title: f.title || f.name.replace(/\.[^.]+$/, ''), artist: f.artist || '原耽', url: CDN + encoded, cover: COVER };
+          });
+        }
+      }
+    } catch(e2){}
+    if (!tracks) {
+      var headers = { 'Accept': 'application/vnd.github.v3+json' };
+      if (token) headers['Authorization'] = 'token ' + token;
+      var resp = await fetch(API_URL, { headers: headers });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      var data = await resp.json();
+      if (!Array.isArray(data)) throw new Error('bad response');
+      tracks = data.filter(function(f){
+        var e = f.name.split('.').pop().toLowerCase();
+        return EXTS.indexOf(e) !== -1;
+      }).map(function(f){
+        var info = parseName(f.name);
+        var encoded = encodeURIComponent(f.name).replace(/%2F/g, '/');
+        return { name: f.name, title: info.title, artist: info.artist, url: CDN + encoded, cover: COVER };
+      });
+    }
+    playlist = tracks;
     if (playlist.length === 0) throw new Error('no music');
     var ri = Math.floor(Math.random() * playlist.length);
     loadTrack(ri, false);
