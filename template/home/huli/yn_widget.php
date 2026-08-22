@@ -9,9 +9,6 @@ $yn_token = $yn_token ?? '';
     <div class="yn-panel-header">
       <button class="yn-close" id="ynClose"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
     </div>
-    <div class="yn-cover-wrap">
-      <img class="yn-cover" id="ynCover" src="" alt="">
-    </div>
     <div class="yn-song" id="ynSong">加载中...</div>
     <div class="yn-artist" id="ynArtist"></div>
     <div class="yn-controls">
@@ -38,21 +35,19 @@ $yn_token = $yn_token ?? '';
 .yn-expanded .yn-toggle{opacity:0;pointer-events:none;transform:scale(.8);}
 .yn-panel{
   position:absolute;bottom:0;right:0;
-  width:270px;background:rgba(255,255,255,.18);
+  width:220px;background:rgba(255,255,255,.18);
   backdrop-filter:blur(36px);-webkit-backdrop-filter:blur(36px);
   border-radius:20px;border:1px solid rgba(255,255,255,.6);
   box-shadow:0 8px 32px rgba(0,0,0,.08);
   transition:all .3s cubic-bezier(.34,1.56,.64,1);
-  overflow:hidden;padding:14px 16px 16px;
+  overflow:hidden;padding:12px 14px 14px;
 }
-.yn-panel-header{display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px;}
+.yn-panel-header{display:flex;align-items:center;justify-content:flex-end;margin-bottom:6px;}
 .yn-close{
   width:26px;height:26px;border-radius:50%;border:1px solid rgba(0,0,0,.1);background:rgba(255,255,255,.5);
   color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;
 }
 .yn-close:hover{background:rgba(255,255,255,.8);}
-.yn-cover-wrap{width:100%;aspect-ratio:1;border-radius:14px;overflow:hidden;margin-bottom:10px;background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.06);}
-.yn-cover{width:100%;height:100%;object-fit:cover;display:block;}
 .yn-song{font-size:15px;font-weight:700;color:#1a2b4a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
 .yn-artist{font-size:12px;color:#5a6a7e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:10px;}
 .yn-controls{display:flex;align-items:center;justify-content:center;gap:16px;}
@@ -65,7 +60,7 @@ $yn_token = $yn_token ?? '';
 .yn-play-btn:hover{background:linear-gradient(135deg,#3a7bd5,#5a9fe0);}
 @media(max-width:480px){
   #yn-player{bottom:16px;right:16px;}
-  .yn-panel{width:250px;}
+  .yn-panel{width:200px;}
   .yn-toggle{width:46px;height:46px;}
 }
 </style>
@@ -75,7 +70,6 @@ var token = <?php echo json_encode($yn_token); ?>;
 var REPO = 'huliaiya/huliaiya.github.io', BRANCH = 'main', DIR = 'yn';
 var CDN = 'https://cdn.jsdelivr.net/gh/' + REPO + '@' + BRANCH + '/' + DIR + '/';
 var API_URL = 'https://api.github.com/repos/' + REPO + '/contents/' + DIR + '?ref=' + BRANCH;
-var COVER = 'https://cdn.jsdelivr.net/gh/huliaiya/huliaiya.github.io@main/assets/yn.png';
 var EXTS = ['mp3','wav','ogg','m4a','flac','aac','opus','webm'];
 
 var playlist = [], currentIdx = -1, wasDragged = false;
@@ -89,7 +83,6 @@ var prevBtn = document.getElementById('ynPrev');
 var nextBtn = document.getElementById('ynNext');
 var titleEl = document.getElementById('ynSong');
 var artistEl = document.getElementById('ynArtist');
-var coverEl = document.getElementById('ynCover');
 
 function parseName(fn){
   var n = fn.replace(/\.[^.]+$/, '');
@@ -105,7 +98,6 @@ function loadTrack(idx, autoPlay){
   currentIdx = idx;
   var t = playlist[idx];
   audio.src = t.url;
-  coverEl.src = t.cover;
   titleEl.textContent = t.title;
   artistEl.textContent = t.artist;
   if (autoPlay) {
@@ -159,7 +151,7 @@ async function fetchPlaylist(){
         if (Array.isArray(pj) && pj.length > 0) {
           tracks = pj.map(function(f){
             var encoded = encodeURIComponent(f.name).replace(/%2F/g, '/');
-            return { name: f.name, title: f.title || f.name.replace(/\.[^.]+$/, ''), artist: f.artist || '原耽', url: CDN + encoded, cover: COVER };
+            return { name: f.name, title: f.title || f.name.replace(/\.[^.]+$/, ''), artist: f.artist || '原耽', url: CDN + encoded };
           });
         }
       }
@@ -177,7 +169,7 @@ async function fetchPlaylist(){
       }).map(function(f){
         var info = parseName(f.name);
         var encoded = encodeURIComponent(f.name).replace(/%2F/g, '/');
-        return { name: f.name, title: info.title, artist: info.artist, url: CDN + encoded, cover: COVER };
+        return { name: f.name, title: info.title, artist: info.artist, url: CDN + encoded };
       });
     }
     playlist = tracks;
