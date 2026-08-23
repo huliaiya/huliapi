@@ -6,6 +6,26 @@ if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失。"); }
 require_once __DIR__ . '/../common/push.php';
 require_once __DIR__ . '/../common/turnstile.php';
+
+$music_setting_keys = [
+    'music_enabled', 'music_github_token', 'music_repo', 'music_branch', 'music_directory',
+    'music_playlist_url', 'music_cdn_base', 'music_play_mode', 'music_autoplay',
+    'music_default_volume', 'music_show_home', 'music_show_doc'
+];
+$music_defaults = [
+    'music_enabled' => '0',
+    'music_github_token' => '',
+    'music_repo' => 'huliaiya/huliaiya.github.io',
+    'music_branch' => 'main',
+    'music_directory' => 'yn',
+    'music_playlist_url' => '',
+    'music_cdn_base' => 'https://cdn.jsdelivr.net/gh/',
+    'music_play_mode' => 'random',
+    'music_autoplay' => '0',
+    'music_default_volume' => '0.5',
+    'music_show_home' => '1',
+    'music_show_doc' => '1'
+];
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = ''; $feedback_type = ''; $page_title = '系统设置';
 $settings_keys = [
@@ -44,10 +64,63 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $init_sql = "INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('turnstile_enabled', '0'), ('turnstile_site_key', '3x00000000000000000000FF'), ('turnstile_secret_key', '1x0000000000000000000000000000000AA'), ('qps_mode', 'database'), ('redis_host', '127.0.0.1'), ('redis_port', '6379'), ('redis_password', ''), ('redis_database', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100'), ('enable_daily_points_notification', '1'), ('icp_record_number', ''), ('police_record_number', ''), ('favicon_url', ''), ('yn_github_token', '');";
     $pdo->exec($init_sql);
+    $stmt_music_default = $pdo->prepare("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES (?, ?)");
+    foreach ($music_defaults as $music_key => $music_value) {
+        $stmt_music_default->execute([$music_key, $music_value]);
+    }
+    $pdo->exec("UPDATE huli_settings AS music LEFT JOIN huli_settings AS legacy ON legacy.setting_key = 'yn_github_token' SET music.setting_value = legacy.setting_value WHERE music.setting_key = 'music_github_token' AND COALESCE(music.setting_value, '') = '' AND COALESCE(legacy.setting_value, '') <> ''");
     $push_feedback_msg = '';
     $push_feedback_type = '';
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (isset($_POST['test_channel'])) {
+        if (isset($_POST['music_settings_action'])) {
+            $music_action = $_POST['music_settings_action'];
+            $music_input = [];
+            foreach ($music_setting_keys as $music_key) {
+                if (in_array($music_key, ['music_enabled', 'music_autoplay', 'music_show_home', 'music_show_doc'], true)) {
+                    $music_input[$music_key] = isset($_POST[$music_key]) ? '1' : '0';
+                    continue;
+                }
+                $music_input[$music_key] = trim((string)($_POST[$music_key] ?? ''));
+            }
+
+            if (!preg_match('#^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$#', $music_input['music_repo'])) {
+                throw new InvalidArgumentException('GitHub 仓库格式无效，应为 owner/repository。');
+            }
+            if (!preg_match('#^[A-Za-z0-9._/-]+$#', $music_input['music_branch']) || strpos($music_input['music_branch'], '..') !== false) {
+                throw new InvalidArgumentException('GitHub 分支格式无效。');
+            }
+            if ($music_input['music_directory'] === '' || !preg_match('#^[A-Za-z0-9._/-]+$#', $music_input['music_directory']) || strpos($music_input['music_directory'], '..') !== false || $music_input['music_directory'][0] === '/') {
+                throw new InvalidArgumentException('音乐目录格式无效，请填写仓库内的相对目录。');
+            }
+            foreach (['music_playlist_url', 'music_cdn_base'] as $music_url_key) {
+                if ($music_input[$music_url_key] !== '' && filter_var($music_input[$music_url_key], FILTER_VALIDATE_URL) === false) {
+                    throw new InvalidArgumentException(($music_url_key === 'music_playlist_url' ? '播放列表 URL' : 'CDN 基础地址') . '格式无效。');
+                }
+            }
+            if (!in_array($music_input['music_play_mode'], ['random', 'sequential'], true)) {
+                throw new InvalidArgumentException('播放模式无效。');
+            }
+            if (!is_numeric($music_input['music_default_volume']) || (float)$music_input['music_default_volume'] < 0 || (float)$music_input['music_default_volume'] > 1) {
+                throw new InvalidArgumentException('默认音量必须是 0 到 1 之间的数字。');
+            }
+            $music_input['music_default_volume'] = (string)(float)$music_input['music_default_volume'];
+
+            $current_music_token = (string)$pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'music_github_token'")->fetchColumn();
+            if ($music_action === 'clear_token') {
+                $music_input['music_github_token'] = '';
+            } elseif ($music_input['music_github_token'] === '') {
+                $music_input['music_github_token'] = $current_music_token;
+            }
+
+            $pdo->beginTransaction();
+            $stmt_music_save = $pdo->prepare("INSERT INTO huli_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+            foreach ($music_input as $music_key => $music_value) {
+                $stmt_music_save->execute([$music_key, $music_value]);
+            }
+            $pdo->commit();
+            $feedback_msg = $music_action === 'clear_token' ? 'GitHub Token 已清除。' : '音乐设置已成功保存。';
+            $feedback_type = 'success';
+        } elseif (isset($_POST['test_channel'])) {
             $valid_channels = ['email', 'wecom', 'dingtalk', 'feishu', 'bark', 'webhook'];
             $test_channel = $_POST['test_channel'];
             $test_recipient = trim($_POST['test_recipient'] ?? '');
@@ -240,6 +313,9 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             <li class="nav-item">
               <button class="nav-link" id="basic-turnstile" data-bs-toggle="tab" data-bs-target="#turnstile" type="button">人机验证</button>
             </li>
+            <li class="nav-item">
+              <button class="nav-link" id="basic-music" data-bs-toggle="tab" data-bs-target="#music" type="button">音乐设置</button>
+            </li>
           </ul>
             <div class="tab-content">
               <div class="tab-pane fade show active" id="config" aria-labelledby="basic-config">
@@ -274,11 +350,6 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   <label for="favicon_url" class="form-label">网站图标 (Favicon)</label>
                   <input class="form-control" type="url" id="favicon_url" name="favicon_url" value="<?php echo htmlspecialchars($settings['favicon_url'] ?? ''); ?>" placeholder="https://example.com/favicon.ico">
                   <small class="form-text text-muted">留空则使用浏览器默认图标</small>
-                </div>
-                <div class="mb-3">
-                  <label for="yn_github_token" class="form-label">原耽音乐 GitHub Token</label>
-                  <input class="form-control" type="password" id="yn_github_token" name="yn_github_token" value="<?php echo htmlspecialchars($settings['yn_github_token'] ?? ''); ?>" placeholder="可选，避免 GitHub API 频率限制">
-                  <small class="form-text text-muted">原耽版悬浮音乐播放器使用，用于访问 GitHub API 获取音乐列表。仅保存在数据库，不会泄露。</small>
                 </div>
                 <div>
                   <button type="submit" class="btn btn-primary me-1">保存设置</button>
@@ -552,6 +623,74 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 </div>
                 <div class="mb-3" id="ts-e2e-result"></div>
                 <?php echo huli_turnstile_assets_html(); ?>
+              </div>
+              <div class="tab-pane fade" id="music" aria-labelledby="basic-music">
+                "settings.php#music"
+                  <input type="hidden" name="music_settings_action" value="save">
+                  <?php if ($feedback_msg): ?>
+                  <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
+                    <?php echo htmlspecialchars($feedback_msg); ?>
+                  </div>
+                  <?php endif; ?>
+                  <div class="row">
+                    <div class="col-12 mb-3 form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="music_enabled" name="music_enabled" value="1" <?php echo ($settings['music_enabled'] ?? '0') === '1' ? 'checked' : ''; ?>>
+                      <label class="form-check-label" for="music_enabled">启用悬浮音乐播放器</label>
+                    </div>
+                    <div class="col-12 mb-3">
+                      <label for="music_github_token" class="form-label">GitHub Token</label>
+                      <input class="form-control" type="password" id="music_github_token" name="music_github_token" value="" autocomplete="new-password" placeholder="留空将保留当前 Token">
+                      <?php
+                      $music_token = (string)($settings['music_github_token'] ?? '');
+                      $music_token_mask = $music_token === '' ? '未配置' : (strlen($music_token) > 10 ? substr($music_token, 0, 4) . '******' . substr($music_token, -4) : '******');
+                      ?>
+                      <small class="form-text text-muted">当前状态：<span id="music-token-status"><?php echo $music_token === '' ? '未配置' : '已配置'; ?></span>，掩码：<code><?php echo htmlspecialchars($music_token_mask); ?></code></small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="music_repo" class="form-label">GitHub 仓库</label>
+                      <input class="form-control" type="text" id="music_repo" name="music_repo" value="<?php echo htmlspecialchars($settings['music_repo'] ?? $music_defaults['music_repo']); ?>" placeholder="owner/repository" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="music_branch" class="form-label">分支</label>
+                      <input class="form-control" type="text" id="music_branch" name="music_branch" value="<?php echo htmlspecialchars($settings['music_branch'] ?? $music_defaults['music_branch']); ?>" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="music_directory" class="form-label">音乐目录</label>
+                      <input class="form-control" type="text" id="music_directory" name="music_directory" value="<?php echo htmlspecialchars($settings['music_directory'] ?? $music_defaults['music_directory']); ?>" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="music_play_mode" class="form-label">播放模式</label>
+                      <select class="form-select" id="music_play_mode" name="music_play_mode">
+                        <option value="random" <?php echo ($settings['music_play_mode'] ?? 'random') === 'random' ? 'selected' : ''; ?>>随机播放</option>
+                        <option value="sequential" <?php echo ($settings['music_play_mode'] ?? '') === 'sequential' ? 'selected' : ''; ?>>顺序播放</option>
+                      </select>
+                    </div>
+                    <div class="col-12 mb-3">
+                      <label for="music_playlist_url" class="form-label">播放列表 URL</label>
+                      <input class="form-control" type="url" id="music_playlist_url" name="music_playlist_url" value="<?php echo htmlspecialchars($settings['music_playlist_url'] ?? ''); ?>" placeholder="https://example.com/playlist.json">
+                      <small class="form-text text-muted">播放器优先读取此地址，读取失败后回退到 GitHub API。</small>
+                    </div>
+                    <div class="col-12 mb-3">
+                      <label for="music_cdn_base" class="form-label">CDN 基础地址</label>
+                      <input class="form-control" type="url" id="music_cdn_base" name="music_cdn_base" value="<?php echo htmlspecialchars($settings['music_cdn_base'] ?? $music_defaults['music_cdn_base']); ?>" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="music_default_volume" class="form-label">默认音量</label>
+                      <input class="form-control" type="number" id="music_default_volume" name="music_default_volume" min="0" max="1" step="0.05" value="<?php echo htmlspecialchars($settings['music_default_volume'] ?? '0.5'); ?>" required>
+                    </div>
+                    <div class="col-md-6 mb-3 d-flex flex-column justify-content-end">
+                      <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="music_autoplay" name="music_autoplay" value="1" <?php echo ($settings['music_autoplay'] ?? '0') === '1' ? 'checked' : ''; ?>><label class="form-check-label" for="music_autoplay">尝试自动播放</label></div>
+                      <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="music_show_home" name="music_show_home" value="1" <?php echo ($settings['music_show_home'] ?? '1') === '1' ? 'checked' : ''; ?>><label class="form-check-label" for="music_show_home">在首页显示</label></div>
+                      <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="music_show_doc" name="music_show_doc" value="1" <?php echo ($settings['music_show_doc'] ?? '1') === '1' ? 'checked' : ''; ?>><label class="form-check-label" for="music_show_doc">在文档页显示</label></div>
+                    </div>
+                  </div>
+                  <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-primary">保存音乐设置</button>
+                    <button type="button" id="music-verify-btn" class="btn btn-outline-info">验证 GitHub 访问</button>
+                    <button type="submit" name="music_settings_action" value="clear_token" class="btn btn-outline-danger" onclick="return confirm('确定清除已保存的 GitHub Token？');">清除 Token</button>
+                  </div>
+                  <div id="music-verify-result" class="mt-3"></div>
+                </form>
               </div>
             </div>
         </div>

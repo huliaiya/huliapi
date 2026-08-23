@@ -1,5 +1,15 @@
 <?php
-$yn_token = $yn_token ?? '';
+$music_settings = is_array($music_settings ?? null) ? $music_settings : [];
+$music_config = [
+    'repo' => (string)($music_settings['music_repo'] ?? 'huliaiya/huliaiya.github.io'),
+    'branch' => (string)($music_settings['music_branch'] ?? 'main'),
+    'directory' => trim((string)($music_settings['music_directory'] ?? 'yn'), '/'),
+    'playlistUrl' => (string)($music_settings['music_playlist_url'] ?? ''),
+    'cdnBase' => rtrim((string)($music_settings['music_cdn_base'] ?? 'https://cdn.jsdelivr.net/gh/'), '/') . '/',
+    'playMode' => ($music_settings['music_play_mode'] ?? 'random') === 'sequential' ? 'sequential' : 'random',
+    'autoplay' => ($music_settings['music_autoplay'] ?? '0') === '1',
+    'defaultVolume' => max(0, min(1, (float)($music_settings['music_default_volume'] ?? 0.5))),
+];
 ?>
 <div id="yn-player" class="yn-collapsed">
   <div class="yn-toggle" id="ynToggle">
@@ -66,10 +76,10 @@ $yn_token = $yn_token ?? '';
 </style>
 <script>
 (function(){
-var token = <?php echo json_encode($yn_token); ?>;
-var REPO = 'huliaiya/huliaiya.github.io', BRANCH = 'main', DIR = 'yn';
-var CDN = 'https://cdn.jsdelivr.net/gh/' + REPO + '@' + BRANCH + '/' + DIR + '/';
-var API_URL = 'https://api.github.com/repos/' + REPO + '/contents/' + DIR + '?ref=' + BRANCH;
+var MUSIC_CONFIG = <?php echo json_encode($music_config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+var REPO = MUSIC_CONFIG.repo, BRANCH = MUSIC_CONFIG.branch, DIR = MUSIC_CONFIG.directory;
+var CDN = MUSIC_CONFIG.cdnBase + REPO + '@' + BRANCH + '/' + (DIR ? DIR + '/' : '');
+var API_URL = 'https://api.github.com/repos/' + encodeURIComponent(REPO).replace('%2F', '/') + '/contents/' + DIR.split('/').map(encodeURIComponent).join('/') + '?ref=' + encodeURIComponent(BRANCH);
 var EXTS = ['mp3','wav','ogg','m4a','flac','aac','opus','webm'];
 
 var playlist = [], currentIdx = -1, wasDragged = false;
@@ -83,6 +93,7 @@ var prevBtn = document.getElementById('ynPrev');
 var nextBtn = document.getElementById('ynNext');
 var titleEl = document.getElementById('ynSong');
 var artistEl = document.getElementById('ynArtist');
+audio.volume = MUSIC_CONFIG.defaultVolume;
 
 function parseName(fn){
   var n = fn.replace(/\.[^.]+$/, '');
@@ -101,16 +112,32 @@ function loadTrack(idx, autoPlay){
   titleEl.textContent = t.title;
   artistEl.textContent = t.artist;
   if (autoPlay) {
-    audio.play().catch(function(){});
+    tryPlay(false);
   }
 }
 
-function getNext() { return (currentIdx + 1) % playlist.length; }
+function getNext() {
+  if (MUSIC_CONFIG.playMode === 'random' && playlist.length > 1) {
+    var nextIdx = currentIdx;
+    while (nextIdx === currentIdx) nextIdx = Math.floor(Math.random() * playlist.length);
+    return nextIdx;
+  }
+  return (currentIdx + 1) % playlist.length;
+}
 function getPrev() { return (currentIdx - 1 + playlist.length) % playlist.length; }
+
+function tryPlay(showBlockedMessage) {
+  return audio.play().catch(function(){
+    audio.pause();
+    if (showBlockedMessage) {
+      artistEl.textContent = '浏览器已阻止自动播放，请点击播放按钮';
+    }
+  });
+}
 
 function togglePlay(){
   if (audio.paused) {
-    audio.play().catch(function(){});
+    tryPlay(false);
   } else {
     audio.pause();
   }
@@ -139,7 +166,7 @@ audio.addEventListener('ended', function(){
   loadTrack(getNext(), true);
 });
 
-var PL_JSON = 'https://cdn.jsdelivr.net/gh/' + REPO + '@' + BRANCH + '/' + DIR + '/playlist.json';
+var PL_JSON = MUSIC_CONFIG.playlistUrl || (CDN + 'playlist.json');
 
 async function fetchPlaylist(){
   try{
@@ -158,7 +185,6 @@ async function fetchPlaylist(){
     } catch(e2){}
     if (!tracks) {
       var headers = { 'Accept': 'application/vnd.github.v3+json' };
-      if (token) headers['Authorization'] = 'token ' + token;
       var resp = await fetch(API_URL, { headers: headers });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       var data = await resp.json();
@@ -174,8 +200,9 @@ async function fetchPlaylist(){
     }
     playlist = tracks;
     if (playlist.length === 0) throw new Error('no music');
-    var ri = Math.floor(Math.random() * playlist.length);
-    loadTrack(ri, false);
+    var firstIndex = MUSIC_CONFIG.playMode === 'random' ? Math.floor(Math.random() * playlist.length) : 0;
+    loadTrack(firstIndex, false);
+    if (MUSIC_CONFIG.autoplay) tryPlay(true);
   } catch(e) {
     titleEl.textContent = '加载失败';
     artistEl.textContent = e.message || '';

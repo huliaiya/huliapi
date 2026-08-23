@@ -344,7 +344,19 @@ INSERT INTO `huli_settings` (`setting_key`,`setting_value`) VALUES
 ('icp_record_number',''),
 ('police_record_number',''),
 ('favicon_url',''),
-('yn_github_token','');
+('yn_github_token',''),
+('music_enabled','0'),
+('music_github_token',''),
+('music_repo','huliaiya/huliaiya.github.io'),
+('music_branch','main'),
+('music_directory','yn'),
+('music_playlist_url',''),
+('music_cdn_base','https://cdn.jsdelivr.net/gh/'),
+('music_play_mode','random'),
+('music_autoplay','0'),
+('music_default_volume','0.5'),
+('music_show_home','1'),
+('music_show_doc','1');
 
 DROP TABLE IF EXISTS `huli_temp_key_logs`;
 CREATE TABLE `huli_temp_key_logs` (
