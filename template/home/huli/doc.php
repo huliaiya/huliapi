@@ -24,7 +24,7 @@ if ($is_logged_in) {
     } catch (PDOException $e) {
     }
 }
-    $api = null; $params = []; $site_name = 'huliapi'; $yn_token = '';
+    $api = null; $params = []; $site_name = 'huliapi'; $music_settings = [];
 $is_logged_in = isset($_SESSION['user_id']);
 $user_info = $is_logged_in ? ['username' => $_SESSION['user_username'], 'email' => $_SESSION['user_email']] : null;
 $api_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -44,7 +44,14 @@ try {
     $stmt_settings = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_name'");
     $db_site_name = $stmt_settings->fetchColumn();
     if($db_site_name) $site_name = $db_site_name;
-    $yn_token = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'yn_github_token'")->fetchColumn() ?: '';
+    $music_keys = ['music_enabled', 'music_github_token', 'yn_github_token', 'music_repo', 'music_branch', 'music_directory', 'music_playlist_url', 'music_cdn_base', 'music_play_mode', 'music_autoplay', 'music_default_volume', 'music_show_doc'];
+    $music_placeholders = implode(',', array_fill(0, count($music_keys), '?'));
+    $stmt_music = $pdo->prepare("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ($music_placeholders)");
+    $stmt_music->execute($music_keys);
+    $music_settings = $stmt_music->fetchAll(PDO::FETCH_KEY_PAIR);
+    if (empty($music_settings['music_github_token']) && !empty($music_settings['yn_github_token'])) {
+        $music_settings['music_github_token'] = $music_settings['yn_github_token'];
+    }
 } catch (PDOException $e) { }
 
 function getStatusBadge($status) {
@@ -1299,6 +1306,6 @@ func main() {
         }
     });
     </script>
-<?php include __DIR__ . '/yn_widget.php'; ?>
+<?php if (($music_settings['music_enabled'] ?? '0') === '1' && ($music_settings['music_show_doc'] ?? '1') === '1') { include __DIR__ . '/yn_widget.php'; } ?>
 </body>
 </html>

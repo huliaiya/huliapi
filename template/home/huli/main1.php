@@ -16,7 +16,7 @@ $userTemplate = TemplateManager::getActiveUserTemplate();
 $userTemplateBaseUrl = "/template/User/{$userTemplate}/";
 $apis = [];
 $site_name = 'huliapi';
-$yn_token = '';
+$music_settings = [];
 try {
     $pdo = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=".DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -26,7 +26,14 @@ try {
     $error_apis_count = (int)$pdo->query("SELECT COUNT(*) FROM huli_apis WHERE status = 'error'")->fetchColumn();
     $stmt_site = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_name'");
     $site_name = $stmt_site->fetchColumn() ?: 'huliapi';
-    $yn_token = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'yn_github_token'")->fetchColumn() ?: '';
+    $music_keys = ['music_enabled', 'music_github_token', 'yn_github_token', 'music_repo', 'music_branch', 'music_directory', 'music_playlist_url', 'music_cdn_base', 'music_play_mode', 'music_autoplay', 'music_default_volume', 'music_show_home'];
+    $music_placeholders = implode(',', array_fill(0, count($music_keys), '?'));
+    $stmt_music = $pdo->prepare("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ($music_placeholders)");
+    $stmt_music->execute($music_keys);
+    $music_settings = $stmt_music->fetchAll(PDO::FETCH_KEY_PAIR);
+    if (empty($music_settings['music_github_token']) && !empty($music_settings['yn_github_token'])) {
+        $music_settings['music_github_token'] = $music_settings['yn_github_token'];
+    }
 } catch (PDOException $e) {
 }
 $announcement = null;
@@ -856,6 +863,6 @@ $(document).ready(function() {
     loadSidebarCategories();
 });
 </script>
-<?php include __DIR__ . '/yn_widget.php'; ?>
+<?php if (($music_settings['music_enabled'] ?? '0') === '1' && ($music_settings['music_show_home'] ?? '1') === '1') { include __DIR__ . '/yn_widget.php'; } ?>
 </body>
 </html>
