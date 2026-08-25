@@ -203,7 +203,7 @@ function huli_mcp_handle_request() {
             $pdo = huli_mcp_pdo();
             $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, user_agent, status, error_msg, latency_ms) VALUES ('user', 0, '', 'auth', NULL, ?, ?, 'error', 'Unauthorized', 0)");
             $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? ''), (string)($_SERVER['HTTP_USER_AGENT'] ?? '')]);
-        } catch (Throwable $e) {}
+        } catch (Throwable $e) { error_log('[mcp_server] 未授权日志写入失败: ' . $e->getMessage()); }
         exit;
     }
     if (($ctx['role'] === 'user' && $ctx['status'] !== 'active')) {
