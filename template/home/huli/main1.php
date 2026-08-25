@@ -35,6 +35,7 @@ try {
         $music_settings['music_github_token'] = $music_settings['yn_github_token'];
     }
 } catch (PDOException $e) {
+    error_log('Failed to load music settings: ' . $e->getMessage());
 }
 $announcement = null;
 try {
