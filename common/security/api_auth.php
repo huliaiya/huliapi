@@ -462,6 +462,7 @@ try {
                     $pdo->prepare("UPDATE huli_users SET last_balance_warn_date = ? WHERE id = ?")->execute([$today, $user['id']]);
                 }
             } catch (Exception $e) {
+                error_log('[api_auth] 余额/积分告警邮件发送失败: ' . $e->getMessage());
             }
         }
     }

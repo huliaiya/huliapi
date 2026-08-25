@@ -14,7 +14,7 @@ if ($token === '') {
         $pdo = huli_mcp_pdo();
         $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES ('user', 0, '', 'access_doc', NULL, ?, 'invalid', 'missing token', 0)");
         $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? '')]);
-    } catch (Throwable $e) {}
+    } catch (Throwable $e) { error_log('[mcp_access] 缺少token日志写入失败: ' . $e->getMessage()); }
     exit;
 }
 
@@ -26,7 +26,7 @@ if (!$ctx) {
         $pdo = huli_mcp_pdo();
         $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES ('user', 0, '', 'access_doc', NULL, ?, 'error', ?, 0)");
         $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? ''), 'invalid token prefix=' . substr($token, 0, 4) . '***']);
-    } catch (Throwable $e) {}
+    } catch (Throwable $e) { error_log('[mcp_access] 无效token日志写入失败: ' . $e->getMessage()); }
     exit;
 }
 
@@ -82,6 +82,6 @@ try {
     $pdo = huli_mcp_pdo();
     $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES (?, ?, ?, 'access_doc', NULL, ?, 'success', '', 0)");
     $stmt->execute([$ctx['role'], (int)$ctx['id'], (string)$ctx['username'], (string)($_SERVER['REMOTE_ADDR'] ?? '')]);
-} catch (Throwable $e) {}
+} catch (Throwable $e) { error_log('[mcp_access] 成功访问日志写入失败: ' . $e->getMessage()); }
 
 echo $out;

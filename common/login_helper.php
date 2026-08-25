@@ -100,5 +100,7 @@ function huli_notify_login($pdo, $actor_name, $email, $ip, $geo, $ua, $actor_typ
         } else {
             huli_push_dispatch($pdo, 'login.notify', $title, $content, $email, $fields);
         }
-    } catch (Throwable $e) {}
+    } catch (Throwable $e) {
+        error_log('[login_helper] 登录通知推送失败: ' . $e->getMessage());
+    }
 }
