@@ -625,7 +625,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 <?php echo huli_turnstile_assets_html(); ?>
               </div>
               <div class="tab-pane fade" id="music" aria-labelledby="basic-music">
-                "settings.php#music"
+                <form method="post" action="settings.php#music">
                   <input type="hidden" name="music_settings_action" value="save">
                   <?php if ($feedback_msg): ?>
                   <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
