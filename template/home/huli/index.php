@@ -241,7 +241,7 @@ body {
     border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
     background: transparent !important;
 }
-/* 顶栏用户名收缩，防止长用户名撑开 header */
+
 .navbar-right .dropdown-toggle > span {
     max-width: 120px;
     white-space: nowrap;
@@ -600,9 +600,7 @@ $(document).ready(function() {
 
 
 <script>
-/* Random floating motion for stat cards, API cards, and FAB.
-   Each element gets a unique duration (3.8-6.4s) and delay (0-2s)
-   so the page feels alive without synchronised pulses. */
+
 (function () {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var targets = document.querySelectorAll(

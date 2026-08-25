@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $turnstile_secret_key = trim($_POST['turnstile_secret_key'] ?? '');
             $turnstile_enabled    = isset($_POST['turnstile_enabled']) ? '1' : '0';
 
-            // 字段级就地校验：错误留在原页面，不进入下一步
+             
             if ($db_name === '') $field_errors['db_name'] = '数据库名称不能为空';
             if ($db_user === '') $field_errors['db_user'] = '数据库用户名不能为空';
             if (!preg_match('/^[A-Za-z0-9_]{2,32}$/', $admin_username)) $field_errors['admin_username'] = '管理员账号需要 2-32 位字母、数字或下划线';
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!preg_match('/^[A-Za-z][A-Za-z0-9_-]{1,31}$/', $admin_path) || in_array(strtolower($admin_path), ['install','api','assets','common','template','user'], true)) {
                 $field_errors['admin_path'] = '后台目录名格式无效或为系统保留名';
             }
-            // SMTP 改为必填
+             
             if ($smtp_host === '') $field_errors['mail_smtp_host'] = 'SMTP 主机不能为空';
             if ($smtp_port < 1 || $smtp_port > 65535) $field_errors['mail_smtp_port'] = 'SMTP 端口范围无效';
             if (!in_array($smtp_secure, ['ssl','tls'], true)) $field_errors['mail_smtp_secure'] = 'SMTP 加密方式无效';
@@ -85,10 +85,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (($turnstile_site_key === '') !== ($turnstile_secret_key === '')) $field_errors['turnstile_keys'] = 'Site Key 与 Secret Key 需同时填写或同时留空';
 
             if (!empty($field_errors)) {
-                // 留在 STEP_DB_CONFIG，错误就地展示
+                 
                 $current_step = STEP_DB_CONFIG;
             } else {
-                // 验证数据库连接
+                 
                 $dsn = "mysql:host={$db_host};charset=utf8mb4";
                 $pdo = new PDO($dsn, $db_user, $db_pwd, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
                 $stmt = $pdo->prepare("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?");
@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($_SESSION['db_config']) || empty($_SESSION['install_config'])) {
                 throw new Exception('安装配置丢失，请返回上一步重新配置');
             }
-            // 免责声明双重确认：必须勾选 + 输入"我已同意"
+             
             $disclaimer_checked = isset($_POST['disclaimer_agree']);
             $disclaimer_typed   = trim($_POST['disclaimer_text'] ?? '');
             if (!$disclaimer_checked || $disclaimer_typed !== '我已同意') {
@@ -249,7 +249,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 file_put_contents(__DIR__ . '/install.lock', "安装锁\n安装完成时间: " . date('Y-m-d H:i:s'));
                 $log .= "✓ 安装锁文件创建成功\n";
 
-                // 安装成功 → 发送免责回执邮件到开发者邮箱
+                 
                 $receipt_sent = false;
                 $receipt_error = '';
                 try {
@@ -587,7 +587,7 @@ body {
   .section-heading small { display: none; }
 }
 
-/* 免责声明模态框 */
+
 .disclaimer-modal-mask {
   position: fixed;
   inset: 0;
@@ -935,7 +935,7 @@ body {
           </div>
         </div>
 
-        <!-- 免责声明模态框（隐藏字段，提交时验证） -->
+        
         <input type="hidden" name="disclaimer_agree" id="disclaimer_agree_flag" value="">
         <input type="hidden" name="disclaimer_text" id="disclaimer_text_flag" value="">
 
@@ -1037,7 +1037,7 @@ body {
 
   if (form && submitBtn) {
     form.addEventListener('submit', function(e) {
-      // STEP_INSTALL_DB：拦截，弹免责声明
+      
       if (actionInput && actionInput.value === 'install_db') {
         e.preventDefault();
         openDisclaimer();
@@ -1048,7 +1048,7 @@ body {
     });
   }
 
-  // 免责声明模态框逻辑
+  
   var modal = document.getElementById('disclaimer-modal');
   var checkbox = document.getElementById('disclaimer-checkbox');
   var input = document.getElementById('disclaimer-input');
@@ -1107,11 +1107,11 @@ body {
     });
   }
 
-  // 自动滚动终端到底部
+  
   var terminal = document.getElementById('install-terminal');
   if (terminal) terminal.scrollTop = terminal.scrollHeight;
 
-  // 字段错误时聚焦首个错误字段
+  
   var firstInvalid = document.querySelector('.form-control.is-invalid');
   if (firstInvalid) {
     try { firstInvalid.focus(); } catch (e) {}

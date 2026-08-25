@@ -1,7 +1,6 @@
 SET FOREIGN_KEY_CHECKS=0;
 SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';
 SET NAMES utf8mb4;
-
 DROP TABLE IF EXISTS `huli_site_home_templates`;
 CREATE TABLE `huli_site_home_templates` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '模板ID',
@@ -15,11 +14,9 @@ CREATE TABLE `huli_site_home_templates` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `folder` (`folder`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='首页模板管理表';
-
 INSERT INTO `huli_site_home_templates` (`id`,`name`,`folder`,`is_active`,`thumbnail`,`description`,`created_at`,`updated_at`) VALUES
 (1,'默认首页模板','default',0,'','系统默认首页模板','2026-04-04 00:00:00','2026-04-04 07:52:27'),
 (2,'huliUI首页模板','huli',1,'','huliUI首页模板','2026-04-04 00:00:00','2026-04-04 07:53:00');
-
 DROP TABLE IF EXISTS `huli_site_user_templates`;
 CREATE TABLE `huli_site_user_templates` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '模板ID',
@@ -33,10 +30,8 @@ CREATE TABLE `huli_site_user_templates` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `folder` (`folder`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='用户中心模板管理表';
-
 INSERT INTO `huli_site_user_templates` (`id`,`name`,`folder`,`is_active`,`thumbnail`,`description`,`created_at`,`updated_at`) VALUES
 (1,'huli用户中心模板','huli',1,'','huli用户中心模板','2026-04-04 00:00:00','2026-04-04 09:03:22');
-
 DROP TABLE IF EXISTS `huli_admins`;
 CREATE TABLE `huli_admins` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '管理员ID',
@@ -53,7 +48,6 @@ CREATE TABLE `huli_admins` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员账户表';
-
 DROP TABLE IF EXISTS `huli_advertisements`;
 CREATE TABLE `huli_advertisements` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '广告ID',
@@ -66,7 +60,6 @@ CREATE TABLE `huli_advertisements` (
   PRIMARY KEY (`id`),
   KEY `status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='广告位管理表';
-
 DROP TABLE IF EXISTS `huli_announcements`;
 CREATE TABLE `huli_announcements` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '公告ID',
@@ -76,10 +69,8 @@ CREATE TABLE `huli_announcements` (
   `is_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否启用',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统公告表';
-
 INSERT INTO `huli_announcements` (`id`,`title`,`content`,`created_at`,`is_active`) VALUES
 (1,'欢迎使用huliapi API管理系统','如接口有失效，点击意见反馈，huliapi','2026-04-25 00:00:00',1);
-
 DROP TABLE IF EXISTS `huli_api_categories`;
 CREATE TABLE `huli_api_categories` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '分类ID',
@@ -89,10 +80,8 @@ CREATE TABLE `huli_api_categories` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='API接口分类表';
-
 INSERT INTO `huli_api_categories` (`id`,`name`,`description`,`created_at`) VALUES
 (1,'默认','默认分类','2026-04-04 00:00:00');
-
 DROP TABLE IF EXISTS `huli_market_items`;
 CREATE TABLE `huli_market_items` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '商品ID',
@@ -106,7 +95,6 @@ CREATE TABLE `huli_market_items` (
   UNIQUE KEY `api_id` (`api_id`),
   KEY `status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='API市场商品表';
-
 DROP TABLE IF EXISTS `huli_market_purchases`;
 CREATE TABLE `huli_market_purchases` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '购买记录ID',
@@ -118,7 +106,6 @@ CREATE TABLE `huli_market_purchases` (
   UNIQUE KEY `item_user` (`item_id`,`user_id`),
   KEY `user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='API市场购买记录表';
-
 DROP TABLE IF EXISTS `huli_api_logs`;
 CREATE TABLE `huli_api_logs` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '日志ID',
@@ -135,7 +122,6 @@ CREATE TABLE `huli_api_logs` (
   KEY `user_id` (`user_id`),
   KEY `request_time` (`request_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='API接口调用日志表';
-
 DROP TABLE IF EXISTS `huli_apis`;
 CREATE TABLE `huli_apis` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'API接口ID',
@@ -165,10 +151,8 @@ CREATE TABLE `huli_apis` (
   KEY `category_id` (`category_id`),
   KEY `status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='API接口管理表';
-
 INSERT INTO `huli_apis` (`id`,`admin_id`,`category_id`,`name`,`description`,`endpoint`,`method`,`type`,`file_path`,`parameters`,`status`,`visibility`,`is_billable`,`request_example`,`response_format`,`points_per_call`) VALUES
 (1,1,1,'IP归属地查询','查询指定IP地址的归属地信息','ip','GET','local','API/ip.php','[{"name":"ip","type":"string","required":"no","desc":"要查询的IP地址，为空时返回当前出口IP"}]','normal','public',0,'/API/ip.php?ip=1.2.3.4','application/json',0);
-
 DROP TABLE IF EXISTS `huli_billing_plans`;
 CREATE TABLE `huli_billing_plans` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '方案ID',
@@ -185,13 +169,11 @@ CREATE TABLE `huli_billing_plans` (
   PRIMARY KEY (`id`),
   KEY `is_active` (`is_active`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='计费方案管理表';
-
 INSERT INTO `huli_billing_plans` (`id`,`name`,`description`,`price`,`billing_type`,`balance_to_add`,`points_to_add`,`membership_days`,`is_active`,`is_card`,`created_at`) VALUES
 (1,'入门套餐','5元获得5000点数，超高性价比',5.00,'points',0,5000,0,1,0,'2026-04-04 00:00:00'),
 (2,'超级会员月卡','开通超级会员30天',29.90,'membership',0,0,30,1,0,'2026-04-04 00:00:00'),
 (3,'超级会员季卡','开通超级会员90天',79.90,'membership',0,0,90,1,0,'2026-04-04 00:00:00'),
 (4,'100点数','充值100点数',10.00,'points',0,100,0,1,0,'2026-04-04 00:00:00');
-
 DROP TABLE IF EXISTS `huli_cdkeys`;
 CREATE TABLE `huli_cdkeys` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'CDKEYID',
@@ -208,7 +190,6 @@ CREATE TABLE `huli_cdkeys` (
   UNIQUE KEY `cdkey` (`cdkey`),
   KEY `status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='CDKEY管理表';
-
 DROP TABLE IF EXISTS `huli_feedback`;
 CREATE TABLE `huli_feedback` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '反馈ID',
@@ -225,7 +206,6 @@ CREATE TABLE `huli_feedback` (
   KEY `user_id` (`user_id`),
   KEY `status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户反馈表';
-
 DROP TABLE IF EXISTS `huli_friend_links`;
 CREATE TABLE `huli_friend_links` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '友链ID',
@@ -245,7 +225,6 @@ CREATE TABLE `huli_friend_links` (
   PRIMARY KEY (`id`),
   KEY `status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='友情链接管理表';
-
 DROP TABLE IF EXISTS `huli_orders`;
 CREATE TABLE `huli_orders` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '订单ID',
@@ -275,7 +254,6 @@ CREATE TABLE `huli_orders` (
   KEY `user_id` (`user_id`),
   KEY `status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单管理表';
-
 DROP TABLE IF EXISTS `huli_qps_logs`;
 CREATE TABLE `huli_qps_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '日志ID',
@@ -291,7 +269,6 @@ CREATE TABLE `huli_qps_logs` (
   PRIMARY KEY (`id`),
   KEY `idx_request_time` (`request_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='QPS限流日志表';
-
 DROP TABLE IF EXISTS `huli_rate_limits`;
 CREATE TABLE `huli_rate_limits` (
   `scope` varchar(16) NOT NULL COMMENT '限流范围(ip/user/api)',
@@ -300,14 +277,12 @@ CREATE TABLE `huli_rate_limits` (
   `request_count` int(10) unsigned NOT NULL DEFAULT 0 COMMENT '请求计数',
   PRIMARY KEY (`scope`,`identifier`,`window_start`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='QPS限流计数表';
-
 DROP TABLE IF EXISTS `huli_settings`;
 CREATE TABLE `huli_settings` (
   `setting_key` varchar(255) NOT NULL COMMENT '设置键',
   `setting_value` longtext DEFAULT NULL COMMENT '设置值',
   PRIMARY KEY (`setting_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统配置表';
-
 INSERT INTO `huli_settings` (`setting_key`,`setting_value`) VALUES
 ('allow_registration','1'),
 ('allow_temp_key','1'),
@@ -366,7 +341,6 @@ INSERT INTO `huli_settings` (`setting_key`,`setting_value`) VALUES
 ('music_default_volume','0.5'),
 ('music_show_home','1'),
 ('music_show_doc','1');
-
 DROP TABLE IF EXISTS `huli_temp_key_logs`;
 CREATE TABLE `huli_temp_key_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '日志ID',
@@ -375,7 +349,6 @@ CREATE TABLE `huli_temp_key_logs` (
   PRIMARY KEY (`id`),
   KEY `ip_address` (`ip_address`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='临时密钥日志表';
-
 DROP TABLE IF EXISTS `huli_transactions`;
 CREATE TABLE `huli_transactions` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '交易ID',
@@ -390,7 +363,6 @@ CREATE TABLE `huli_transactions` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='用户交易记录表';
-
 DROP TABLE IF EXISTS `huli_users`;
 CREATE TABLE `huli_users` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '用户ID',
@@ -415,7 +387,6 @@ CREATE TABLE `huli_users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `api_key` (`api_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户账户表';
-
 DROP TABLE IF EXISTS `huli_daily_points_claim`;
 CREATE TABLE `huli_daily_points_claim` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '记录ID',
@@ -428,7 +399,6 @@ CREATE TABLE `huli_daily_points_claim` (
   UNIQUE KEY `unique_user_date` (`user_id`,`claim_date`),
   KEY `idx_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='每日点数赠送记录表';
-
 DROP TABLE IF EXISTS `huli_daily_stats`;
 CREATE TABLE `huli_daily_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '统计ID',
@@ -439,7 +409,6 @@ CREATE TABLE `huli_daily_stats` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `stat_date` (`stat_date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='每日API调用统计表';
-
 DROP TABLE IF EXISTS `huli_email_broadcasts`;
 CREATE TABLE `huli_email_broadcasts` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '群发ID',
@@ -460,7 +429,6 @@ CREATE TABLE `huli_email_broadcasts` (
   KEY `status` (`status`),
   KEY `schedule_due` (`status`, `scheduled_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='邮件群发表';
-
 DROP TABLE IF EXISTS `huli_push_settings`;
 CREATE TABLE `huli_push_settings` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -473,7 +441,6 @@ CREATE TABLE `huli_push_settings` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `channel` (`channel`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='推送通道配置表';
-
 INSERT INTO `huli_push_settings` (`channel`,`name`,`enabled`,`config`,`events`) VALUES
 ('email','邮件通知（管理员）',1,'{}','["login.notify"]'),
 ('wecom','企业微信（管理员）',1,'{"webhook":""}','["login.notify"]'),
@@ -481,7 +448,6 @@ INSERT INTO `huli_push_settings` (`channel`,`name`,`enabled`,`config`,`events`) 
 ('feishu','飞书（管理员）',1,'{"webhook":"","secret":""}','["login.notify"]'),
 ('bark','Bark iOS（管理员）',1,'{"server":"https://api.day.app","device_key":""}','["login.notify"]'),
 ('webhook','自定义 Webhook（管理员）',1,'{"url":"","method":"POST","headers":""}','["login.notify"]');
-
 DROP TABLE IF EXISTS `huli_user_push_settings`;
 CREATE TABLE `huli_user_push_settings` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -495,7 +461,6 @@ CREATE TABLE `huli_user_push_settings` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_channel` (`user_id`,`channel`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户级推送通道配置表';
-
 DROP TABLE IF EXISTS `huli_login_logs`;
 CREATE TABLE `huli_login_logs` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -514,7 +479,6 @@ CREATE TABLE `huli_login_logs` (
   KEY `status_time` (`status`,`login_at`),
   KEY `ip_time` (`ip`,`login_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员登录日志';
-
 DROP TABLE IF EXISTS `huli_user_login_logs`;
 CREATE TABLE `huli_user_login_logs` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -533,7 +497,6 @@ CREATE TABLE `huli_user_login_logs` (
   KEY `status_time` (`status`,`login_at`),
   KEY `ip_time` (`ip`,`login_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='前台用户登录日志';
-
 DROP TABLE IF EXISTS `huli_mcp_logs`;
 CREATE TABLE `huli_mcp_logs` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '日志ID',
@@ -555,5 +518,4 @@ CREATE TABLE `huli_mcp_logs` (
   KEY `idx_method` (`method`),
   KEY `idx_tool` (`tool_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MCP 请求日志';
-
 SET FOREIGN_KEY_CHECKS=1;

@@ -165,7 +165,7 @@ $mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 
             margin-bottom: 14px;
         }
         .btn-copy { cursor: pointer; }
-        /* 移动端：缩小内边距，表格保留全部列以支持左右滑动 */
+        
         @media (max-width: 768px) {
             .card-body { padding: 0.8rem !important; }
         }
