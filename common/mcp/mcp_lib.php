@@ -172,7 +172,7 @@ function huli_mcp_log($ctx, $method, $toolName, $status, $errorMsg = '', $latenc
             (int)$latencyMs,
         ]);
     } catch (Throwable $e) {
-        // 日志写入失败不应影响主流程
+         
     }
 }
 

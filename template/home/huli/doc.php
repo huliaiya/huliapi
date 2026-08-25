@@ -733,7 +733,7 @@ body {
 .api-list::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
-/* ===== 移动端适配 ===== */
+
 @media (max-width: 768px) {
     .container-fluid {
         padding: 12px 12px !important;
@@ -748,7 +748,7 @@ body {
         min-width: 100%;
         margin-bottom: 4px;
     }
-    /* 参数表 & 状态码表卡片化 */
+    
     .param-table {
         border: none;
     }
@@ -1222,7 +1222,7 @@ func main() {
                 const obj = JSON.parse(raw.body);
                 el.textContent = JSON.stringify(obj, null, 2);
                 return;
-            } catch (e) { /* fall through */ }
+            } catch (e) {  }
         }
         const trimmed = (raw.body || '').trim();
         if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
@@ -1230,7 +1230,7 @@ func main() {
                 const obj = JSON.parse(trimmed);
                 el.textContent = JSON.stringify(obj, null, 2);
                 return;
-            } catch (e) { /* fall through */ }
+            } catch (e) {  }
         }
         el.textContent = raw.body;
     }

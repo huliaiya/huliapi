@@ -172,7 +172,7 @@ function togglePlay(){
   if (!audio.src) { loadTrack(currentIdx < 0 ? 0 : currentIdx, true); return; }
   if (audio.paused) {
     tryPlay(false).then(function(){
-      if (audio.paused) { /* double-check */ }
+      if (audio.paused) {  }
     }).catch(function(){});
   } else {
     audio.pause();
@@ -284,7 +284,7 @@ async function fetchPlaylist(){
 }
 fetchPlaylist();
 
-// 拖拽
+
 (function(){
   var startX, startY, origX, origY, dragging = false, moved = false;
   var style = player.style;

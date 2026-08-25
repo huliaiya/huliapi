@@ -123,7 +123,7 @@ a.api-card:focus {
     background-image:
         linear-gradient(140deg, rgba(255, 255, 255, .14) 0%, rgba(214, 234, 250, .08) 50%, rgba(196, 224, 244, .06) 100%) !important;
 }
-/* fallback 覆盖 liquid-glass.css 中 @supports not(backdrop-filter) 对 .api-card 的不透明强制 */
+
 @supports not ((backdrop-filter: blur(1px))) and (not (-webkit-backdrop-filter: blur(1px))) {
     .api-card {
         background: rgba(255, 255, 255, .10) !important;
@@ -434,7 +434,7 @@ input.api-search-box {
 .ad-placeholder:hover {
     background: #e9ecef;
 }
-/* 移动端适配 */
+
 @media (max-width: 768px) {
     .ad-list {
         grid-template-columns: 1fr;
