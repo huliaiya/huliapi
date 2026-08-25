@@ -9,4 +9,4 @@ if (!file_exists($installLockFile)) {
 }
 require_once 'config.php';
 require_once 'common/TemplateManager.php';
-TemplateManager::renderHome('index.php');
+TemplateManager::renderHome('main1.php');
