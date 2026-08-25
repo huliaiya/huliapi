@@ -292,6 +292,15 @@ CREATE TABLE `huli_qps_logs` (
   KEY `idx_request_time` (`request_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='QPS限流日志表';
 
+DROP TABLE IF EXISTS `huli_rate_limits`;
+CREATE TABLE `huli_rate_limits` (
+  `scope` varchar(16) NOT NULL COMMENT '限流范围(ip/user/api)',
+  `identifier` varchar(64) NOT NULL COMMENT '标识(IP或用户ID)',
+  `window_start` int(10) unsigned NOT NULL COMMENT '时间窗口起始',
+  `request_count` int(10) unsigned NOT NULL DEFAULT 0 COMMENT '请求计数',
+  PRIMARY KEY (`scope`,`identifier`,`window_start`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='QPS限流计数表';
+
 DROP TABLE IF EXISTS `huli_settings`;
 CREATE TABLE `huli_settings` (
   `setting_key` varchar(255) NOT NULL COMMENT '设置键',
