@@ -28,6 +28,43 @@ $music_defaults = [
 ];
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = ''; $feedback_type = ''; $page_title = '系统设置';
+
+function huli_music_http_get($url, $token = '') {
+    $headers = ['Accept: application/vnd.github.v3+json', 'User-Agent: huliapi-settings'];
+    if ($token !== '') $headers[] = 'Authorization: token ' . $token;
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    $body = curl_exec($ch);
+    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_err = curl_errno($ch) ? curl_error($ch) : '';
+    curl_close($ch);
+    if ($curl_err) return ['ok' => false, 'code' => $code, 'err' => '网络错误: ' . $curl_err];
+    return ['ok' => $code >= 200 && $code < 300, 'code' => $code, 'err' => 'HTTP ' . $code];
+}
+
+function huli_verify_music_source($cfg, $token) {
+    $playlist = trim((string)($cfg['music_playlist_url'] ?? ''));
+    if ($playlist !== '') {
+        $r = huli_music_http_get($playlist, '');
+        if ($r['ok']) return ['ok' => true, 'msg' => '播放列表 URL 可访问（HTTP ' . $r['code'] . '）。'];
+        return ['ok' => false, 'msg' => '播放列表 URL 访问失败（' . $r['err'] . '）。'];
+    }
+    $repo = trim((string)($cfg['music_repo'] ?? ''));
+    $branch = trim((string)($cfg['music_branch'] ?? ''));
+    $dir = trim((string)($cfg['music_directory'] ?? ''));
+    $encoded_path = implode('/', array_map('rawurlencode', explode('/', $dir)));
+    $url = 'https://api.github.com/repos/' . rawurlencode($repo) . '/contents/' . $encoded_path . '?ref=' . rawurlencode($branch);
+    $r = huli_music_http_get($url, (string)$token);
+    if ($r['ok']) {
+        $auth_note = $token === '' ? '未使用 Token' : '已使用已保存 Token';
+        return ['ok' => true, 'msg' => 'GitHub 仓库目录可访问（HTTP ' . $r['code'] . '，' . $auth_note . '）。'];
+    }
+    return ['ok' => false, 'msg' => 'GitHub 仓库目录访问失败（' . $r['err'] . '），请检查仓库、分支、目录或 Token 权限。'];
+}
 $settings_keys = [
     'site_name', 'site_description', 'copyright_info', 'allow_registration', 'allow_temp_key',
     'temp_key_duration', 'temp_key_limit',
@@ -108,18 +145,26 @@ try {
             $current_music_token = (string)$pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'music_github_token'")->fetchColumn();
             if ($music_action === 'clear_token') {
                 $music_input['music_github_token'] = '';
+            } elseif ($music_action === 'verify') {
+                $music_input['music_github_token'] = $current_music_token;
             } elseif ($music_input['music_github_token'] === '') {
                 $music_input['music_github_token'] = $current_music_token;
             }
 
-            $pdo->beginTransaction();
-            $stmt_music_save = $pdo->prepare("INSERT INTO huli_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
-            foreach ($music_input as $music_key => $music_value) {
-                $stmt_music_save->execute([$music_key, $music_value]);
+            if ($music_action === 'verify') {
+                $verify_result = huli_verify_music_source($music_input, $current_music_token);
+                $feedback_msg = $verify_result['msg'];
+                $feedback_type = $verify_result['ok'] ? 'success' : 'danger';
+            } else {
+                $pdo->beginTransaction();
+                $stmt_music_save = $pdo->prepare("INSERT INTO huli_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+                foreach ($music_input as $music_key => $music_value) {
+                    $stmt_music_save->execute([$music_key, $music_value]);
+                }
+                $pdo->commit();
+                $feedback_msg = $music_action === 'clear_token' ? 'GitHub Token 已清除。' : '音乐设置已成功保存。';
+                $feedback_type = 'success';
             }
-            $pdo->commit();
-            $feedback_msg = $music_action === 'clear_token' ? 'GitHub Token 已清除。' : '音乐设置已成功保存。';
-            $feedback_type = 'success';
         } elseif (isset($_POST['test_channel'])) {
             $valid_channels = ['email', 'wecom', 'dingtalk', 'feishu', 'bark', 'webhook'];
             $test_channel = $_POST['test_channel'];
@@ -686,10 +731,9 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   </div>
                   <div class="d-flex flex-wrap gap-2">
                     <button type="submit" class="btn btn-primary">保存音乐设置</button>
-                    <button type="button" id="music-verify-btn" class="btn btn-outline-info">验证 GitHub 访问</button>
+                    <button type="submit" name="music_settings_action" value="verify" class="btn btn-outline-info">验证 GitHub 访问</button>
                     <button type="submit" name="music_settings_action" value="clear_token" class="btn btn-outline-danger" onclick="return confirm('确定清除已保存的 GitHub Token？');">清除 Token</button>
                   </div>
-                  <div id="music-verify-result" class="mt-3"></div>
                 </form>
               </div>
             </div>

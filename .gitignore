@@ -2,3 +2,4 @@ install.backup/
 install/install.lock
 logs/
 common/payment/notify_log.txt
+*.tmp
