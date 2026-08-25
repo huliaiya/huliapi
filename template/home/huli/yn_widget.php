@@ -81,10 +81,13 @@ $music_config = [
 .yn-play-btn{width:46px;height:46px;background:linear-gradient(135deg,rgba(74,144,226,.9),rgba(106,176,243,.85));color:#fff;border-color:rgba(255,255,255,.5);box-shadow:0 6px 18px rgba(74,144,226,.35),inset 0 1px 0 rgba(255,255,255,.35);}
 .yn-play-btn:hover{background:linear-gradient(135deg,rgba(58,123,213,.95),rgba(90,159,224,.9));transform:scale(1.06);}
 .yn-progress{
-  height:4px;border-radius:4px;background:rgba(255,255,255,.55);margin:0 4px 12px;overflow:hidden;
-  box-shadow:inset 0 1px 2px rgba(31,62,120,.15);cursor:pointer;position:relative;
+  height:8px;border-radius:4px;background:rgba(255,255,255,.55);margin:2px 4px 16px;overflow:visible;position:relative;
+  cursor:pointer;box-shadow:inset 0 1px 2px rgba(31,62,120,.15);
 }
-.yn-progress-bar{position:absolute;left:0;top:0;bottom:0;width:0%;border-radius:4px;background:linear-gradient(90deg,#4a90e2,#6ab0f3);box-shadow:0 0 6px rgba(74,144,226,.5);transition:width .25s linear;}
+.yn-progress::after{content:'';position:absolute;left:-4px;right:-4px;top:-5px;bottom:-5px;}
+.yn-progress-bar{position:absolute;left:0;top:1px;bottom:1px;width:0%;border-radius:4px;background:linear-gradient(90deg,#4a90e2,#6ab0f3);box-shadow:0 0 6px rgba(74,144,226,.5);transition:width .25s linear;}
+.yn-progress-bar::after{content:'';position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid #4a90e2;box-shadow:0 1px 4px rgba(31,62,120,.3);opacity:0;transition:opacity .2s;}
+#yn-player:hover .yn-progress-bar::after{opacity:1;}
 @media(max-width:480px){
   #yn-player{bottom:16px;right:16px;}
   .yn-panel{width:206px;}
@@ -219,21 +222,33 @@ audio.addEventListener('error', function(){
   }
 });
 audio.addEventListener('timeupdate', function(){
-  if (!isNaN(audio.duration) && audio.duration > 0) {
+  if (!isSeeking && !isNaN(audio.duration) && audio.duration > 0) {
     progressBar.style.width = (audio.currentTime / audio.duration * 100).toFixed(2) + '%';
   }
 });
 audio.addEventListener('loadedmetadata', function(){
   progressBar.style.width = '0%';
 });
+var isSeeking = false;
+function seekTo(clientX){
+  if (!isNaN(audio.duration) && audio.duration > 0) {
+    var rect = progressWrap.getBoundingClientRect();
+    var pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    progressBar.style.width = (pct * 100).toFixed(2) + '%';
+    audio.currentTime = pct * audio.duration;
+  }
+}
 if (progressWrap) {
-  progressWrap.addEventListener('click', function(e){
-    if (!isNaN(audio.duration) && audio.duration > 0) {
-      var rect = progressWrap.getBoundingClientRect();
-      var pct = (e.clientX - rect.left) / rect.width;
-      audio.currentTime = pct * audio.duration;
-    }
-  });
+  var clientX = function(e){
+    if (e.touches && e.touches.length) return e.touches[0].clientX;
+    return e.clientX;
+  };
+  progressWrap.addEventListener('mousedown', function(e){ e.preventDefault(); isSeeking = true; seekTo(clientX(e)); });
+  document.addEventListener('mousemove', function(e){ if (isSeeking) seekTo(clientX(e)); });
+  document.addEventListener('mouseup', function(){ isSeeking = false; });
+  progressWrap.addEventListener('touchstart', function(e){ if (e.touches.length) { isSeeking = true; seekTo(e.touches[0].clientX); } }, { passive: true });
+  document.addEventListener('touchmove', function(e){ if (isSeeking && e.touches.length) seekTo(e.touches[0].clientX); }, { passive: true });
+  document.addEventListener('touchend', function(){ isSeeking = false; });
 }
 
 var PL_JSON = MUSIC_CONFIG.playlistUrl || (CDN + 'playlist.json');
