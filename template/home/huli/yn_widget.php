@@ -263,7 +263,20 @@ async function fetchPlaylist(){
     if (playlist.length === 0) throw new Error('no music');
     var firstIndex = MUSIC_CONFIG.playMode === 'random' ? Math.floor(Math.random() * playlist.length) : 0;
     loadTrack(firstIndex, false);
-    if (MUSIC_CONFIG.autoplay) tryPlay(true);
+    if (MUSIC_CONFIG.autoplay) {
+      var autoplayOnce = function(){
+        tryPlay(true);
+      };
+      if (audio.readyState >= 3) {
+        autoplayOnce();
+      } else {
+        audio.addEventListener('canplay', autoplayOnce, { once: true });
+        setTimeout(function(){
+          audio.removeEventListener('canplay', autoplayOnce);
+          if (audio.paused) tryPlay(true);
+        }, 5000);
+      }
+    }
   } catch(e) {
     titleEl.textContent = '加载失败';
     artistEl.textContent = e.message || '';
