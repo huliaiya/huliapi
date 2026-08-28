@@ -27,9 +27,6 @@ function huli_mcp_get_token() {
     if (preg_match('/^Bearer\s+(.+)$/i', trim($auth), $m)) {
         return trim($m[1]);
     }
-    if (isset($_GET['token']) && is_string($_GET['token'])) {
-        return trim($_GET['token']);
-    }
     return '';
 }
 
@@ -206,7 +203,9 @@ function huli_mcp_handle_request() {
         } catch (Throwable $e) { error_log('[mcp_server] 未授权日志写入失败: ' . $e->getMessage()); }
         exit;
     }
-    if (($ctx['role'] === 'user' && $ctx['status'] !== 'active')) {
+    $accountDisabled = ($ctx['role'] === 'user' && $ctx['status'] !== 'active')
+        || ($ctx['role'] === 'admin' && (int)$ctx['status'] !== 1);
+    if ($accountDisabled) {
         header('Content-Type: application/json; charset=utf-8');
         http_response_code(403);
         echo huli_mcp_json(huli_mcp_error(-32003, '账号状态不允许使用 MCP 服务', null));
@@ -259,9 +258,13 @@ function huli_mcp_handle_request() {
         exit;
     }
 
-    $isBatch = array_keys($body) === range(0, count($body) - 1);
+    $isBatch = $body === [] || array_keys($body) === range(0, count($body) - 1);
 
     if ($isBatch) {
+        if ($body === []) {
+            huli_mcp_send_response(huli_mcp_error(-32600, 'Invalid Request'), $useSse);
+            exit;
+        }
         $responses = [];
         foreach ($body as $msg) {
             $r = huli_mcp_handle_message($msg, $ctx);
@@ -269,7 +272,7 @@ function huli_mcp_handle_request() {
                 $responses[] = $r;
             }
         }
-        huli_mcp_send_response($responses, $useSse);
+        huli_mcp_send_response($responses === [] ? null : $responses, $useSse);
     } else {
         $r = huli_mcp_handle_message($body, $ctx);
         huli_mcp_send_response($r, $useSse);

@@ -3,6 +3,8 @@
 @ini_set('display_errors', 'Off');
 ob_start();
 
+require_once __DIR__ . '/../redis_client.php';
+
 function getUserIP() {
     $ip_keys = ['HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_CLIENT_IP', 'REMOTE_ADDR'];
     foreach ($ip_keys as $key) {
@@ -22,14 +24,10 @@ function getUserIP() {
 function checkApiRateLimit($pdo, $settings, $scope, $identifier, $limit, $window) {
     if ($limit <= 0 || $window <= 0) return false;
     $mode = strtolower(trim($settings['qps_mode'] ?? 'database'));
-    if ($mode === 'redis' && class_exists('Redis')) {
+    if ($mode === 'redis') {
         try {
-            $redis = new Redis();
-            $redis->connect($settings['redis_host'] ?? '127.0.0.1', (int)($settings['redis_port'] ?? 6379), 0.2);
-            if (!empty($settings['redis_password'])) $redis->auth($settings['redis_password']);
-            if (isset($settings['redis_database']) && (int)$settings['redis_database'] > 0) {
-                $redis->select((int)$settings['redis_database']);
-            }
+            $settings['redis_timeout'] = 0.2;
+            $redis = huli_redis_connect($settings);
             $key = 'huliapi:qps:' . $scope . ':' . hash('sha256', (string)$identifier);
             $count = $redis->incr($key);
             if ($count === 1) $redis->expire($key, $window);
