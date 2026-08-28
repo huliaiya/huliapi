@@ -69,7 +69,7 @@ $settings_keys = [
     'site_name', 'site_description', 'copyright_info', 'allow_registration', 'allow_temp_key',
     'temp_key_duration', 'temp_key_limit',
     'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_secure', 'mail_smtp_user', 'mail_smtp_pass',
-    'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'turnstile_site_key', 'turnstile_secret_key', 'qps_mode', 'redis_host', 'redis_port', 'redis_password', 'redis_database', 'enable_free_qps_limit', 'free_qps_seconds', 'free_qps_limit', 'enable_member_qps_limit', 'member_qps_seconds', 'member_qps_limit', 'warn_points_threshold', 'warn_balance_threshold', 'enable_warn_notification', 'enable_daily_points', 'daily_free_points', 'enable_daily_points_notification', 'icp_record_number', 'police_record_number', 'favicon_url', 'yn_github_token'
+    'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'turnstile_site_key', 'turnstile_secret_key', 'qps_mode', 'redis_host', 'redis_port', 'redis_username', 'redis_password', 'redis_database', 'enable_free_qps_limit', 'free_qps_seconds', 'free_qps_limit', 'enable_member_qps_limit', 'member_qps_seconds', 'member_qps_limit', 'warn_points_threshold', 'warn_balance_threshold', 'enable_warn_notification', 'enable_daily_points', 'daily_free_points', 'enable_daily_points_notification', 'icp_record_number', 'police_record_number', 'favicon_url', 'yn_github_token'
 ];
 $defaults = [
     'site_name' => 'huliapi', 'site_description' => 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口', 'copyright_info' => 'Copyright © 2025-2026 huliapi 版权所有',
@@ -77,7 +77,7 @@ $defaults = [
     'mail_smtp_host' => '', 'mail_smtp_port' => '465', 'mail_smtp_secure' => 'ssl', 'mail_smtp_user' => '', 'mail_smtp_pass' => '',
     'mail_reg_enabled' => 0, 'mail_forgot_enabled' => 0, 'turnstile_enabled' => 0,
     'turnstile_site_key' => '3x00000000000000000000FF', 'turnstile_secret_key' => '1x0000000000000000000000000000000AA',
-    'qps_mode' => 'database', 'redis_host' => '127.0.0.1', 'redis_port' => 6379, 'redis_password' => '', 'redis_database' => 0,
+    'qps_mode' => 'database', 'redis_host' => '127.0.0.1', 'redis_port' => 6379, 'redis_username' => '', 'redis_password' => '', 'redis_database' => 0,
     'enable_free_qps_limit' => 1, 'free_qps_seconds' => 1, 'free_qps_limit' => 10, 'enable_member_qps_limit' => 1, 'member_qps_seconds' => 1, 'member_qps_limit' => 20,
     'warn_points_threshold' => 5, 'warn_balance_threshold' => 0.01, 'enable_warn_notification' => 1, 'enable_daily_points' => 0, 'daily_free_points' => 100, 'enable_daily_points_notification' => 1,
     'icp_record_number' => '', 'police_record_number' => '', 'favicon_url' => '', 'yn_github_token' => ''
@@ -225,7 +225,7 @@ try {
             }
         } else {
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare("UPDATE huli_settings SET setting_value = ? WHERE setting_key = ?");
+        $stmt = $pdo->prepare("INSERT INTO huli_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
         $bool_keys = ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'enable_free_qps_limit', 'enable_member_qps_limit', 'enable_warn_notification', 'enable_daily_points', 'enable_daily_points_notification'];
          
          
@@ -238,7 +238,7 @@ try {
                 if (!array_key_exists($key, $_POST)) continue;
                 $value = trim($_POST[$key]);
             }
-            $stmt->execute([$value, $key]);
+            $stmt->execute([$key, $value]);
         }
         $pdo->commit();
         $feedback_msg = '设置已成功保存。';
@@ -470,15 +470,20 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                     <option value="database" <?php echo ($settings['qps_mode'] ?? 'database') === 'database' ? 'selected' : ''; ?>>系统自带（数据库）</option>
                     <option value="redis" <?php echo ($settings['qps_mode'] ?? 'database') === 'redis' ? 'selected' : ''; ?>>Redis</option>
                   </select>
-                  <small class="form-text">Redis 模式需要 PHP Redis 扩展和可用的 Redis 服务，连接失败时自动回退到数据库模式。</small>
+                  <small class="form-text">Redis 模式支持 redis://、rediss:// 和独立连接参数；客户端不可用或连接失败时自动回退到数据库模式。</small>
                 </div>
                 <div class="mb-3">
-                  <label for="redis_host" class="form-label">Redis 地址</label>
-                  <input class="form-control" type="text" id="redis_host" name="redis_host" value="<?php echo htmlspecialchars($settings['redis_host'] ?? '127.0.0.1'); ?>">
+                  <label for="redis_host" class="form-label">Redis 地址或连接串</label>
+                  <input class="form-control" type="text" id="redis_host" name="redis_host" value="<?php echo htmlspecialchars($settings['redis_host'] ?? '127.0.0.1'); ?>" placeholder="127.0.0.1 或 redis://user:password@host:6379/0">
+                  <small class="form-text">连接串中的端口、用户名、密码和数据库编号优先于下方独立参数。</small>
                 </div>
                 <div class="mb-3">
                   <label for="redis_port" class="form-label">Redis 端口</label>
                   <input class="form-control" type="number" id="redis_port" name="redis_port" value="<?php echo htmlspecialchars($settings['redis_port'] ?? 6379); ?>">
+                </div>
+                <div class="mb-3">
+                  <label for="redis_username" class="form-label">Redis 用户名</label>
+                  <input class="form-control" type="text" id="redis_username" name="redis_username" value="<?php echo htmlspecialchars($settings['redis_username'] ?? ''); ?>" autocomplete="off">
                 </div>
                 <div class="mb-3">
                   <label for="redis_password" class="form-label">Redis 密码</label>

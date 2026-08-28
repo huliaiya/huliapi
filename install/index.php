@@ -595,13 +595,17 @@ body {
   display: none;
   align-items: center;
   justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  overflow-y: auto;
   background: rgba(7, 17, 47, 0.55);
   backdrop-filter: blur(6px);
 }
 .disclaimer-modal-mask.show { display: flex; }
 .disclaimer-modal {
   width: min(640px, 92vw);
-  max-height: 88vh;
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
   border-radius: 22px;
@@ -621,6 +625,8 @@ body {
 .disclaimer-modal-body {
   padding: 24px 26px;
   overflow-y: auto;
+  min-height: 0;
+  overscroll-behavior: contain;
   color: #2c3e50;
   line-height: 1.75;
   font-size: 0.95rem;
@@ -628,6 +634,7 @@ body {
 }
 .disclaimer-modal-footer {
   padding: 18px 26px;
+  flex: 0 0 auto;
   border-top: 1px solid rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
@@ -681,6 +688,46 @@ body {
 .btn-confirm-install:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(38,125,224,0.4); }
 .btn-cancel-install { background: rgba(0,0,0,0.06); color: #2c3e50; }
 .btn-cancel-install:hover { background: rgba(0,0,0,0.12); }
+@media (max-width: 640px), (max-height: 700px) {
+  .disclaimer-modal-mask {
+    align-items: flex-start;
+  }
+  .disclaimer-modal {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+    border-radius: 14px;
+  }
+  .disclaimer-modal-header {
+    padding: 14px 16px;
+  }
+  .disclaimer-modal-body {
+    padding: 14px 16px;
+    line-height: 1.55;
+    font-size: 0.9rem;
+  }
+  .disclaimer-modal-footer {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  .disclaimer-check-row {
+    align-items: flex-start;
+  }
+  .disclaimer-input-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .disclaimer-input-row label {
+    min-width: 0;
+  }
+  .disclaimer-actions {
+    flex-wrap: wrap;
+  }
+  .disclaimer-actions button {
+    flex: 1 1 180px;
+  }
+}
 </style>
 </head>
 <body>

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../common/redis_client.php';
 require_once __DIR__ . '/../common/session_boot.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
@@ -264,18 +265,18 @@ $redisCard = [
 try {
     $pdo_settings = $pdo ?? null;
     if ($pdo_settings) {
-        $stmt = $pdo_settings->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('redis_host','redis_port','redis_password','redis_database','qps_mode')");
+        $stmt = $pdo_settings->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('redis_host','redis_port','redis_username','redis_password','redis_database','qps_mode')");
         $set = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-        $redisCard['host'] = $set['redis_host'] ?? '127.0.0.1';
-        $redisCard['port'] = (int)($set['redis_port'] ?? 6379);
+        $redisConfig = huli_redis_config($set);
+        $redisCard['host'] = $redisConfig['host'];
+        $redisCard['port'] = $redisConfig['port'];
         $redisCard['mode'] = $set['qps_mode'] ?? 'database';
     }
 } catch (Throwable $e) {}
 if ($redisCard['available']) {
     try {
-        $r = new Redis();
         $pingStart = microtime(true);
-        $r->connect($redisCard['host'], $redisCard['port'], 0.5);
+        $r = huli_redis_connect($set);
         $redisCard['ping_ms'] = round((microtime(true) - $pingStart) * 1000, 2);
         $redisCard['status'] = true;
         $info = $r->info();

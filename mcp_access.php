@@ -6,10 +6,17 @@ header('Content-Type: text/markdown; charset=utf-8');
 header('Cache-Control: no-store, max-age=0');
 header('X-Content-Type-Options: nosniff');
 
-$token = isset($_GET['token']) ? (string)$_GET['token'] : '';
+$authorization = (string)($_SERVER['HTTP_AUTHORIZATION'] ?? '');
+if ($authorization === '' && function_exists('getallheaders')) {
+    $headers = getallheaders();
+    $authorization = (string)($headers['Authorization'] ?? $headers['authorization'] ?? '');
+}
+$token = preg_match('/^Bearer\s+(.+)$/i', trim($authorization), $matches)
+    ? trim($matches[1])
+    : '';
 if ($token === '') {
     http_response_code(400);
-    echo "# 错误\n\n缺少 token 参数。\n";
+    echo "# 错误\n\n缺少 Authorization Bearer Token。\n";
     try {
         $pdo = huli_mcp_pdo();
         $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES ('user', 0, '', 'access_doc', NULL, ?, 'invalid', 'missing token', 0)");
@@ -27,6 +34,14 @@ if (!$ctx) {
         $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES ('user', 0, '', 'access_doc', NULL, ?, 'error', ?, 0)");
         $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? ''), 'invalid token prefix=' . substr($token, 0, 4) . '***']);
     } catch (Throwable $e) { error_log('[mcp_access] 无效token日志写入失败: ' . $e->getMessage()); }
+    exit;
+}
+
+$account_disabled = ($ctx['role'] === 'user' && $ctx['status'] !== 'active')
+    || ($ctx['role'] === 'admin' && (int)$ctx['status'] !== 1);
+if ($account_disabled) {
+    http_response_code(403);
+    echo "# 错误\n\n账号状态不允许使用 MCP 服务。\n";
     exit;
 }
 
