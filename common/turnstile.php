@@ -467,10 +467,6 @@ T.pending[widgetId]=siteKey;
 window.huliTryRenderTurnstiles();
 if(!sdkReady()){ensureSdkLoaded();}
 };
-/**
- * 提交守卫：保证提交时携带的 token 一定是新鲜且未使用过的。
- * onReady(token) 在拿到可用 token 后调用；onFail(message) 在超时或出错时调用。
- */
 window.huliTurnstileEnsureToken=function(onReady,onFail){
 if(!document.querySelector(".huli-turnstile")){onReady("");return;}
 var token=window.huliGetTurnstileResponse();
@@ -496,9 +492,6 @@ onFail(T.lastError||"人机验证尚未完成，请点击验证组件完成验�
 }
 },200);
 };
-/**
- * 一次性消费 token：提交后立即重置，避免同一 token 被重复提交触发 timeout-or-duplicate。
- */
 window.huliTurnstileConsumed=function(){
 T.tokens={};
 syncInputs("");
