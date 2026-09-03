@@ -4,6 +4,7 @@ require_once __DIR__ . '/../common/session_boot.php';
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失。"); }
+require_once __DIR__ . '/../common/redis_client.php';
 $username = htmlspecialchars($_SESSION['admin_username']);
 $page_title = '系统环境检测';
 $current_page = basename($_SERVER['PHP_SELF']);
@@ -17,7 +18,37 @@ $checks['openssl_ext'] = [ 'name' => 'OpenSSL 扩展', 'required' => '已开启'
 $checks['mbstring_ext'] = [ 'name' => 'Mbstring 扩展', 'required' => '已开启', 'current' => (extension_loaded('mbstring') || function_exists('mb_strlen')) ? '已开启' : '未开启', 'status' => extension_loaded('mbstring') || function_exists('mb_strlen'), 'help' => '用于多字节字符串处理（中文用户名、邮件主题等），强烈建议开启。'];
 $checks['fileinfo_ext'] = [ 'name' => 'Fileinfo 扩展', 'required' => '已开启', 'current' => extension_loaded('fileinfo') ? '已开启' : '未开启', 'status' => extension_loaded('fileinfo'), 'help' => '用于检测上传文件真实类型（防止伪造扩展名），建议开启。'];
 $checks['json_ext'] = [ 'name' => 'JSON 扩展', 'required' => '已开启', 'current' => function_exists('json_encode') ? '已内置' : '缺失', 'status' => function_exists('json_encode'), 'help' => '用于 API 返回与解析；PHP 7.4 及以上版本默认内置，一般无需单独安装。'];
-$checks['redis_client'] = [ 'name' => 'Redis 客户端', 'required' => '可选', 'current' => class_exists('Redis') ? '已安装' : '未安装', 'status' => class_exists('Redis'), 'warn' => true, 'help' => '可选；启用后可使用 Redis 做速率限制、缓存与会话存储。'];
+$redis_probe_host = '127.0.0.1';
+$redis_probe_port = 6379;
+$redis_probe_username = '';
+$redis_probe_password = '';
+$redis_probe_database = 0;
+try {
+    $pdo_probe = new PDO('mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET, DB_USER, DB_PASS);
+    $pdo_probe->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $redis_probe_rows = $pdo_probe->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('redis_host','redis_port','redis_username','redis_password','redis_database')")->fetchAll(PDO::FETCH_KEY_PAIR);
+    $redis_probe_host = trim((string)($redis_probe_rows['redis_host'] ?? '')) !== '' ? $redis_probe_rows['redis_host'] : '127.0.0.1';
+    $redis_probe_port = (int)($redis_probe_rows['redis_port'] ?? 6379);
+    $redis_probe_username = (string)($redis_probe_rows['redis_username'] ?? '');
+    $redis_probe_password = (string)($redis_probe_rows['redis_password'] ?? '');
+    $redis_probe_database = (int)($redis_probe_rows['redis_database'] ?? 0);
+} catch (Throwable $e) {}
+$redis_probe_start = microtime(true);
+$redis_probe_ok = false;
+try {
+    $redis_probe_ok = huli_redis_raw_ping([
+        'redis_host' => $redis_probe_host,
+        'redis_port' => $redis_probe_port,
+        'redis_username' => $redis_probe_username,
+        'redis_password' => $redis_probe_password,
+        'redis_database' => $redis_probe_database,
+        'redis_timeout' => 1.0,
+    ]);
+    $redis_probe_current = '已连接 (' . round((microtime(true) - $redis_probe_start) * 1000, 1) . ' ms)';
+} catch (Throwable $e) {
+    $redis_probe_current = '不可连接: ' . $e->getMessage();
+}
+$checks['redis_conn'] = [ 'name' => 'Redis 服务连接', 'required' => '可选', 'current' => $redis_probe_current, 'status' => $redis_probe_ok, 'warn' => true, 'help' => '探测后台设置的 redis_host/redis_port（默认 127.0.0.1:6379）连通性；无需安装 phpredis 扩展即可用于 Redis 限速，连接失败时自动回退数据库限速。'];
 $mem_limit = (int)ini_get('memory_limit');
 $mem_mb = ($mem_limit > 0 && $mem_limit !== -1) ? $mem_limit : 0;
 $checks['memory_limit'] = [ 'name' => 'PHP 内存上限', 'required' => '>= 128M', 'current' => $mem_mb > 0 ? $mem_mb . 'M' : '未限制', 'status' => $mem_mb >= 128, 'help' => '推荐 ≥128M，用于在线更新与大批量数据处理。'];

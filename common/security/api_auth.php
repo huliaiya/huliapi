@@ -27,11 +27,8 @@ function checkApiRateLimit($pdo, $settings, $scope, $identifier, $limit, $window
     if ($mode === 'redis') {
         try {
             $settings['redis_timeout'] = 0.2;
-            $redis = huli_redis_connect($settings);
             $key = 'huliapi:qps:' . $scope . ':' . hash('sha256', (string)$identifier);
-            $count = $redis->incr($key);
-            if ($count === 1) $redis->expire($key, $window);
-            $redis->close();
+            $count = huli_redis_raw_incr($settings, $key, $window);
             return $count > $limit;
         } catch (Throwable $e) {
             error_log('Redis限速不可用，已回退数据库限速: ' . $e->getMessage());
