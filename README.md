@@ -1,7 +1,7 @@
 # huliapi 安装版（main 分支）
 
 版本：1.6.0  
-运行环境：PHP 8.0+、MySQL 5.7+ 或 MariaDB 10.3+
+运行环境：PHP 7.4+、MySQL 5.7+ 或 MariaDB 10.3+
 
 `main` 分支是 huliapi 的完整安装分支，用于首次部署和初始化站点。这个分支包含安装入口、数据库初始化 SQL、默认配置文件和完整业务代码。
 
@@ -34,7 +34,7 @@
 
 ## 环境要求
 
-- PHP 8.0 或更高版本。
+- PHP 7.4 或更高版本（推荐 8.0 及以上）。
 - MySQL 5.7+ 或 MariaDB 10.3+。
 - Nginx 或 Apache。
 - PHP 扩展：PDO、pdo_mysql、curl、openssl、mbstring、gd。
