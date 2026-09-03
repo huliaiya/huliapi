@@ -85,3 +85,104 @@ function huli_redis_connect(array $settings) {
 
     return $redis;
 }
+
+function huli_redis_raw_encode(array $args) {
+    $out = '*' . count($args) . "\r\n";
+    foreach ($args as $arg) {
+        $arg = (string)$arg;
+        $out .= '$' . strlen($arg) . "\r\n" . $arg . "\r\n";
+    }
+    return $out;
+}
+
+function huli_redis_raw_read($fp) {
+    if (!is_resource($fp)) throw new RuntimeException('Redis 连接已关闭');
+    $line = fgets($fp);
+    if ($line === false) {
+        $meta = stream_get_meta_data($fp);
+        if (!empty($meta['timed_out'])) throw new RuntimeException('Redis 读取响应超时');
+        throw new RuntimeException('Redis 读取响应失败');
+    }
+    $type = $line[0];
+    $rest = trim(substr($line, 1));
+    if ($type === '-') throw new RuntimeException('Redis 命令错误: ' . $rest);
+    if ($type === '+') return $rest;
+    if ($type === ':') return (int)$rest;
+    if ($type === '$') {
+        $len = (int)$rest;
+        if ($len < 0) return null;
+        $buf = '';
+        while (strlen($buf) < $len + 2) {
+            $chunk = fread($fp, $len + 2 - strlen($buf));
+            if ($chunk === false || $chunk === '') {
+                $meta = stream_get_meta_data($fp);
+                if (!empty($meta['timed_out'])) throw new RuntimeException('Redis 读取响应超时');
+                throw new RuntimeException('Redis 读取响应失败');
+            }
+            $buf .= $chunk;
+        }
+        return substr($buf, 0, $len);
+    }
+    throw new RuntimeException('Redis 响应格式异常');
+}
+
+function huli_redis_raw_open(array $settings) {
+    $config = huli_redis_config($settings);
+    if ($config['scheme'] !== 'redis') {
+        throw new RuntimeException('内置 Redis 连接不支持 rediss 加密地址，请改用普通地址或安装 phpredis 扩展');
+    }
+    $errno = 0;
+    $errstr = '';
+    $fp = @fsockopen($config['host'], $config['port'], $errno, $errstr, $config['timeout']);
+    if ($fp === false) {
+        $detail = $errstr !== '' ? $errstr : $config['host'] . ':' . $config['port'] . ' 无法连接';
+        throw new RuntimeException('Redis 连接失败: ' . $detail);
+    }
+    $timeout = (float)$config['timeout'];
+    $whole = (int)$timeout;
+    $frac = (int)(($timeout - $whole) * 1000000);
+    stream_set_timeout($fp, $whole, $frac);
+    try {
+        if ($config['password'] !== '') {
+            $auth = $config['username'] !== ''
+                ? ['AUTH', $config['username'], $config['password']]
+                : ['AUTH', $config['password']];
+            fwrite($fp, huli_redis_raw_encode($auth));
+            huli_redis_raw_read($fp);
+        }
+        if ($config['database'] > 0) {
+            fwrite($fp, huli_redis_raw_encode(['SELECT', (string)$config['database']]));
+            huli_redis_raw_read($fp);
+        }
+    } catch (Throwable $e) {
+        fclose($fp);
+        throw $e;
+    }
+    return $fp;
+}
+
+function huli_redis_raw_ping(array $settings) {
+    $fp = huli_redis_raw_open($settings);
+    try {
+        fwrite($fp, huli_redis_raw_encode(['PING']));
+        $reply = huli_redis_raw_read($fp);
+        return $reply === 'PONG';
+    } finally {
+        fclose($fp);
+    }
+}
+
+function huli_redis_raw_incr(array $settings, $key, $window = 0) {
+    $fp = huli_redis_raw_open($settings);
+    try {
+        fwrite($fp, huli_redis_raw_encode(['INCR', $key]));
+        $count = (int)huli_redis_raw_read($fp);
+        if ($count === 1 && $window > 0) {
+            fwrite($fp, huli_redis_raw_encode(['EXPIRE', $key, (string)(int)$window]));
+            huli_redis_raw_read($fp);
+        }
+        return $count;
+    } finally {
+        fclose($fp);
+    }
+}

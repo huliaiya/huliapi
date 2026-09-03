@@ -470,7 +470,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                     <option value="database" <?php echo ($settings['qps_mode'] ?? 'database') === 'database' ? 'selected' : ''; ?>>系统自带（数据库）</option>
                     <option value="redis" <?php echo ($settings['qps_mode'] ?? 'database') === 'redis' ? 'selected' : ''; ?>>Redis</option>
                   </select>
-                  <small class="form-text">Redis 模式支持 redis://、rediss:// 和独立连接参数；客户端不可用或连接失败时自动回退到数据库模式。</small>
+                  <small class="form-text">Redis 模式使用内置连接执行限速，无需安装 phpredis 扩展；支持独立连接参数与 redis:// 普通地址，rediss:// 加密地址仍需 phpredis 扩展。连接失败时自动回退到数据库模式。</small>
                 </div>
                 <div class="mb-3">
                   <label for="redis_host" class="form-label">Redis 地址或连接串</label>
