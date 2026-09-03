@@ -37,7 +37,7 @@
 - PHP 7.4 或更高版本（推荐 8.0 及以上）。
 - MySQL 5.7+ 或 MariaDB 10.3+。
 - Nginx 或 Apache。
-- PHP 扩展：PDO、pdo_mysql、curl、openssl、mbstring、gd。
+- PHP 扩展：PDO、pdo_mysql、curl、openssl、mbstring、gd；可选：zip（仅后台在线更新解压需要，未安装不影响正常使用）。
 - 推荐启用 PHP OPcache。
 
 ---

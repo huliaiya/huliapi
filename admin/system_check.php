@@ -11,13 +11,13 @@ $checks = [];
 $checks['php_version'] = [ 'name' => 'PHP 版本', 'required' => '>= 7.4.0', 'current' => PHP_VERSION, 'status' => version_compare(PHP_VERSION, '7.4.0', '>='), 'help' => '系统最低要求 PHP 7.4.0，推荐使用 PHP 8.0 或更高版本。'];
 $checks['pdo_mysql'] = [ 'name' => 'PDO MySQL 扩展', 'required' => '已开启', 'current' => (class_exists('PDO') && extension_loaded('pdo_mysql')) ? '已开启' : '未开启', 'status' => class_exists('PDO') && extension_loaded('pdo_mysql'), 'help' => '用于数据库连接，是系统运行的必要扩展。'];
 $checks['gd_library'] = [ 'name' => 'GD 图形库', 'required' => '已安装', 'current' => (extension_loaded('gd') || function_exists('imagecreatetruecolor')) ? '已安装' : '未安装', 'status' => extension_loaded('gd') || function_exists('imagecreatetruecolor'), 'help' => '用于图片验证码、头像裁剪等图形功能，必须启用。'];
-$checks['zip_archive'] = [ 'name' => 'ZipArchive 类', 'required' => '可用', 'current' => class_exists('ZipArchive') ? '可用' : '不可用', 'status' => class_exists('ZipArchive'), 'help' => '用于在线更新时解压文件，必须可用。'];
+$checks['zip_archive'] = [ 'name' => 'ZipArchive 类', 'required' => '可选', 'current' => class_exists('ZipArchive') ? '可用' : '不可用', 'status' => class_exists('ZipArchive'), 'warn' => true, 'help' => '仅后台在线更新解压升级包时使用；未启用不影响日常使用，如需启用请安装 php-zip 扩展。'];
 $checks['curl_ext'] = [ 'name' => 'cURL 扩展', 'required' => '已开启', 'current' => (extension_loaded('curl') || function_exists('curl_init')) ? '已开启' : '未开启', 'status' => extension_loaded('curl') || function_exists('curl_init'), 'help' => '用于调用外部 API（如在线更新、SMTP、推送），必须开启。'];
 $checks['openssl_ext'] = [ 'name' => 'OpenSSL 扩展', 'required' => '已开启', 'current' => (extension_loaded('openssl') || function_exists('openssl_encrypt')) ? '已开启' : '未开启', 'status' => extension_loaded('openssl') || function_exists('openssl_encrypt'), 'help' => '用于 HTTPS 通信与加密解密，在线更新与推送均依赖。'];
 $checks['mbstring_ext'] = [ 'name' => 'Mbstring 扩展', 'required' => '已开启', 'current' => (extension_loaded('mbstring') || function_exists('mb_strlen')) ? '已开启' : '未开启', 'status' => extension_loaded('mbstring') || function_exists('mb_strlen'), 'help' => '用于多字节字符串处理（中文用户名、邮件主题等），强烈建议开启。'];
 $checks['fileinfo_ext'] = [ 'name' => 'Fileinfo 扩展', 'required' => '已开启', 'current' => extension_loaded('fileinfo') ? '已开启' : '未开启', 'status' => extension_loaded('fileinfo'), 'help' => '用于检测上传文件真实类型（防止伪造扩展名），建议开启。'];
 $checks['json_ext'] = [ 'name' => 'JSON 扩展', 'required' => '已开启', 'current' => function_exists('json_encode') ? '已内置' : '缺失', 'status' => function_exists('json_encode'), 'help' => '用于 API 返回与解析；PHP 7.4 及以上版本默认内置，一般无需单独安装。'];
-$checks['redis_client'] = [ 'name' => 'Redis 客户端', 'required' => '可选', 'current' => class_exists('Redis') ? '已安装' : '未安装', 'status' => class_exists('Redis'), 'help' => '可选；启用后可使用 Redis 做速率限制、缓存与会话存储。'];
+$checks['redis_client'] = [ 'name' => 'Redis 客户端', 'required' => '可选', 'current' => class_exists('Redis') ? '已安装' : '未安装', 'status' => class_exists('Redis'), 'warn' => true, 'help' => '可选；启用后可使用 Redis 做速率限制、缓存与会话存储。'];
 $mem_limit = (int)ini_get('memory_limit');
 $mem_mb = ($mem_limit > 0 && $mem_limit !== -1) ? $mem_limit : 0;
 $checks['memory_limit'] = [ 'name' => 'PHP 内存上限', 'required' => '>= 128M', 'current' => $mem_mb > 0 ? $mem_mb . 'M' : '未限制', 'status' => $mem_mb >= 128, 'help' => '推荐 ≥128M，用于在线更新与大批量数据处理。'];
@@ -98,6 +98,8 @@ $checks['update_branch_latency'] = ['name' => '更新分支连接延迟', 'requi
                         <div class="me-3">
                             <?php if($check['status']): ?>
                                 <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                            <?php elseif(!empty($check['warn'])): ?>
+                                <i class="bi bi-exclamation-triangle-fill text-warning fs-4"></i>
                             <?php else: ?>
                                 <i class="bi bi-x-circle-fill text-danger fs-4"></i>
                             <?php endif; ?>
@@ -107,7 +109,7 @@ $checks['update_branch_latency'] = ['name' => '更新分支连接延迟', 'requi
                             <p class="mb-0 text-muted small"><?php echo $check['help']; ?></p>
                         </div>
                         <div class="ms-3">
-                            <span class="fw-bold <?php echo $check['status'] ? 'text-success' : 'text-danger'; ?>">
+                            <span class="fw-bold <?php echo $check['status'] ? 'text-success' : (!empty($check['warn']) ? 'text-warning' : 'text-danger'); ?>">
                                 <?php echo $check['current']; ?>
                             </span>
                         </div>
@@ -118,7 +120,7 @@ $checks['update_branch_latency'] = ['name' => '更新分支连接延迟', 'requi
         </div>
         <div class="alert alert-info">
             <h5 class="alert-heading">检测说明</h5>
-            <p class="mb-0">所有检测项必须通过才能确保系统正常运行。如有未通过的检测项，请根据提示进行相应调整。</p>
+            <p class="mb-0">标红的必需项应尽快处理以保证功能完整；标黄的为可选项（如 ZipArchive、Redis），未启用不影响日常使用，仅在对应功能（在线更新等）触发时受限。</p>
         </div>
     </div>
 </div>
