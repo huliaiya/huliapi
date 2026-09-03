@@ -665,53 +665,84 @@ body {
   inset: 0;
   z-index: 9999;
   display: none;
-  align-items: center;
-  justify-content: center;
-  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
-  overflow-y: auto;
-  background: rgba(7, 17, 47, 0.55);
-  backdrop-filter: blur(6px);
+  overflow: hidden;
+  background: #f6f8fb;
 }
-.disclaimer-modal-mask.show { display: flex; }
+.disclaimer-modal-mask.show { display: block; }
 .disclaimer-modal {
-  width: min(640px, 92vw);
-  max-height: calc(100vh - 24px);
-  max-height: calc(100dvh - 24px);
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  border-radius: 22px;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,250,255,0.96));
-  box-shadow: 0 30px 80px rgba(7, 17, 47, 0.45);
+  background: #fff;
 }
 .disclaimer-modal-header {
-  padding: 22px 26px;
+  flex: 0 0 auto;
+  padding: calc(12px + env(safe-area-inset-top)) clamp(16px, 4vw, 36px) 12px;
   background: linear-gradient(135deg, #267de0 0%, #2cb4e1 56%, #53d0d2 100%);
   color: white;
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.disclaimer-modal-header h5 { margin: 0; font-weight: 600; font-size: 1.15rem; }
+.disclaimer-modal-header h5 {
+  flex: 1 1 auto;
+  margin: 0;
+  font-weight: 600;
+  font-size: clamp(1rem, 0.8vw + 0.85rem, 1.35rem);
+  line-height: 1.3;
+}
+.disclaimer-close {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  font-size: 1.35rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.25s ease;
+}
+.disclaimer-close:hover { background: rgba(255,255,255,0.34); transform: rotate(90deg); }
 .disclaimer-modal-body {
-  padding: 24px 26px;
-  overflow-y: auto;
+  flex: 1 1 auto;
   min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  padding: clamp(16px, 3vw, 36px) clamp(16px, 4vw, 48px);
+  background: #f6f8fb;
+}
+.disclaimer-content {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: clamp(18px, 3vw, 40px) clamp(18px, 3.5vw, 48px);
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 34px rgba(7, 17, 47, 0.07);
   color: #2c3e50;
-  line-height: 1.75;
-  font-size: 0.95rem;
+  line-height: 1.9;
+  font-size: clamp(0.92rem, 0.55vw + 0.86rem, 1.04rem);
   white-space: pre-line;
+  word-break: break-word;
 }
 .disclaimer-modal-footer {
-  padding: 18px 26px;
   flex: 0 0 auto;
-  border-top: 1px solid rgba(0,0,0,0.08);
+  padding: calc(14px + env(safe-area-inset-bottom)) clamp(16px, 4vw, 36px);
+  border-top: 1px solid #e6ebf2;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: rgba(255,255,255,0.7);
+  background: #fff;
+  box-shadow: 0 -8px 24px rgba(7, 17, 47, 0.05);
 }
 .disclaimer-check-row {
   display: flex;
@@ -760,45 +791,17 @@ body {
 .btn-confirm-install:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(38,125,224,0.4); }
 .btn-cancel-install { background: rgba(0,0,0,0.06); color: #2c3e50; }
 .btn-cancel-install:hover { background: rgba(0,0,0,0.12); }
-@media (max-width: 640px), (max-height: 700px) {
-  .disclaimer-modal-mask {
-    align-items: flex-start;
-  }
-  .disclaimer-modal {
-    width: 100%;
-    max-height: calc(100vh - 24px);
-    max-height: calc(100dvh - 24px);
-    border-radius: 14px;
-  }
-  .disclaimer-modal-header {
-    padding: 14px 16px;
-  }
-  .disclaimer-modal-body {
-    padding: 14px 16px;
-    line-height: 1.55;
-    font-size: 0.9rem;
-  }
-  .disclaimer-modal-footer {
-    padding: 12px 16px;
-    gap: 10px;
-  }
-  .disclaimer-check-row {
-    align-items: flex-start;
-  }
-  .disclaimer-input-row {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .disclaimer-input-row label {
-    min-width: 0;
-  }
-  .disclaimer-actions {
-    flex-wrap: wrap;
-  }
-  .disclaimer-actions button {
-    flex: 1 1 180px;
-  }
+@media (max-width: 560px) {
+  .disclaimer-modal-header { gap: 6px; }
+  .disclaimer-close { width: 34px; height: 34px; font-size: 1.2rem; }
+  .disclaimer-modal-body { padding: 14px 12px; }
+  .disclaimer-content { padding: 18px 16px; line-height: 1.75; border-radius: 10px; }
+  .disclaimer-modal-footer { padding-top: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .disclaimer-check-row { align-items: flex-start; }
+  .disclaimer-input-row { align-items: stretch; flex-direction: column; gap: 6px; }
+  .disclaimer-input-row label { min-width: 0; }
+  .disclaimer-actions { flex-wrap: wrap; }
+  .disclaimer-actions button { flex: 1 1 130px; }
 }
 </style>
 </head>
@@ -1060,8 +1063,13 @@ body {
             <div class="disclaimer-modal-header">
               <i class="mdi mdi-shield-alert-outline" style="font-size:1.5rem;"></i>
               <h5>免责声明与使用条款</h5>
+              <button type="button" class="disclaimer-close" id="disclaimer-close" title="关闭" aria-label="关闭">
+                <i class="mdi mdi-close"></i>
+              </button>
             </div>
-            <div class="disclaimer-modal-body"><?= htmlspecialchars(huli_installer_disclaimer_text()) ?></div>
+            <div class="disclaimer-modal-body">
+              <div class="disclaimer-content"><?= htmlspecialchars(huli_installer_disclaimer_text()) ?></div>
+            </div>
             <div class="disclaimer-modal-footer">
               <div class="disclaimer-check-row">
                 <input type="checkbox" id="disclaimer-checkbox">
@@ -1190,10 +1198,12 @@ body {
     input.classList.remove('is-invalid');
     errorEl.classList.remove('show');
     modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
   }
   function closeDisclaimer() {
     if (!modal) return;
     modal.classList.remove('show');
+    document.body.style.overflow = '';
   }
 
   if (confirmBtn) {
@@ -1214,6 +1224,10 @@ body {
   }
   if (cancelBtn) {
     cancelBtn.addEventListener('click', closeDisclaimer);
+  }
+  var closeBtn = document.getElementById('disclaimer-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeDisclaimer);
   }
   if (modal) {
     modal.addEventListener('click', function(e) {
