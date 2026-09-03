@@ -365,27 +365,29 @@ function huli_installer_env_checks() {
     $checks = [];
 
     $checks[] = [
-        'name'   => 'PHP 版本',
-        'pass'   => version_compare(PHP_VERSION, HULI_INSTALL_PHP_MIN_VERSION, '>='),
-        'status' => PHP_VERSION . '（要求 ≥ ' . HULI_INSTALL_PHP_MIN_VERSION . '）',
-        'tip'    => '请升级至 PHP ' . HULI_INSTALL_PHP_MIN_VERSION . ' 或更高版本（推荐 8.0 及以上）',
+        'name'     => 'PHP 版本',
+        'pass'     => version_compare(PHP_VERSION, HULI_INSTALL_PHP_MIN_VERSION, '>='),
+        'status'   => PHP_VERSION . '（要求 ≥ ' . HULI_INSTALL_PHP_MIN_VERSION . '）',
+        'required' => true,
+        'tip'      => '请升级至 PHP ' . HULI_INSTALL_PHP_MIN_VERSION . ' 或更高版本（推荐 8.0 及以上）',
     ];
 
     $extensions = [
-        ['key' => 'pdo_mysql', 'label' => 'PDO MySQL 扩展', 'tip' => '请启用 pdo_mysql 扩展以连接 MySQL/MariaDB 数据库'],
-        ['key' => 'curl',      'label' => 'cURL 扩展',      'tip' => '请启用 curl 扩展以支持 SMTP、推送通知与在线更新'],
-        ['key' => 'openssl',   'label' => 'OpenSSL 扩展',   'tip' => '请启用 openssl 扩展以支持 HTTPS 与加密通信'],
-        ['key' => 'mbstring',  'label' => 'Mbstring 扩展',  'tip' => '请启用 mbstring 扩展以支持中文等多字节字符串处理'],
-        ['key' => 'gd',        'label' => 'GD 图形库',      'tip' => '请启用 gd 扩展以支持图片处理'],
-        ['key' => 'zip',       'label' => 'Zip 扩展',       'tip' => '请启用 zip 扩展以支持安装后在线更新解压'],
+        ['key' => 'pdo_mysql', 'label' => 'PDO MySQL 扩展', 'required' => true,  'tip' => '请启用 pdo_mysql 扩展以连接 MySQL/MariaDB 数据库'],
+        ['key' => 'curl',      'label' => 'cURL 扩展',      'required' => true,  'tip' => '请启用 curl 扩展以支持 SMTP、推送通知与在线更新'],
+        ['key' => 'openssl',   'label' => 'OpenSSL 扩展',   'required' => true,  'tip' => '请启用 openssl 扩展以支持 HTTPS 与加密通信'],
+        ['key' => 'mbstring',  'label' => 'Mbstring 扩展',  'required' => true,  'tip' => '请启用 mbstring 扩展以支持中文等多字节字符串处理'],
+        ['key' => 'gd',        'label' => 'GD 图形库',      'required' => true,  'tip' => '请启用 gd 扩展以支持图片验证码、头像裁剪等图形功能'],
+        ['key' => 'zip',       'label' => 'Zip 扩展',       'required' => false, 'tip' => '仅后台「在线更新」解压升级包时需要 ZipArchive，未启用可正常安装与使用其余全部功能；如需启用，Linux 安装 php-zip 后重启 PHP（apt install php-zip / yum install php-zip），Windows 在 php.ini 启用 extension=zip'],
     ];
     foreach ($extensions as $ext) {
         $available = huli_installer_extension_available($ext['key']);
         $checks[] = [
-            'name'   => $ext['label'],
-            'pass'   => $available,
-            'status' => $available ? '已启用' : '未启用',
-            'tip'    => $ext['tip'],
+            'name'     => $ext['label'],
+            'pass'     => $available,
+            'status'   => $available ? '已启用' : '未启用',
+            'required' => $ext['required'],
+            'tip'      => $ext['tip'],
         ];
     }
 
@@ -396,10 +398,11 @@ function huli_installer_env_checks() {
     foreach ($dirs as $dir) {
         $writable = is_writable($dir['path']);
         $checks[] = [
-            'name'   => '目录可写 · ' . $dir['label'],
-            'pass'   => $writable,
-            'status' => $dir['path'] . '（' . ($writable ? '可写' : '不可写') . '）',
-            'tip'    => '安装过程需要写入配置文件，请为 ' . $dir['label'] . ' 设置写权限',
+            'name'     => '目录可写 · ' . $dir['label'],
+            'pass'     => $writable,
+            'status'   => $dir['path'] . '（' . ($writable ? '可写' : '不可写') . '）',
+            'required' => true,
+            'tip'      => '安装过程需要写入配置文件，请为 ' . $dir['label'] . ' 设置写权限',
         ];
     }
 
@@ -407,10 +410,11 @@ function huli_installer_env_checks() {
     if (file_exists($config_file)) {
         $writable = is_writable($config_file);
         $checks[] = [
-            'name'   => '配置文件可写',
-            'pass'   => $writable,
-            'status' => $config_file . '（' . ($writable ? '可写' : '不可写') . '）',
-            'tip'    => 'config.php 已存在，需要可写以便写入数据库连接等配置',
+            'name'     => '配置文件可写',
+            'pass'     => $writable,
+            'status'   => $config_file . '（' . ($writable ? '可写' : '不可写') . '）',
+            'required' => true,
+            'tip'      => 'config.php 已存在，需要可写以便写入数据库连接等配置',
         ];
     }
 
@@ -420,7 +424,7 @@ function huli_installer_env_checks() {
 function checkEnvironment() {
     $failed = [];
     foreach (huli_installer_env_checks() as $check) {
-        if (!$check['pass']) {
+        if (!$check['pass'] && $check['required']) {
             $failed[] = $check['name'] . '（' . $check['status'] . '）';
         }
     }
@@ -566,6 +570,7 @@ body {
 .env-check-icon { font-size: 1.5rem; margin-right: 15px; }
 .check-success { color: var(--success); }
 .check-danger { color: var(--danger); }
+.check-warning { color: var(--warning); }
 .env-check-item strong { display: block; margin-bottom: 2px; }
 .env-check-item p { margin: 0; font-size: 0.85rem; }
 .btn-install {
@@ -835,31 +840,40 @@ body {
         <?php
         $env_checks = huli_installer_env_checks();
         $env_total = count($env_checks);
-        $env_failed = 0;
+        $env_req_failed = 0;
+        $env_opt_failed = 0;
         foreach ($env_checks as $env_item) {
-            if (!$env_item['pass']) $env_failed++;
+            if ($env_item['pass']) continue;
+            if ($env_item['required']) $env_req_failed++;
+            else $env_opt_failed++;
         }
-        $env_passed = $env_total - $env_failed;
-        $env_all_ok = $env_failed === 0;
+        $env_passed = $env_total - $env_req_failed - $env_opt_failed;
         ?>
         <div class="env-check-box">
           <h5 class="mb-3"><i class="mdi mdi-server-security mr-2"></i>系统环境检测
             <small class="text-muted" style="float:right;font-size:0.85rem;font-weight:400;line-height:1.9;">已通过 <?= $env_passed ?> / <?= $env_total ?> 项</small>
           </h5>
 
-          <?php if ($env_all_ok): ?>
-          <div class="alert alert-success py-2"><i class="mdi mdi-check-circle-outline mr-1"></i>环境检测全部通过，可以继续下一步。</div>
+          <?php if ($env_req_failed > 0): ?>
+          <div class="alert alert-danger py-2"><i class="mdi mdi-alert-circle-outline mr-1"></i>共有 <?= $env_req_failed ?> 项必需项未通过，请根据下方提示处理后即可继续安装。</div>
+          <?php elseif ($env_opt_failed > 0): ?>
+          <div class="alert alert-warning py-2"><i class="mdi mdi-alert-outline mr-1"></i>必需项全部通过，但存在 <?= $env_opt_failed ?> 项可选项未启用，可继续安装（仅影响对应辅助功能）。</div>
           <?php else: ?>
-          <div class="alert alert-danger py-2"><i class="mdi mdi-alert-circle-outline mr-1"></i>共有 <?= $env_failed ?> 项未通过，请根据下方提示处理后再继续安装。</div>
+          <div class="alert alert-success py-2"><i class="mdi mdi-check-circle-outline mr-1"></i>环境检测全部通过，可以继续下一步。</div>
           <?php endif; ?>
 
           <ul class="env-check-list" id="env-check-list">
-            <?php foreach ($env_checks as $env_item): ?>
-            <li class="env-check-item" data-pass="<?= $env_item['pass'] ? '1' : '0' ?>">
-              <i class="mdi mdi-<?= $env_item['pass'] ? 'check-circle' : 'close-circle' ?> env-check-icon <?= $env_item['pass'] ? 'check-success' : 'check-danger' ?>"></i>
+            <?php foreach ($env_checks as $env_item):
+              $env_ok = $env_item['pass'];
+              $env_req = !empty($env_item['required']);
+              $env_icon = $env_ok ? 'check-circle' : ($env_req ? 'close-circle' : 'alert-outline');
+              $env_icon_cls = $env_ok ? 'check-success' : ($env_req ? 'check-danger' : 'check-warning');
+            ?>
+            <li class="env-check-item" data-pass="<?= ($env_ok || !$env_req) ? '1' : '0' ?>">
+              <i class="mdi mdi-<?= $env_icon ?> env-check-icon <?= $env_icon_cls ?>"></i>
               <div>
-                <strong><?= htmlspecialchars($env_item['name']) ?></strong>
-                <p class="text-muted"><?= htmlspecialchars($env_item['status']) ?><?= $env_item['pass'] ? '' : '<br>提示：' . htmlspecialchars($env_item['tip']) ?></p>
+                <strong><?= htmlspecialchars($env_item['name']) ?><?= $env_req ? '' : ' <small class="text-muted">(可选)</small>' ?></strong>
+                <p class="text-muted"><?= htmlspecialchars($env_item['status']) ?><?= $env_ok ? '' : '<br>提示：' . htmlspecialchars($env_item['tip']) ?></p>
               </div>
             </li>
             <?php endforeach; ?>
