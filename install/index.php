@@ -5,6 +5,8 @@ define('STEP_DB_CONFIG', 2);
 define('STEP_INSTALL_DB', 3);
 define('STEP_COMPLETE', 4);
 
+define('HULI_INSTALL_PHP_MIN_VERSION', '7.4.0');
+
 $is_installed = file_exists(__DIR__ . '/install.lock');
 if ($is_installed && basename($_SERVER['PHP_SELF']) !== 'install.php' && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_COMPLETE)) {
     die('系统已安装，如需重新安装请删除install.lock文件');
@@ -340,25 +342,90 @@ function send_install_receipt($install, $db, $log) {
     return $mail->send();
 }
 
+function huli_installer_extension_available($key) {
+    switch ($key) {
+        case 'pdo_mysql':
+            return class_exists('PDO') && extension_loaded('pdo_mysql');
+        case 'curl':
+            return function_exists('curl_init');
+        case 'openssl':
+            return extension_loaded('openssl') || function_exists('openssl_encrypt');
+        case 'mbstring':
+            return extension_loaded('mbstring') || function_exists('mb_strlen');
+        case 'gd':
+            return extension_loaded('gd') || function_exists('imagecreatetruecolor');
+        case 'zip':
+            return class_exists('ZipArchive');
+        default:
+            return extension_loaded($key);
+    }
+}
+
+function huli_installer_env_checks() {
+    $checks = [];
+
+    $checks[] = [
+        'name'   => 'PHP 版本',
+        'pass'   => version_compare(PHP_VERSION, HULI_INSTALL_PHP_MIN_VERSION, '>='),
+        'status' => PHP_VERSION . '（要求 ≥ ' . HULI_INSTALL_PHP_MIN_VERSION . '）',
+        'tip'    => '请升级至 PHP ' . HULI_INSTALL_PHP_MIN_VERSION . ' 或更高版本（推荐 8.0 及以上）',
+    ];
+
+    $extensions = [
+        ['key' => 'pdo_mysql', 'label' => 'PDO MySQL 扩展', 'tip' => '请启用 pdo_mysql 扩展以连接 MySQL/MariaDB 数据库'],
+        ['key' => 'curl',      'label' => 'cURL 扩展',      'tip' => '请启用 curl 扩展以支持 SMTP、推送通知与在线更新'],
+        ['key' => 'openssl',   'label' => 'OpenSSL 扩展',   'tip' => '请启用 openssl 扩展以支持 HTTPS 与加密通信'],
+        ['key' => 'mbstring',  'label' => 'Mbstring 扩展',  'tip' => '请启用 mbstring 扩展以支持中文等多字节字符串处理'],
+        ['key' => 'gd',        'label' => 'GD 图形库',      'tip' => '请启用 gd 扩展以支持图片处理'],
+        ['key' => 'zip',       'label' => 'Zip 扩展',       'tip' => '请启用 zip 扩展以支持安装后在线更新解压'],
+    ];
+    foreach ($extensions as $ext) {
+        $available = huli_installer_extension_available($ext['key']);
+        $checks[] = [
+            'name'   => $ext['label'],
+            'pass'   => $available,
+            'status' => $available ? '已启用' : '未启用',
+            'tip'    => $ext['tip'],
+        ];
+    }
+
+    $dirs = [
+        ['label' => '网站根目录', 'path' => __DIR__ . '/../'],
+        ['label' => 'API 接口目录', 'path' => __DIR__ . '/../API'],
+    ];
+    foreach ($dirs as $dir) {
+        $writable = is_writable($dir['path']);
+        $checks[] = [
+            'name'   => '目录可写 · ' . $dir['label'],
+            'pass'   => $writable,
+            'status' => $dir['path'] . '（' . ($writable ? '可写' : '不可写') . '）',
+            'tip'    => '安装过程需要写入配置文件，请为 ' . $dir['label'] . ' 设置写权限',
+        ];
+    }
+
+    $config_file = __DIR__ . '/../config.php';
+    if (file_exists($config_file)) {
+        $writable = is_writable($config_file);
+        $checks[] = [
+            'name'   => '配置文件可写',
+            'pass'   => $writable,
+            'status' => $config_file . '（' . ($writable ? '可写' : '不可写') . '）',
+            'tip'    => 'config.php 已存在，需要可写以便写入数据库连接等配置',
+        ];
+    }
+
+    return $checks;
+}
+
 function checkEnvironment() {
-    if (version_compare(PHP_VERSION, '8.0.0', '<')) {
-        throw new Exception('PHP版本需要8.0.0或更高，当前版本: ' . PHP_VERSION);
+    $failed = [];
+    foreach (huli_installer_env_checks() as $check) {
+        if (!$check['pass']) {
+            $failed[] = $check['name'] . '（' . $check['status'] . '）';
+        }
     }
-    $required_extensions = ['pdo','pdo_mysql','curl','openssl','mbstring','gd','zip'];
-    $missing = [];
-    foreach ($required_extensions as $ext) {
-        if (!extension_loaded($ext)) $missing[] = $ext;
-    }
-    if (!empty($missing)) {
-        throw new Exception('缺少必需的PHP扩展: ' . implode(', ', $missing));
-    }
-    $check_dirs = [__DIR__ . '/../', __DIR__ . '/../API'];
-    foreach ($check_dirs as $dir) {
-        if (!is_writable($dir)) throw new Exception("目录/文件不可写: {$dir}");
-    }
-    $check_file = __DIR__ . '/../config.php';
-    if (file_exists($check_file) && !is_writable($check_file)) {
-        throw new Exception("目录/文件不可写: {$check_file}");
+    if (!empty($failed)) {
+        throw new Exception('环境检测未通过：' . implode('、', $failed));
     }
 }
 
@@ -765,46 +832,34 @@ body {
         ?>">
 
         <?php if ($step == STEP_CHECK_ENV): ?>
+        <?php
+        $env_checks = huli_installer_env_checks();
+        $env_total = count($env_checks);
+        $env_failed = 0;
+        foreach ($env_checks as $env_item) {
+            if (!$env_item['pass']) $env_failed++;
+        }
+        $env_passed = $env_total - $env_failed;
+        $env_all_ok = $env_failed === 0;
+        ?>
         <div class="env-check-box">
-          <h5 class="mb-4"><i class="mdi mdi-server-security mr-2"></i>系统环境检测</h5>
-          <ul class="env-check-list">
-            <li class="env-check-item">
-              <i class="mdi mdi-<?= version_compare(PHP_VERSION, '8.0.0', '>=') ? 'check-circle' : 'close-circle' ?> env-check-icon <?= version_compare(PHP_VERSION, '8.0.0', '>=') ? 'check-success' : 'check-danger' ?>"></i>
+          <h5 class="mb-3"><i class="mdi mdi-server-security mr-2"></i>系统环境检测
+            <small class="text-muted" style="float:right;font-size:0.85rem;font-weight:400;line-height:1.9;">已通过 <?= $env_passed ?> / <?= $env_total ?> 项</small>
+          </h5>
+
+          <?php if ($env_all_ok): ?>
+          <div class="alert alert-success py-2"><i class="mdi mdi-check-circle-outline mr-1"></i>环境检测全部通过，可以继续下一步。</div>
+          <?php else: ?>
+          <div class="alert alert-danger py-2"><i class="mdi mdi-alert-circle-outline mr-1"></i>共有 <?= $env_failed ?> 项未通过，请根据下方提示处理后再继续安装。</div>
+          <?php endif; ?>
+
+          <ul class="env-check-list" id="env-check-list">
+            <?php foreach ($env_checks as $env_item): ?>
+            <li class="env-check-item" data-pass="<?= $env_item['pass'] ? '1' : '0' ?>">
+              <i class="mdi mdi-<?= $env_item['pass'] ? 'check-circle' : 'close-circle' ?> env-check-icon <?= $env_item['pass'] ? 'check-success' : 'check-danger' ?>"></i>
               <div>
-                <strong>PHP版本</strong>
-                <p class="text-muted"><?= PHP_VERSION ?> (要求: 8.0.0+)</p>
-              </div>
-            </li>
-            <?php
-            $required_extensions = ['pdo','pdo_mysql','curl','openssl','mbstring','gd','zip'];
-            foreach ($required_extensions as $ext):
-              $loaded = extension_loaded($ext);
-            ?>
-            <li class="env-check-item">
-              <i class="mdi mdi-<?= $loaded ? 'check-circle' : 'close-circle' ?> env-check-icon <?= $loaded ? 'check-success' : 'check-danger' ?>"></i>
-              <div>
-                <strong><?= htmlspecialchars($ext) ?>扩展</strong>
-                <p class="text-muted"><?= $loaded ? '已安装' : '未安装' ?></p>
-              </div>
-            </li>
-            <?php endforeach; ?>
-            <?php
-            $check_dirs = [__DIR__ . '/../', __DIR__ . '/../API'];
-            $check_file_optional = __DIR__ . '/../config.php';
-            $env_items = $check_dirs;
-            $env_file_writable = true;
-            if (file_exists($check_file_optional)) {
-              $env_file_writable = is_writable($check_file_optional);
-              $env_items[] = $check_file_optional;
-            }
-            foreach ($env_items as $dir):
-              $writable = $dir === $check_file_optional ? $env_file_writable : is_writable($dir);
-            ?>
-            <li class="env-check-item">
-              <i class="mdi mdi-<?= $writable ? 'check-circle' : 'close-circle' ?> env-check-icon <?= $writable ? 'check-success' : 'check-danger' ?>"></i>
-              <div>
-                <strong>目录权限</strong>
-                <p class="text-muted"><?= htmlspecialchars($dir) ?> (<?= $writable ? '可写' : '不可写' ?>)</p>
+                <strong><?= htmlspecialchars($env_item['name']) ?></strong>
+                <p class="text-muted"><?= htmlspecialchars($env_item['status']) ?><?= $env_item['pass'] ? '' : '<br>提示：' . htmlspecialchars($env_item['tip']) ?></p>
               </div>
             </li>
             <?php endforeach; ?>
@@ -1093,6 +1148,15 @@ body {
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<i class="mdi mdi-loading mdi-spin mr-2"></i>处理中...';
     });
+  }
+
+  var envList = document.getElementById('env-check-list');
+  if (envList && submitBtn) {
+    var failedItems = envList.querySelectorAll('.env-check-item[data-pass="0"]');
+    if (failedItems.length > 0) {
+      submitBtn.disabled = true;
+      submitBtn.title = '请先解决上方未通过的环境检测项';
+    }
   }
 
   

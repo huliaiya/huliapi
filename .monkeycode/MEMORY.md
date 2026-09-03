@@ -50,3 +50,11 @@ Entries discovered by the Agent during task execution should follow this format:
   - This devbox has no curl command; use PHP cURL scripts (`php -r` or temp scripts) for HTTP connectivity tests.
   - QPS limit check uses `count > limit` (count == limit is allowed), so to verify a 429, prefill `request_count` in `huli_rate_limits` to the limit value first.
   - Billing concurrency (negative balance) can be verified end-to-end with a temporary billable API endpoint + test user, then 8-way parallel requests expecting 200xN + 402x(8-N) and balance exactly 0.
+
+[Project Knowledge Summary]
+- Date: 2026-09-03
+- Context: Discovered by Agent while refactoring installer environment detection
+- Category: Build Methods
+- Instructions:
+  - PHP CLI is not pre-installed in this workspace; install it with `DEBIAN_FRONTEND=noninteractive apt-get install -y php-cli` to run `php -l` syntax checks and `php -S` smoke tests.
+  - The huliapi PHP codebase contains no PHP 8-only syntax, so the supported minimum is PHP 7.4; do not reintroduce 8.0.0+ gates when adding env checks.
