@@ -6,7 +6,7 @@ require_once dirname(__DIR__, 3) . '/config.php';
 $response = ['logged_in' => false];
 if (isset($_SESSION['user_id'])) {
     try {
-        $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+        $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
         $stmt = $pdo->prepare("SELECT id FROM huli_users WHERE id = ? AND status = 1");
         $stmt->execute([$_SESSION['user_id']]);
         $response['logged_in'] = (bool)$stmt->fetch();

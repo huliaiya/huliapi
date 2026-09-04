@@ -61,7 +61,7 @@ if (PHP_SAPI === 'cli' && isset($argv) && realpath($argv[0]) === __FILE__) {
     if (!file_exists($root . '/config.php')) { fwrite(STDERR, "config.php missing\n"); exit(2); }
     require_once $root . '/config.php';
     try {
-        $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+        $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     } catch (Throwable $e) { fwrite(STDERR, "DB error: " . $e->getMessage() . "\n"); exit(3); }
     $r = huli_query_pending_afdian_orders($pdo);

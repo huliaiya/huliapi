@@ -26,7 +26,7 @@ $totalRecords = 0;
 $totalPages = 0;
 try {
     $pdo = new PDO(
-        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET . ";connect_timeout=10",
+        "mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET . ";connect_timeout=10",
         DB_USER,
         DB_PASS,
         [

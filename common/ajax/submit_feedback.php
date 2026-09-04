@@ -35,7 +35,7 @@ if (!huli_turnstile_verify($turnstile_reason)) {
     json_response(false, $turnstile_reason ?: '人机验证失败，请完成验证后重试。');
 }
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $sql = "INSERT INTO huli_feedback (user_id, api_id, type, content, contact) VALUES (?, ?, ?, ?, ?)";
     $stmt = $pdo->prepare($sql);

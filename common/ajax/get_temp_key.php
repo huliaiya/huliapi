@@ -47,7 +47,7 @@ if (isset($_SESSION['last_temp_key_sent']) && time() - $_SESSION['last_temp_key_
     json_response(false, '请求过于频繁，请稍后再试。');
 }
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->exec("CREATE TABLE IF NOT EXISTS huli_temp_key_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,

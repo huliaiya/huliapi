@@ -9,7 +9,7 @@ $feedback_msg = ''; $feedback_type = ''; $page_title = '编辑临时密钥';
 $key_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if (!$key_id) { header('Location: temp_keys.php'); exit; }
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $call_limit = trim($_POST['call_limit']);
