@@ -8,7 +8,7 @@ $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = ''; $feedback_type = ''; $page_title = '支付设置';
 $settings = ['afdian_user_id' => '', 'afdian_token' => '', 'afdian_page_url' => ''];
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->exec("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('afdian_user_id', ''), ('afdian_token', ''), ('afdian_page_url', '');");
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

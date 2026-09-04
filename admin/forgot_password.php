@@ -7,7 +7,7 @@ if (file_exists('../config.php')) { require_once '../config.php'; } else { die("
 $mail_forgot_enabled = false;
 $site_name = 'huliapi';
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $stmt = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'mail_admin_forgot_enabled'");
     $mail_forgot_enabled = ($stmt->fetchColumn() == 1);

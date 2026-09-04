@@ -24,7 +24,7 @@ $redis_probe_username = '';
 $redis_probe_password = '';
 $redis_probe_database = 0;
 try {
-    $pdo_probe = new PDO('mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET, DB_USER, DB_PASS);
+    $pdo_probe = new PDO('mysql:host=' . DB_HOST . ';port=' . (defined('DB_PORT') ? DB_PORT : 3306) . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET, DB_USER, DB_PASS);
     $pdo_probe->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $redis_probe_rows = $pdo_probe->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('redis_host','redis_port','redis_username','redis_password','redis_database')")->fetchAll(PDO::FETCH_KEY_PAIR);
     $redis_probe_host = trim((string)($redis_probe_rows['redis_host'] ?? '')) !== '' ? $redis_probe_rows['redis_host'] : '127.0.0.1';

@@ -9,7 +9,7 @@ $feedback_msg = ''; $feedback_type = '';
 $edit_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $broadcast = ['title'=>'','content'=>'','scheduled_at'=>'','status'=>'draft','send_type'=>'once'];
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $favicon_url = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:'';
     require_once '../common/email_broadcast_dispatcher.php';

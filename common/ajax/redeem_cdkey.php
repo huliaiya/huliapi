@@ -15,7 +15,7 @@ $cdkey = trim($_POST['cdkey'] ?? '');
 $user_id = $_SESSION['user_id'];
 if (empty($cdkey)) { json_response(false, '请输入卡密。'); }
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->beginTransaction();
     $stmt_cdkey = $pdo->prepare("SELECT * FROM huli_cdkeys WHERE cdkey = ? AND status = 'unused' FOR UPDATE");

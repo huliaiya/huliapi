@@ -47,6 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $db_host   = trim($_POST['db_host'] ?? '127.0.0.1');
+            $db_port_raw = trim($_POST['db_port'] ?? '');
+            $db_port   = $db_port_raw === '' ? 3306 : (int)$db_port_raw;
             $db_name   = trim($_POST['db_name'] ?? '');
             $db_user   = trim($_POST['db_user'] ?? '');
             $db_pwd    = $_POST['db_pwd'] ?? '';
@@ -70,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              
             if ($db_name === '') $field_errors['db_name'] = '数据库名称不能为空';
             if ($db_user === '') $field_errors['db_user'] = '数据库用户名不能为空';
+            if ($db_port < 1 || $db_port > 65535) $field_errors['db_port'] = '数据库端口范围无效';
             if (!preg_match('/^[A-Za-z0-9_]{2,32}$/', $admin_username)) $field_errors['admin_username'] = '管理员账号需要 2-32 位字母、数字或下划线';
             if ($admin_nickname === '') $field_errors['admin_nickname'] = '管理员昵称不能为空';
             if (!filter_var($admin_email, FILTER_VALIDATE_EMAIL)) $field_errors['admin_email'] = '请输入有效的邮箱地址';
@@ -91,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $current_step = STEP_DB_CONFIG;
             } else {
                  
-                $dsn = "mysql:host={$db_host};charset=utf8mb4";
+                $dsn = "mysql:host={$db_host};port={$db_port};charset=utf8mb4";
                 $pdo = new PDO($dsn, $db_user, $db_pwd, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
                 $stmt = $pdo->prepare("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?");
                 $stmt->execute([$db_name]);
@@ -101,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $_SESSION['db_config'] = [
                         'host' => $db_host,
+                        'port' => $db_port,
                         'name' => $db_name,
                         'user' => $db_user,
                         'pwd'  => $db_pwd,
@@ -136,6 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = '请勾选并输入「我已同意」以确认免责声明，方可继续安装';
             } else {
                 $db = $_SESSION['db_config'];
+                $db_port = (int)($db['port'] ?? 3306);
                 $install = $_SESSION['install_config'];
                 $log = '';
                 $log .= "> 正在生成数据库配置文件...\n";
@@ -149,6 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $configContent = "<?php\n"
                     . "define('DB_HOST', " . var_export($db['host'], true) . ");\n"
+                    . "define('DB_PORT', " . var_export($db_port, true) . ");\n"
                     . "define('DB_NAME', " . var_export($db['name'], true) . ");\n"
                     . "define('DB_USER', " . var_export($db['user'], true) . ");\n"
                     . "define('DB_PASS', " . var_export($db['pwd'], true) . ");\n"
@@ -161,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $config_written_this_run = true;
                 $log .= "✓ 配置文件生成成功\n";
                 $log .= "> 正在连接数据库...\n";
-                $dsn = "mysql:host={$db['host']};dbname={$db['name']};charset=utf8mb4";
+                $dsn = "mysql:host={$db['host']};port={$db_port};dbname={$db['name']};charset=utf8mb4";
                 $pdo = new PDO($dsn, $db['user'], $db['pwd'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
                 $log .= "> 正在清理现有数据表...\n";
                 $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
@@ -886,10 +892,19 @@ body {
         <?php elseif ($step == STEP_DB_CONFIG): ?>
         <div class="section-heading"><i class="mdi mdi-database-outline"></i><span>数据库连接</span></div>
 
-        <div class="form-group mb-4">
-          <label class="form-label"><i class="mdi mdi-server-network mr-2"></i>数据库主机</label>
-          <input class="form-control" type="text" name="db_host" value="<?= htmlspecialchars($_SESSION['db_config']['host'] ?? '127.0.0.1') ?>" required>
-          <small class="text-muted">通常是127.0.0.1或localhost</small>
+        <div class="form-row">
+          <div class="form-group mb-4">
+            <label class="form-label"><i class="mdi mdi-server-network mr-2"></i>数据库主机</label>
+            <input class="form-control<?= $has_error('db_host') ?>" type="text" name="db_host" value="<?= htmlspecialchars($_SESSION['db_config']['host'] ?? '127.0.0.1') ?>" required>
+            <?php if ($f('db_host')): ?><div class="invalid-feedback"><i class="mdi mdi-alert-circle-outline mr-1"></i><?= $f('db_host') ?></div><?php endif; ?>
+            <small class="text-muted">通常是127.0.0.1或localhost</small>
+          </div>
+          <div class="form-group mb-4">
+            <label class="form-label"><i class="mdi mdi-ethernet mr-2"></i>数据库端口</label>
+            <input class="form-control<?= $has_error('db_port') ?>" type="number" min="1" max="65535" name="db_port" value="<?= htmlspecialchars((string)(int)($_SESSION['db_config']['port'] ?? 3306)) ?>" required>
+            <?php if ($f('db_port')): ?><div class="invalid-feedback"><i class="mdi mdi-alert-circle-outline mr-1"></i><?= $f('db_port') ?></div><?php endif; ?>
+            <small class="text-muted">默认3306</small>
+          </div>
         </div>
 
         <div class="form-group mb-4">

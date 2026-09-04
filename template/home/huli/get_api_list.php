@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../../common/session_boot.php';
 @ini_set('display_errors', 'Off');
 require_once dirname(__DIR__, 3) . '/config.php';
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $withCategories = isset($_GET['with_categories']) && $_GET['with_categories'] == '1';
     if ($withCategories) {
