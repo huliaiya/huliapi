@@ -212,6 +212,7 @@ if (function_exists('curl_init')) {
 $dbCard = [
     'status' => false,
     'host' => defined('DB_HOST') ? DB_HOST : '-',
+    'port' => defined('DB_PORT') ? DB_PORT : 3306,
     'name' => defined('DB_NAME') ? DB_NAME : '-',
     'charset' => defined('DB_CHARSET') ? DB_CHARSET : '-',
     'version' => 'N/A',
@@ -262,21 +263,30 @@ $redisCard = [
     'uptime' => 'N/A',
     'mode' => 'database',
 ];
+$redis_set_default = [
+    'redis_host' => '127.0.0.1',
+    'redis_port' => 6379,
+    'redis_username' => '',
+    'redis_password' => '',
+    'redis_database' => 0,
+    'qps_mode' => 'database',
+];
+$redisSet = $redis_set_default;
 try {
     $pdo_settings = $pdo ?? null;
     if ($pdo_settings) {
         $stmt = $pdo_settings->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('redis_host','redis_port','redis_username','redis_password','redis_database','qps_mode')");
-        $set = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-        $redisConfig = huli_redis_config($set);
+        $redisSet = array_merge($redis_set_default, $stmt->fetchAll(PDO::FETCH_KEY_PAIR));
+        $redisConfig = huli_redis_config($redisSet);
         $redisCard['host'] = $redisConfig['host'];
         $redisCard['port'] = $redisConfig['port'];
-        $redisCard['mode'] = $set['qps_mode'] ?? 'database';
+        $redisCard['mode'] = $redisSet['qps_mode'] ?? 'database';
     }
 } catch (Throwable $e) {}
 if ($redisCard['available']) {
     try {
         $pingStart = microtime(true);
-        $r = huli_redis_connect($set);
+        $r = huli_redis_connect($redisSet);
         $redisCard['ping_ms'] = round((microtime(true) - $pingStart) * 1000, 2);
         $redisCard['status'] = true;
         $info = $r->info();
@@ -287,6 +297,15 @@ if ($redisCard['available']) {
             $redisCard['keys'] = $r->dbSize();
         } catch (Throwable $e) { $redisCard['keys'] = 'N/A'; }
         $r->close();
+    } catch (Throwable $e) {
+        $redisCard['status'] = false;
+        $redisCard['ping_ms'] = null;
+    }
+} else {
+    try {
+        $pingStart = microtime(true);
+        $redisCard['status'] = huli_redis_raw_ping($redisSet);
+        $redisCard['ping_ms'] = round((microtime(true) - $pingStart) * 1000, 2);
     } catch (Throwable $e) {
         $redisCard['status'] = false;
         $redisCard['ping_ms'] = null;
@@ -562,6 +581,7 @@ function formatUptime($seconds) {
                         <div class="info-row"><span class="info-key">类型</span><span class="info-val">MySQL</span></div>
                         <div class="info-row"><span class="info-key">版本</span><span class="info-val"><?php echo htmlspecialchars($dbCard['version']); ?></span></div>
                         <div class="info-row"><span class="info-key">主机</span><span class="info-val"><?php echo htmlspecialchars($dbCard['host']); ?></span></div>
+                        <div class="info-row"><span class="info-key">端口</span><span class="info-val"><?php echo (int)$dbCard['port']; ?></span></div>
                         <div class="info-row"><span class="info-key">数据库</span><span class="info-val"><?php echo htmlspecialchars($dbCard['name']); ?></span></div>
                         <div class="info-row"><span class="info-key">字符集</span><span class="info-val"><?php echo htmlspecialchars($dbCard['charset']); ?></span></div>
                         <div class="info-row"><span class="info-key">表数量</span><span class="info-val"><?php echo number_format($dbCard['tables']); ?></span></div>
@@ -577,9 +597,7 @@ function formatUptime($seconds) {
             <div class="card">
                 <header class="card-header">
                     <div class="card-title"><i class="mdi mdi-server me-1"></i>Redis</div>
-                    <?php if (!$redisCard['available']): ?>
-                        <span class="card-status is-fail"><i class="mdi mdi-close-circle"></i>扩展未安装</span>
-                    <?php elseif ($redisCard['status']): ?>
+                    <?php if ($redisCard['status']): ?>
                         <span class="card-status is-ok"><i class="mdi mdi-check-circle"></i>已连接</span>
                     <?php else: ?>
                         <span class="card-status is-fail"><i class="mdi mdi-close-circle"></i>未连接</span>
@@ -595,7 +613,7 @@ function formatUptime($seconds) {
                         <div class="info-row"><span class="info-key">键数量</span><span class="info-val"><?php echo is_numeric($redisCard['keys']) ? number_format((int)$redisCard['keys']) : htmlspecialchars((string)$redisCard['keys']); ?></span></div>
                         <div class="info-row"><span class="info-key">运行时间</span><span class="info-val"><?php echo htmlspecialchars((string)$redisCard['uptime']); ?></span></div>
                         <div class="info-row"><span class="info-key">响应延迟</span><span class="info-val"><?php echo $redisCard['ping_ms'] !== null ? $redisCard['ping_ms'] . ' ms' : 'N/A'; ?></span></div>
-                        <div class="info-row"><span class="info-key">扩展</span><span class="info-val"><?php echo $redisCard['available'] ? '已安装' : '未安装'; ?></span></div>
+                        <div class="info-row"><span class="info-key">扩展</span><span class="info-val"><?php echo $redisCard['available'] ? '已安装' : '未安装（限速用内置连接）'; ?></span></div>
                         <div class="info-row"><span class="info-key">状态</span><span class="info-val"><?php echo $redisCard['status'] ? '在线' : '离线'; ?></span></div>
                     </div>
                 </div>

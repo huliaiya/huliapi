@@ -72,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              
             if ($db_name === '') $field_errors['db_name'] = '数据库名称不能为空';
             if ($db_user === '') $field_errors['db_user'] = '数据库用户名不能为空';
+            if ($db_host === '') $field_errors['db_host'] = '数据库主机不能为空';
             if ($db_port < 1 || $db_port > 65535) $field_errors['db_port'] = '数据库端口范围无效';
             if (!preg_match('/^[A-Za-z0-9_]{2,32}$/', $admin_username)) $field_errors['admin_username'] = '管理员账号需要 2-32 位字母、数字或下划线';
             if ($admin_nickname === '') $field_errors['admin_nickname'] = '管理员昵称不能为空';
