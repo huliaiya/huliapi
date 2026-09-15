@@ -669,7 +669,12 @@ body {
 
 .disclaimer-modal-mask {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   z-index: 9999;
   display: none;
   overflow: hidden;
@@ -677,9 +682,13 @@ body {
 }
 .disclaimer-modal-mask.show { display: block; }
 .disclaimer-modal {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  height: 100dvh;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -798,17 +807,24 @@ body {
 .btn-confirm-install:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(38,125,224,0.4); }
 .btn-cancel-install { background: rgba(0,0,0,0.06); color: #2c3e50; }
 .btn-cancel-install:hover { background: rgba(0,0,0,0.12); }
-@media (max-width: 560px) {
-  .disclaimer-modal-header { gap: 6px; }
+@media (max-width: 768px) {
+  .disclaimer-modal-header { gap: 8px; padding-top: calc(10px + env(safe-area-inset-top)); }
   .disclaimer-close { width: 34px; height: 34px; font-size: 1.2rem; }
   .disclaimer-modal-body { padding: 14px 12px; }
   .disclaimer-content { padding: 18px 16px; line-height: 1.75; border-radius: 10px; }
-  .disclaimer-modal-footer { padding-top: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
-  .disclaimer-check-row { align-items: flex-start; }
+  .disclaimer-modal-footer { padding-top: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); gap: 10px; }
+  .disclaimer-check-row { align-items: flex-start; font-size: 0.9rem; }
   .disclaimer-input-row { align-items: stretch; flex-direction: column; gap: 6px; }
   .disclaimer-input-row label { min-width: 0; }
+  .disclaimer-input-row input { padding: 11px 14px; font-size: 16px; }
   .disclaimer-actions { flex-wrap: wrap; }
-  .disclaimer-actions button { flex: 1 1 130px; }
+  .disclaimer-actions button { flex: 1 1 130px; padding: 11px 18px; }
+}
+@media (max-width: 380px) {
+  .disclaimer-modal-header h5 { font-size: 0.95rem; }
+  .disclaimer-modal-header i { font-size: 1.2rem; }
+  .disclaimer-actions button { flex: 1 1 100%; padding: 10px 14px; font-size: 0.9rem; }
+  .disclaimer-input-row input { padding: 10px 12px; }
 }
 </style>
 </head>
