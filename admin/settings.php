@@ -816,9 +816,6 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             $host.attr('id', widgetId);
         }
         window.__huliE2EWidgetId = widgetId;
-        if (typeof window.huliReloadTurnstileSdk === 'function') {
-            window.huliReloadTurnstileSdk();
-        }
         var loadingTimer = setTimeout(function () {
             $('#ts-e2e-status').html('<div class="alert alert-warning py-1 px-2 mb-0 small">验证组件仍在加载中（已等待 35 秒）。若长时间无响应，请检查 challenges.cloudflare.com 可达性后点击「重载组件」重试。</div>');
         }, 35000);
@@ -905,7 +902,12 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             $('#ts-test-result').html('<div class="alert alert-danger py-1 px-2 mb-0 small">请求失败，请检查网络连接后重试。</div>');
         });
     });
-    $('#ts-e2e-reload-btn').on('click', function () { loadE2EWidget(true); });
+    $('#ts-e2e-reload-btn').on('click', function () {
+        if (typeof window.huliReloadTurnstileSdk === 'function') {
+            window.huliReloadTurnstileSdk();
+        }
+        loadE2EWidget(true);
+    });
     $('#ts-e2e-submit-btn').on('click', function () {
         var token = $.trim($('#ts-e2e-token').val());
         var siteKey = $.trim($('#turnstile_site_key').val());
