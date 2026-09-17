@@ -1,4 +1,24 @@
 <?php
+function huli_updater_github_token() {
+    static $token = null;
+    if ($token !== null) { return $token; }
+    $token = '';
+    if (!defined('DB_HOST') || !defined('DB_NAME') || !defined('DB_USER') || !defined('DB_PASS')) { return $token; }
+    try {
+        $pdo = new PDO(
+            "mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . (defined('DB_CHARSET') ? DB_CHARSET : 'utf8mb4'),
+            DB_USER,
+            DB_PASS,
+            [PDO::ATTR_TIMEOUT => 3]
+        );
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $token = (string)$pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'update_github_token'")->fetchColumn();
+    } catch (Throwable $e) {
+        $token = '';
+    }
+    return $token;
+}
+
 function huli_http_get($url) {
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -7,6 +27,10 @@ function huli_http_get($url) {
     curl_setopt($ch, CURLOPT_TIMEOUT, 15);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    $headers = [];
+    $tok = huli_updater_github_token();
+    if ($tok !== '') { $headers[] = 'Authorization: token ' . $tok; }
+    if ($headers) { curl_setopt($ch, CURLOPT_HTTPHEADER, $headers); }
     $body = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
@@ -21,7 +45,10 @@ function huli_github_api($path) {
     curl_setopt($ch, CURLOPT_USERAGENT, 'huliapi-updater');
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
     curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/vnd.github+json']);
+    $headers = ['Accept: application/vnd.github+json'];
+    $tok = huli_updater_github_token();
+    if ($tok !== '') { $headers[] = 'Authorization: token ' . $tok; }
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     $response = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
