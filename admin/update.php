@@ -55,6 +55,25 @@ function huli_api_status() {
     huli_api(['success' => true, 'status' => $status]);
 }
 
+function huli_api_log() {
+    $token = isset($_POST['token']) ? $_POST['token'] : (isset($_SESSION['huli_update_token']) ? $_SESSION['huli_update_token'] : '');
+    $token = huli_updater_safe_token($token);
+    if ($token === '') { huli_api(['success' => false, 'message' => '没有正在进行的更新任务。']); }
+    $status = huli_updater_read_status($token);
+    $lines = [];
+    $log_exists = false;
+    $logFile = huli_updater_worker_log_file($token);
+    if (is_file($logFile)) {
+        $log_exists = true;
+        $raw = @file_get_contents($logFile);
+        if ($raw !== false) {
+            $arr = preg_split('/\r?\n/', trim($raw));
+            $lines = array_slice(array_filter($arr), -200);
+        }
+    }
+    huli_api(['success' => true, 'token' => $token, 'status' => $status, 'log' => $lines, 'log_exists' => $log_exists]);
+}
+
 function huli_api_start() {
     $info = huli_detect_update_info();
     if (!$info) { huli_api(['success' => false, 'message' => '无法获取更新信息。']); }
@@ -123,6 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'check') { huli_api_check(); }
     elseif ($_POST['action'] === 'start') { huli_api_start(); }
     elseif ($_POST['action'] === 'status') { huli_api_status(); }
+    elseif ($_POST['action'] === 'log') { huli_api_log(); }
     huli_api(['success' => false, 'message' => '未知操作。']);
 }
 ?>
@@ -149,7 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <h2 class="fw-bold">在线更新</h2>
                 <p class="text-muted mb-0">通过 GitHub 仓库自动检测最新版本和最近提交时间，支持后台执行与邮件通知</p>
             </div>
-            <div class="col-auto">
+            <div class="col-auto d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary" id="btn-log"><i class="mdi mdi-file-document-outline"></i> 查看日志</button>
                 <button type="button" class="btn btn-outline-secondary" id="btn-recheck"><i class="mdi mdi-refresh"></i> 重新检测</button>
             </div>
         </div>
@@ -242,6 +263,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
           <button type="button" class="btn btn-light" data-bs-dismiss="modal">关闭</button>
           <a href="main.php" class="btn btn-primary">返回后台首页</a>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="log-modal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="mdi mdi-file-document-outline me-1"></i> 更新执行日志</h5>
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-sm btn-light" id="log-refresh"><i class="mdi mdi-refresh"></i> 刷新</button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="text-muted small mb-2" id="log-meta"></div>
+        <pre id="log-content" class="bg-light p-3 rounded mb-0" style="max-height: 60vh; overflow: auto; white-space: pre-wrap; font-size: 13px;"></pre>
       </div>
     </div>
   </div>
@@ -403,7 +442,8 @@ function renderTaskBanner(task) {
     $('#task-banner').html('<div class="alert alert-info d-flex align-items-center mb-4">' +
       '<i class="mdi mdi-progress-clock me-2"></i>' +
       '<div class="flex-grow-1">后台更新任务正在执行（' + (task.percent || 0) + '%）' + esc(task.message || '') + ' 完成后会向管理员邮箱发送通知。</div>' +
-      '<button type="button" class="btn btn-sm btn-primary ms-2" id="banner-view-progress">查看进度</button></div>');
+      '<button type="button" class="btn btn-sm btn-primary ms-2" id="banner-view-progress">查看进度</button>' +
+      '<button type="button" class="btn btn-sm btn-light ms-1" id="banner-view-log">查看日志</button></div>');
   } else if (task.status === 'success') {
     $('#task-banner').html('<div class="alert alert-success mb-4"><i class="mdi mdi-check-circle-outline me-1"></i>上次更新已成功完成（v' + esc(task.version || '') + '）。' + esc(task.notify_message || '') + '</div>');
   } else if (task.status === 'failed') {
@@ -588,6 +628,49 @@ $(document).on('click', '#banner-view-progress', function() {
 $('#btn-recheck').on('click', function() {
   refreshCheck();
 });
+
+var logTimer = null;
+function stopLog() {
+  if (logTimer) { clearInterval(logTimer); logTimer = null; }
+}
+function loadLog(tail) {
+  $.post('update.php', {action: 'log'}, function(res) {
+    if (!res.success) { $('#log-meta').text(res.message || '无法读取日志'); return; }
+    var st = res.status || {};
+    var meta = '任务 ' + (res.token || '—');
+    if (st.status) meta += '  · 状态: ' + st.status + (st.percent != null ? ' (' + st.percent + '%)' : '');
+    if (st.stage) meta += ' · 阶段: ' + st.stage;
+    if (st.started_at) meta += ' · 开始: ' + (new Date(st.started_at * 1000)).toLocaleString();
+    if (st.message) meta += '  · ' + st.message;
+    if (st.error) meta += '  · 错误: ' + st.error;
+    if (st.notify_message) meta += '  · ' + st.notify_message;
+    $('#log-meta').text(meta);
+    var body = (res.log && res.log.length) ? res.log.join('\n')
+      : (res.log_exists ? '（后台执行日志为空）' : '未找到后台执行日志文件（可能任务尚未启动）。');
+    $('#log-content').text(body);
+    if (tail && st.status === 'running') {
+      stopLog();
+      logTimer = setInterval(function() { loadLog(false); }, 2000);
+    } else {
+      stopLog();
+    }
+  }).fail(function() {
+    $('#log-meta').text('读取日志请求失败，请检查服务器网络。');
+    stopLog();
+  });
+}
+function viewLog() {
+  $('#log-content').text('正在读取日志...');
+  $('#log-meta').text('');
+  var m = new bootstrap.Modal($('#log-modal'));
+  m.show();
+  loadLog(true);
+}
+
+$('#btn-log').on('click', viewLog);
+$(document).on('click', '#banner-view-log', viewLog);
+$('#log-refresh').on('click', function() { loadLog(true); });
+$('#log-modal').on('hidden.bs.modal', function() { stopLog(); });
 
 $(document).ready(function() {
   refreshCheck();
