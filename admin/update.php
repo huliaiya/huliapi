@@ -62,16 +62,18 @@ function huli_api_log() {
     $status = huli_updater_read_status($token);
     $lines = [];
     $log_exists = false;
-    $logFile = huli_updater_worker_log_file($token);
-    if (is_file($logFile)) {
+    $pick = huli_updater_worker_log_file($token);
+    $use_detail = is_file(huli_updater_detail_log_file($token));
+    if ($use_detail) { $pick = huli_updater_detail_log_file($token); }
+    if (is_file($pick)) {
         $log_exists = true;
-        $raw = @file_get_contents($logFile);
+        $raw = @file_get_contents($pick);
         if ($raw !== false) {
             $arr = preg_split('/\r?\n/', trim($raw));
-            $lines = array_slice(array_filter($arr), -200);
+            $lines = array_slice(array_filter($arr), -400);
         }
     }
-    huli_api(['success' => true, 'token' => $token, 'status' => $status, 'log' => $lines, 'log_exists' => $log_exists]);
+    huli_api(['success' => true, 'token' => $token, 'status' => $status, 'log' => $lines, 'log_exists' => $log_exists, 'detail' => $use_detail]);
 }
 
 function huli_api_start() {
@@ -454,7 +456,9 @@ function renderTaskBanner(task) {
 }
 
 function refreshCheck() {
-  $.post('update.php', {action: 'check'}, function(res) {
+  var btn = $('#btn-recheck');
+  btn.prop('disabled', true).find('i').addClass('mdi-loading mdi-spin');
+  return $.post('update.php', {action: 'check'}, function(res) {
     if (!res.success) {
       showFeedback('danger', esc(res.message || '检测更新失败'));
       $('#new-version').text('N/A');
@@ -489,7 +493,14 @@ function refreshCheck() {
       $('#update-btn-text').text('已是最新版本');
     }
     renderTaskBanner(res.task);
+    btn.prop('disabled', false).find('i').removeClass('mdi-loading mdi-spin');
+    if (updateAvailable) {
+      showFeedback('success', '检测完成，发现新版本 v' + updateVersion);
+    } else {
+      showFeedback('success', '检测完成，当前已是最新版本 v' + res.current_version);
+    }
   }).fail(function() {
+    btn.prop('disabled', false).find('i').removeClass('mdi-loading mdi-spin');
     showFeedback('danger', '检测更新请求失败，请检查服务器网络。');
     $('#new-version').text('N/A');
     $('#update-btn').prop('disabled', true).find('span').text('检测失败');

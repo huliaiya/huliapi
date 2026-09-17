@@ -38,6 +38,18 @@ function huli_updater_worker_log_file($token) {
     return huli_updater_logs_dir() . '/update_worker_' . huli_updater_safe_token($token) . '.log';
 }
 
+function huli_updater_detail_log_file($token) {
+    return huli_updater_logs_dir() . '/update_detail_' . huli_updater_safe_token($token) . '.log';
+}
+
+function huli_updater_detail_log($token, $line) {
+    @file_put_contents(huli_updater_detail_log_file($token), '[' . date('H:i:s') . '] ' . $line . PHP_EOL, FILE_APPEND | LOCK_EX);
+}
+
+function huli_updater_detail_log_clear($token) {
+    @unlink(huli_updater_detail_log_file($token));
+}
+
 function huli_updater_lock_file($token) {
     return huli_updater_logs_dir() . '/update_' . huli_updater_safe_token($token) . '.lock';
 }
@@ -230,7 +242,7 @@ function huli_updater_collect_plan($root, $target, $admin_path, $admin_redirect)
     return ['files' => $files, 'dirs' => array_keys($dirs)];
 }
 
-function huli_updater_apply($root, array $info, $progress = null) {
+function huli_updater_apply($root, array $info, $progress = null, $token = '') {
     $target = dirname(__DIR__);
     $admin_path = (defined('ADMIN_PATH') && ADMIN_PATH !== '') ? ADMIN_PATH : 'admin';
     $admin_redirect = ($admin_path !== 'admin');
@@ -258,12 +270,14 @@ function huli_updater_apply($root, array $info, $progress = null) {
         $dest = $file['dest'];
         if (is_file($dest) && @filesize($dest) === @filesize($src) && @md5_file($dest) === @md5_file($src)) {
             $skipped++;
+            if ($token !== '') { huli_updater_detail_log($token, '跳过(无变化): ' . $file['relative']); }
         } else {
             if (!@copy($src, $dest)) {
                 throw new Exception('复制文件失败: ' . $file['relative']);
             }
             @chmod($dest, 0644);
             $copied++;
+            if ($token !== '') { huli_updater_detail_log($token, '已替换: ' . $file['relative']); }
         }
         if (is_callable($progress) && ($processed % 25 === 0 || $processed === $total)) {
             $progress($total > 0 ? (int)floor($processed * 100 / $total) : 100, $processed, $total);
@@ -318,6 +332,10 @@ function huli_updater_run(array $info, $token) {
         'result' => null,
     ]);
 
+    huli_updater_detail_log_clear($token);
+    huli_updater_detail_log($token, '开始更新 ' . $old_version . ' -> ' . $new_version);
+    huli_updater_detail_log($token, '下载更新包...');
+
     try {
         huli_updater_download($info['download_url'], $zip, function ($p) use ($token) {
             huli_updater_write_status($token, [
@@ -326,8 +344,11 @@ function huli_updater_run(array $info, $token) {
                 'message' => '正在下载更新包（' . $p . '%）...',
             ]);
         });
+        huli_updater_detail_log($token, '下载完成.');
         huli_updater_write_status($token, ['stage' => 'extract', 'percent' => 55, 'message' => '正在解压更新文件...']);
+        huli_updater_detail_log($token, '解压更新文件...');
         huli_updater_unzip($zip, $extract);
+        huli_updater_detail_log($token, '解压完成.');
 
         huli_updater_write_status($token, ['stage' => 'apply', 'percent' => 70, 'message' => '正在应用更新...']);
         $root = huli_updater_find_root($extract);
@@ -337,7 +358,8 @@ function huli_updater_run(array $info, $token) {
                 'percent' => max(70, min(98, 70 + (int)round($p * 0.28))),
                 'message' => '正在应用更新（' . $done . '/' . $total . '）...',
             ]);
-        });
+            if ($token !== '') { huli_updater_detail_log($token, '已处理 ' . $done . '/' . $total . ' 个文件'); }
+        }, $token);
 
         $result = [
             'success' => true,
@@ -350,7 +372,9 @@ function huli_updater_run(array $info, $token) {
             'copied' => $apply['copied'],
             'skipped' => $apply['skipped'],
         ];
+        huli_updater_detail_log($token, '更新完成: 成功更新到 ' . $new_version . ', 替换 ' . $apply['copied'] . ' 个文件, 跳过 ' . $apply['skipped'] . ' 个(无变化).');
     } catch (Exception $e) {
+        huli_updater_detail_log($token, '更新失败: ' . $e->getMessage());
         $result = [
             'success' => false,
             'message' => $e->getMessage(),
