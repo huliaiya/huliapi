@@ -169,9 +169,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <h2 class="fw-bold">在线更新</h2>
                 <p class="text-muted mb-0">通过 GitHub 仓库自动检测最新版本和最近提交时间，支持后台执行与邮件通知</p>
             </div>
-            <div class="col-auto d-flex gap-2">
-                <button type="button" class="btn btn-outline-secondary" id="btn-log"><i class="mdi mdi-file-document-outline"></i> 查看日志</button>
-                <button type="button" class="btn btn-outline-secondary" id="btn-recheck"><i class="mdi mdi-refresh"></i> 重新检测</button>
+            <div class="col-auto d-flex gap-2 align-items-center">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-log"><i class="mdi mdi-file-document-outline me-1"></i>查看日志</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-recheck"><i class="mdi mdi-refresh me-1"></i>重新检测</button>
             </div>
         </div>
         <div id="task-banner"></div>
