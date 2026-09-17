@@ -194,7 +194,8 @@ body {
   <p class="text-center text-muted mb-0 small mt-2">Copyright © 2025-2026 huliapi 版权所有</p>
 </div>
 <script type="text/javascript" src="../assets/js/jquery.min.js"></script>
-<script type="text/javascript" src="../assets/js/bootstrap.bundle.min.js"></script>
+<script type="text/javascript" src="../assets/js/popper.min.js"></script>
+<script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
 <script type="text/javascript">
 $(document).ready(function() {
     var turnstileSubmitting = false;
