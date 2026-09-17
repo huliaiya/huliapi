@@ -477,7 +477,7 @@ body {
 <script type="text/javascript" src="../../../assets/js/perfect-scrollbar.min.js"></script>
 <script type="text/javascript" src="../../../assets/js/bootstrap-multitabs/multitabs.min.js"></script>
 <script type="text/javascript" src="../../../assets/js/jquery.cookie.min.js"></script>
-<script type="text/javascript" src="/../../assets/js/index.min.js"></script>
+<script type="text/javascript" src="../../../assets/js/index.min.js"></script>
 <script type="text/javascript">
 function formatTime(datetimeStr) {
     var date = new Date(datetimeStr);

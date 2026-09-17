@@ -28,6 +28,7 @@ $music_defaults = [
 ];
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = ''; $feedback_type = ''; $page_title = '系统设置';
+$turnstile_feedback_msg = ''; $turnstile_feedback_type = '';
 
 function huli_music_http_get($url, $token = '') {
     $headers = ['Accept: application/vnd.github.v3+json', 'User-Agent: huliapi-settings'];
@@ -243,6 +244,10 @@ try {
         $pdo->commit();
         $feedback_msg = '设置已成功保存。';
         $feedback_type = 'success';
+        if (!empty($_POST['turnstile_form'])) {
+            $turnstile_feedback_msg = $feedback_msg;
+            $turnstile_feedback_type = $feedback_type;
+        }
         }
     }
     $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
@@ -356,7 +361,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
               <button class="nav-link" id="basic-mail" data-bs-toggle="tab" data-bs-target="#mail" type="button">邮件设置</button>
             </li>
             <li class="nav-item">
-              <button class="nav-link" id="basic-turnstile" data-bs-toggle="tab" data-bs-target="#turnstile" type="button">人机验证</button>
+              <button class="nav-link" id="basic-turnstile" data-bs-toggle="tab" data-bs-target="#turnstile-pane" type="button">人机验证</button>
             </li>
             <li class="nav-item">
               <button class="nav-link" id="basic-music" data-bs-toggle="tab" data-bs-target="#music" type="button">音乐设置</button>
@@ -600,8 +605,14 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 </div>
                 </form>
               </div>
-              <div class="tab-pane fade" id="turnstile" aria-labelledby="basic-turnstile">
-                <form method="POST" action="settings.php" class="edit-form">
+              <div class="tab-pane fade" id="turnstile-pane" aria-labelledby="basic-turnstile">
+                <form method="POST" action="settings.php#turnstile-pane" class="edit-form">
+                <input type="hidden" name="turnstile_form" value="1">
+                <?php if ($turnstile_feedback_msg): ?>
+                <div class="alert alert-<?php echo $turnstile_feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
+                  <?php echo htmlspecialchars($turnstile_feedback_msg); ?>
+                </div>
+                <?php endif; ?>
                 <input type="hidden" name="checkbox_keys[]" value="turnstile_enabled">
                 <?php
                 $ts_site = trim((string)($settings['turnstile_site_key'] ?? ''));
@@ -649,7 +660,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 </div>
                 <small class="form-text text-muted d-block mb-3">需先勾选启用开关并填写两个 Key，后台与用户端登录/注册/重置密码/申请临时密钥才会使用 Turnstile 校验。</small>
                 <div class="d-flex align-items-center mb-2">
-                  <button type="submit" class="btn btn-primary me-1" onclick="location.hash='#turnstile'">保存设置</button>
+                  <button type="submit" class="btn btn-primary me-1" onclick="location.hash='#turnstile-pane'">保存设置</button>
                   <button type="button" id="ts-test-keys-btn" class="btn btn-outline-info ms-2">
                     <i class="mdi mdi-shield-check-outline"></i> 检测密钥配置
                   </button>
@@ -784,6 +795,9 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
         html += '</div>';
         return html;
     }
+    function tsApi() {
+        return (window.turnstile && typeof window.turnstile.render === 'function') ? window.turnstile : null;
+    }
     function loadE2EWidget(autoSubmit) {
         var siteKey = $.trim($('#turnstile_site_key').val());
         window.__huliE2EAutoSubmit = (autoSubmit !== false);
@@ -792,12 +806,19 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             return;
         }
         $('#ts-e2e-status').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">正在加载验证组件...</div>');
-        if (window.__huliE2EWidget && window.turnstile && typeof window.turnstile.remove === 'function') {
-            try { window.turnstile.remove(window.__huliE2EWidget); } catch (e) {}
+        if (window.__huliE2EWidget) {
+            var sdkWidget = tsApi();
+            if (sdkWidget && typeof sdkWidget.remove === 'function') {
+                try { sdkWidget.remove(window.__huliE2EWidget); } catch (e) {}
+            }
             window.__huliE2EWidget = null;
         }
-        if (window.__huliE2EWidgetId && window.turnstile && typeof window.turnstile.remove === 'function') {
-            try { window.turnstile.remove(window.__huliE2EWidgetId); } catch (e) {}
+        if (window.__huliE2EWidgetId) {
+            var sdkExisting = tsApi();
+            var existingId = window.huliTurnstile && window.huliTurnstile.widgets ? window.huliTurnstile.widgets[window.__huliE2EWidgetId] : null;
+            if (existingId !== null && existingId !== undefined && sdkExisting && typeof sdkExisting.remove === 'function') {
+                try { sdkExisting.remove(existingId); } catch (e) {}
+            }
             if (window.huliTurnstile && window.huliTurnstile.widgets) {
                 delete window.huliTurnstile.widgets[window.__huliE2EWidgetId];
             }
@@ -824,7 +845,8 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
         }, 35000);
         window.huliTurnstileReady(function () {
             clearTimeout(loadingTimer);
-            if (!(window.turnstile && typeof window.turnstile.render === 'function')) {
+            var sdk = tsApi();
+            if (!sdk) {
                 var diag = (window.huliSdkDiagnostics && window.huliSdkDiagnostics()) || {};
                 var detail = '';
                 if (diag.execError > 0) {
@@ -843,7 +865,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 if (typeof window.huliRenderOneTurnstile === 'function') {
                     window.huliRenderOneTurnstile(widgetId, siteKey);
                 } else {
-                    window.__huliE2EWidget = window.turnstile.render(document.getElementById(widgetId), {
+                    window.__huliE2EWidget = sdk.render(document.getElementById(widgetId), {
                         sitekey: siteKey,
                         'refresh-expired': 'auto',
                         'retry': 'auto',
@@ -942,7 +964,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
         el.addEventListener('shown.bs.tab', function (ev) {
             var target = ev.target.getAttribute('data-bs-target');
             if (target && target.charAt(0) === '#') { history.replaceState(null, '', target); }
-            if (target === '#turnstile') {
+            if (target === '#turnstile-pane' || target === '#turnstile') {
                 var currentKey = $.trim($('#turnstile_site_key').val());
                 var tokenField = $('#ts-e2e-token');
                 var widgetBox = $('#ts-e2e-widget');
@@ -954,14 +976,17 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             }
         });
     });
-    if (location.hash === '#turnstile') {
+    if (location.hash === '#turnstile' || location.hash === '#turnstile-pane') {
         var turnstileTab = document.getElementById('basic-turnstile');
         if (turnstileTab) {
             var tab = new bootstrap.Tab(turnstileTab);
             tab.show();
         }
     } else {
-        loadE2EWidget(true);
+        var tsPane = document.getElementById('turnstile-pane');
+        if (tsPane && tsPane.classList.contains('active')) {
+            loadE2EWidget(true);
+        }
     }
 })();
 </script>

@@ -9,6 +9,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/turnstile.php';
+require_once ROOT_PATH . 'common/gallery.php';
 $settings = [];
 $allow_temp_key = false;
 try {
@@ -51,8 +52,10 @@ $site_name = $settings['site_name'];
             align-items: center;
             min-height: 100vh;
             background-color: var(--bg-color);
-            background-image: url(../../../assets/images/login-bg-2.jpg);
+            background-image: url('<?php echo htmlspecialchars(huli_random_gallery_image()); ?>');
             background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
         }
         .card {
             background-color: var(--card-bg);

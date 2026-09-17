@@ -401,7 +401,6 @@ function getStatusBadge($status) {
       .btn-effect:hover {
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
       }
-      }
       .badge-pulse {
         animation: pulse 2s infinite;
       }
