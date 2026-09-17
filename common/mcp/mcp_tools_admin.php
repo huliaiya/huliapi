@@ -693,3 +693,161 @@ huli_mcp_admin_register('list_mcp_logs', '查询 MCP 请求历史日志，可按
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     return ['total' => $total, 'page' => $page, 'page_size' => $size, 'logs' => $rows];
 });
+/* ================= 系统更新 MCP 管理工具（管理员） =================
+ * 复用 admin/update.php 同一套引擎（common/github_update.php 的
+ * huli_detect_update_info() + common/updater.php 的 huli_updater_* 后台更新引擎）。
+ * 更新任务以 token 形式后台执行，执行完成后会向管理员邮箱发送结果通知邮件。
+ */
+
+/* ---- 传入参数说明 ----
+ * update_system_to_latest 支持可选参数：
+ *   site_url  —— 站点首页地址（用于后台执行/邮件通知中的管理地址推断），
+ *               不传时自动从 HTTP_HOST 推断。
+ * update_system_task_status 支持参数：
+ *   token — update_system_to_latest 返回的 task_token。
+ */
+
+require_once __DIR__ . '/mcp_lib.php';
+
+/* 方案：直接使用底层 register（与 get_detect_update_info 一致），确保只对 admin 可用 */
+function huli_mcp_update_info_tool($pdo, $args) {
+    if (!function_exists('huli_detect_update_info')) {
+        return ['success' => false, 'message' => '更新检测引擎未加载（common/github_update.php 缺失）。'];
+    }
+    $currentVersion = defined('SENLIN_CLIENT_VERSION') ? SENLIN_CLIENT_VERSION : '';
+    $currentDate = defined('SENLIN_CLIENT_RELEASE_DATE') ? SENLIN_CLIENT_RELEASE_DATE : '';
+    $info = null;
+    try { $info = huli_detect_update_info(); } catch (Throwable $e) { $info = null; }
+    if (!is_array($info)) {
+        return [
+            'success' => false,
+            'message' => '未能获取 GitHub 最新版本信息（可能是网络或 GitHub 限流），请稍后重试。',
+            'current_version' => $currentVersion,
+            'current_release_date' => $currentDate,
+        ];
+    }
+    $isUpdate = !empty($info['update_available']);
+    return [
+        'success' => true,
+        'current_version' => $currentVersion,
+        'current_release_date' => $currentDate,
+        'update_available' => $isUpdate,
+        'latest_version' => isset($info['version']) ? $info['version'] : '',
+        'latest_release_date' => isset($info['published_date']) ? $info['published_date'] : '',
+        'latest_name' => isset($info['name']) ? $info['name'] : '',
+        'changelog' => isset($info['body']) ? $info['body'] : '',
+        'download_url' => isset($info['download_url']) ? $info['download_url'] : '',
+        'source' => isset($info['source']) ? $info['source'] : '',
+        'repo' => isset($info['repo']) ? $info['repo'] : '',
+        'update_branch' => isset($info['update_branch']) ? $info['update_branch'] : '',
+    ];
+}
+
+huli_mcp_admin_register('update_system_to_latest', 
+'将系统/客户端后台更新到 GitHub 最新可用版本：先检测当前版本与最新版本（续用 huli_detect_update_info），若有可用更新则创建后台更新任务（token）并立即返回；任务在后台逐步下载→解压→覆盖文件→更新版本号，执行完成后会向管理员邮箱发送电子邮件通知结果。返回 task_token，可用 update_system_task_status 查询进度与最终结果。', [
+    'type' => 'object',
+    'properties' => [
+        'site_url' => ['type' => 'string', 'description' => '（可选）站点首页地址，用于后台执行与邮件通知；留空自动从当前请求推断。'],
+    ],
+], function ($pdo, $args) {
+    if (!function_exists('huli_detect_update_info')) {
+        return ['success' => false, 'message' => '更新检测引擎未加载，无法执行更新。'];
+    }
+    $currentVersion = defined('SENLIN_CLIENT_VERSION') ? SENLIN_CLIENT_VERSION : '';
+    try { $info = huli_detect_update_info(); } catch (Throwable $e) { $info = null; }
+    if (!is_array($info) || empty($info['update_available'])) {
+        return ['success' => false, 'message' => '当前已是最新版本，无需更新。', 'current_version' => $currentVersion];
+    }
+
+    $siteUrl = isset($args['site_url']) ? trim((string)$args['site_url']) : '';
+    if ($siteUrl === '') {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
+        $siteUrl = $host !== '' ? $scheme . '://' . $host . '/' : '';
+    }
+
+    $token = '';
+    if (function_exists('huli_updater_new_token')) { $token = huli_updater_new_token(); }
+    else { $token = bin2hex(random_bytes(16)); }
+
+    $task = [
+        'info' => $info,
+        'admin_id' => 0,
+        'site_url' => $siteUrl,
+        'created_at' => time(),
+    ];
+    if (function_exists('huli_updater_write_json') && function_exists('huli_updater_task_file')) {
+        huli_updater_write_json(huli_updater_task_file($token), $task);
+    }
+    if (function_exists('huli_updater_write_status')) {
+        huli_updater_write_status($token, [
+            'status' => 'running',
+            'stage' => 'queued',
+            'percent' => 1,
+            'message' => '更新任务已创建，正在启动后台执行...',
+            'version' => isset($info['version']) ? $info['version'] : '',
+            'old_version' => $currentVersion,
+            'started_at' => time(),
+            'finished_at' => 0,
+            'notified' => false,
+            'notify_message' => '',
+        ]);
+    }
+
+    if (function_exists('huli_updater_spawn') && huli_updater_spawn($token)) {
+        return [
+            'success' => true,
+            'background' => true,
+            'mode' => 'background',
+            'task_token' => $token,
+            'version' => isset($info['version']) ? $info['version'] : '',
+            'current_version' => $currentVersion,
+            'message' => '更新已创建并在后台执行（可以关闭页面），完成后会自动向管理员邮箱发送通知。可用 update_system_task_status 查询进度。',
+        ];
+    }
+
+    /* 同步执行（后台不可用时） */
+    $result = huli_updater_run_task($token, $task, $siteUrl);
+    $status = is_array($result) && !empty($result['success']);
+    return [
+        'success' => $status,
+        'background' => false,
+        'mode' => 'sync',
+        'task_token' => $token,
+        'version' => isset($info['version']) ? $info['version'] : '',
+        'current_version' => $currentVersion,
+        'message' => is_array($result) && isset($result['message']) ? $result['message'] : ($status ? '系统已成功更新。' : '更新失败。'),
+    ];
+});
+
+huli_mcp_admin_register('update_system_task_status',
+'查询由 update_system_to_latest 创建的系统后台更新任务进度与最终结果：返回任务状态（running/success/failed）、当前执行阶段、进度百分比、进度消息、已完成版本、当前/目标版本，以及是否已向管理员邮箱发送完成通知邮件与通知内容。', [
+    'type' => 'object',
+    'properties' => [
+        'token' => ['type' => 'string', 'description' => '更新任务 token（update_system_to_latest 返回值 task_token）'],
+    ],
+], function ($pdo, $args) {
+    $token = isset($args['token']) ? trim((string)$args['token']) : '';
+    if ($token === '') { return ['success' => false, 'message' => '缺少更新任务 token。']; }
+    if (!function_exists('huli_updater_read_status')) {
+        return ['success' => false, 'message' => '更新引擎未加载，无法查询任务状态。'];
+    }
+    $status = huli_updater_read_status($token);
+    if (!is_array($status)) {
+        return ['success' => false, 'message' => '未找到该更新任务，请确认 token 是否正确。'];
+    }
+    return [
+        'success' => true,
+        'status' => isset($status['status']) ? $status['status'] : 'unknown',
+        'stage' => isset($status['stage']) ? $status['stage'] : '',
+        'percent' => isset($status['percent']) ? (int)$status['percent'] : 0,
+        'message' => isset($status['message']) ? $status['message'] : '',
+        'version' => isset($status['version']) ? $status['version'] : '',
+        'old_version' => isset($status['old_version']) ? $status['old_version'] : '',
+        'started_at' => isset($status['started_at']) ? (int)$status['started_at'] : 0,
+        'finished_at' => isset($status['finished_at']) ? (int)$status['finished_at'] : 0,
+        'notified' => !empty($status['notified']),
+        'notify_message' => isset($status['notify_message']) ? $status['notify_message'] : '',
+        'error' => isset($status['error']) ? $status['error'] : '',
+    ];
+});
