@@ -70,7 +70,8 @@ $settings_keys = [
     'site_name', 'site_description', 'copyright_info', 'allow_registration', 'allow_temp_key',
     'temp_key_duration', 'temp_key_limit',
     'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_secure', 'mail_smtp_user', 'mail_smtp_pass',
-    'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'turnstile_site_key', 'turnstile_secret_key', 'qps_mode', 'redis_host', 'redis_port', 'redis_username', 'redis_password', 'redis_database', 'enable_free_qps_limit', 'free_qps_seconds', 'free_qps_limit', 'enable_member_qps_limit', 'member_qps_seconds', 'member_qps_limit', 'warn_points_threshold', 'warn_balance_threshold', 'enable_warn_notification', 'enable_daily_points', 'daily_free_points', 'enable_daily_points_notification', 'icp_record_number', 'police_record_number', 'favicon_url', 'yn_github_token'
+    'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'turnstile_site_key', 'turnstile_secret_key', 'qps_mode', 'redis_host', 'redis_port', 'redis_username', 'redis_password', 'redis_database', 'enable_free_qps_limit', 'free_qps_seconds', 'free_qps_limit', 'enable_member_qps_limit', 'member_qps_seconds', 'member_qps_limit', 'warn_points_threshold', 'warn_balance_threshold', 'enable_warn_notification', 'enable_daily_points', 'daily_free_points', 'enable_daily_points_notification',     'icp_record_number', 'police_record_number', 'favicon_url', 'yn_github_token',
+    'update_github_token', 'update_schedule_enabled', 'update_schedule_time'
 ];
 $defaults = [
     'site_name' => 'huliapi', 'site_description' => 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口', 'copyright_info' => 'Copyright © 2025-2026 huliapi 版权所有',
@@ -81,7 +82,8 @@ $defaults = [
     'qps_mode' => 'database', 'redis_host' => '127.0.0.1', 'redis_port' => 6379, 'redis_username' => '', 'redis_password' => '', 'redis_database' => 0,
     'enable_free_qps_limit' => 1, 'free_qps_seconds' => 1, 'free_qps_limit' => 10, 'enable_member_qps_limit' => 1, 'member_qps_seconds' => 1, 'member_qps_limit' => 20,
     'warn_points_threshold' => 5, 'warn_balance_threshold' => 0.01, 'enable_warn_notification' => 1, 'enable_daily_points' => 0, 'daily_free_points' => 100, 'enable_daily_points_notification' => 1,
-    'icp_record_number' => '', 'police_record_number' => '', 'favicon_url' => '', 'yn_github_token' => ''
+    'icp_record_number' => '', 'police_record_number' => '', 'favicon_url' => '', 'yn_github_token' => '',
+    'update_github_token' => '', 'update_schedule_enabled' => 0, 'update_schedule_time' => '08:00'
 ];
 if (empty($defaults['icp_record_number'])) {
     $icp_provinces = ['京','津','沪','渝','冀','豫','云','辽','黑','湘','皖','鲁','新','苏','浙','赣','鄂','甘','晋','蒙','陕','吉','闽','贵','粤','青','藏','川','宁','琼'];
@@ -100,7 +102,7 @@ if (empty($defaults['police_record_number'])) {
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $init_sql = "INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('turnstile_enabled', '0'), ('turnstile_site_key', '3x00000000000000000000FF'), ('turnstile_secret_key', '1x0000000000000000000000000000000AA'), ('qps_mode', 'database'), ('redis_host', '127.0.0.1'), ('redis_port', '6379'), ('redis_password', ''), ('redis_database', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100'), ('enable_daily_points_notification', '1'), ('icp_record_number', ''), ('police_record_number', ''), ('favicon_url', ''), ('yn_github_token', '');";
+    $init_sql = "INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('turnstile_enabled', '0'), ('turnstile_site_key', '3x00000000000000000000FF'), ('turnstile_secret_key', '1x0000000000000000000000000000000AA'), ('qps_mode', 'database'), ('redis_host', '127.0.0.1'), ('redis_port', '6379'), ('redis_password', ''), ('redis_database', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100'), ('enable_daily_points_notification', '1'), ('icp_record_number', ''), ('police_record_number', ''), ('favicon_url', ''), ('yn_github_token', ''), ('update_github_token', ''), ('update_schedule_enabled', '0'), ('update_schedule_time', '08:00');";
     $pdo->exec($init_sql);
     $stmt_music_default = $pdo->prepare("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES (?, ?)");
     foreach ($music_defaults as $music_key => $music_value) {
@@ -227,7 +229,7 @@ try {
         } else {
         $pdo->beginTransaction();
         $stmt = $pdo->prepare("INSERT INTO huli_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
-        $bool_keys = ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'enable_free_qps_limit', 'enable_member_qps_limit', 'enable_warn_notification', 'enable_daily_points', 'enable_daily_points_notification'];
+        $bool_keys = ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'enable_free_qps_limit', 'enable_member_qps_limit', 'enable_warn_notification', 'enable_daily_points', 'enable_daily_points_notification', 'update_schedule_enabled'];
          
          
         $posted_checkbox_keys = (isset($_POST['checkbox_keys']) && is_array($_POST['checkbox_keys'])) ? $_POST['checkbox_keys'] : [];
@@ -342,6 +344,11 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
     <link rel="stylesheet" type="text/css" href="../assets/css/materialdesignicons.min.css">
     <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
+<style>
+.card-body .nav-tabs { flex-wrap: wrap; }
+.card-body .nav-tabs .nav-item { flex: 1 1 25%; text-align: center; }
+.card-body .nav-tabs .nav-item .nav-link { width: 100%; }
+</style>
 </head>
 <body>
 <div class="container-fluid">
@@ -365,6 +372,9 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             </li>
             <li class="nav-item">
               <button class="nav-link" id="basic-music" data-bs-toggle="tab" data-bs-target="#music" type="button">音乐设置</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="basic-update" data-bs-toggle="tab" data-bs-target="#update-pane" type="button">更新管理</button>
             </li>
           </ul>
             <div class="tab-content">
@@ -749,6 +759,37 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                     <button type="submit" class="btn btn-primary">保存音乐设置</button>
                     <button type="submit" name="music_settings_action" value="verify" class="btn btn-outline-info">验证 GitHub 访问</button>
                     <button type="submit" name="music_settings_action" value="clear_token" class="btn btn-outline-danger" onclick="return confirm('确定清除已保存的 GitHub Token？');">清除 Token</button>
+                  </div>
+                </form>
+              </div>
+              <div class="tab-pane fade" id="update-pane" aria-labelledby="basic-update">
+                <form method="POST" action="settings.php" class="edit-form">
+                  <input type="hidden" name="checkbox_keys[]" value="update_schedule_enabled">
+                  <?php if ($feedback_msg): ?>
+                  <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
+                    <?php echo htmlspecialchars($feedback_msg); ?>
+                  </div>
+                  <?php endif; ?>
+                  <div class="mb-3">
+                    <label for="update_github_token" class="form-label">GitHub 密钥（Token）</label>
+                    <input class="form-control" type="password" id="update_github_token" name="update_github_token" value="<?php echo htmlspecialchars($settings['update_github_token'] ?? ''); ?>" placeholder="用于更新时访问 GitHub，避免访问限制 / 限流" autocomplete="off">
+                    <small class="form-text text-muted">可选。用于更新的在线检测调用 GitHub API 时附加此 Token（Authorization: token xxx），可避免未授权访问限制与限流；留空则使用匿名访问。仅需读取公开仓库的权限即可。</small>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">定时更新</label>
+                    <div class="form-check form-switch">
+                      <input type="checkbox" class="form-check-input" id="update_schedule_enabled" name="update_schedule_enabled" value="1" <?php echo ($settings['update_schedule_enabled'] ?? '0') === '1' ? 'checked' : ''; ?>>
+                      <label class="form-check-label" for="update_schedule_enabled"></label>
+                    </div>
+                    <small class="form-text">默认关闭。开启后，系统将在每天设定的时间自动检测并后台更新到最新版本。</small>
+                  </div>
+                  <div class="mb-3">
+                    <label for="update_schedule_time" class="form-label">每天更新时间</label>
+                    <input class="form-control" type="time" id="update_schedule_time" name="update_schedule_time" value="<?php echo htmlspecialchars($settings['update_schedule_time'] ?? ''); ?>">
+                    <small class="form-text text-muted">例如 03:30，表示每天凌晨 3 点 30 分触发。需配合定时任务（cron）才能生效，请将以下命令加入 crontab（每分钟执行）以让系统在设定的时间自动更新：<br><code>* * * * * php <?php echo htmlspecialchars(dirname($_SERVER['SCRIPT_NAME'] ?? '') === '/admin' ? '/cli/update_scheduler.php' : '../cli/update_scheduler.php'); ?></code></small>
+                  </div>
+                  <div>
+                    <button type="submit" class="btn btn-primary">保存设置</button>
                   </div>
                 </form>
               </div>
