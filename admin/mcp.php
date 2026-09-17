@@ -68,11 +68,13 @@ $configSite = $settings['site_name'] ?? 'huliapi';
 
 $aiInstruction = '';
 $mcpAccessUrl = '';
+$mcpPromptFile = 'common/mcp/mcp_prompt_admin.md';
 if ($newToken !== '') {
-    $mcpAccessUrl = huli_mcp_public_url('/mcp_access.php/huliapi-mcp-admin-接入指令.md?token=' . urlencode($newToken));
-    $aiInstruction = "请下载并读取以下文件：\n"
-        . $mcpAccessUrl . "\n"
-        . "严格按照文档内容及步骤准确执行，不得擅自修改、遗漏或添加操作。\n"
+    $aiInstruction = "请打开并读取本仓库固定文件 `{$mcpPromptFile}`（该文件长期存在、始终可查看，含完整接入步骤与全部可用工具清单），并严格按其内容完成 MCP 接入。\n"
+        . "接入所需参数（对应指令文件中的 {{MCP_URL}} / {{TOKEN}} 占位）：\n"
+        . "- 服务地址：{$mcpUrl}\n"
+        . "- 鉴权 Token：{$newToken}\n\n"
+        . "严格按照指令内容及步骤准确执行，不得擅自修改、遗漏或添加操作。\n"
         . "如遇错误，请立即停止，并输出错误步骤、完整错误信息、可能原因及解决建议。执行完成后，请汇总执行结果。涉及 Token、密钥、密码等敏感信息时，必须脱敏展示，禁止泄露。";
 }
 
@@ -278,9 +280,9 @@ $mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 
             <div class="card-title"><i class="mdi mdi-robot-outline me-2"></i>AI 自动接入命令（一键复制）</div>
         </div>
         <div class="card-body">
-            <div class="small text-muted mb-2">复制下方命令并发送给你的 AI 编程助手（Claude Code / Codex / Cursor 等），它会自动下载指令文档并完成 MCP 接入：</div>
+            <div class="small text-muted mb-2">复制下方命令并发送给你的 AI 编程助手（Claude Code / Codex / Cursor 等），它会自动读取固定指令文件并完成 MCP 接入：</div>
             <?php if ($aiInstruction !== ''): ?>
-            <div class="mb-2"><i class="mdi mdi-link-variant me-1 text-muted"></i><a href="<?php echo htmlspecialchars($mcpAccessUrl); ?>" target="_blank" class="text-break"><?php echo htmlspecialchars($mcpAccessUrl); ?></a></div>
+            <div class="mb-2"><i class="mdi mdi-file-document-outline me-1 text-muted"></i>固定指令文件（始终可查看）：<code><?php echo htmlspecialchars($mcpPromptFile); ?></code></div>
             <div class="code-block" id="ai-instruction"><?php echo htmlspecialchars($aiInstruction); ?></div>
             <button class="btn btn-primary btn-sm btn-copy" data-copy="#ai-instruction"><i class="mdi mdi-content-copy me-1"></i>一键复制接入命令</button>
             <?php else: ?>
