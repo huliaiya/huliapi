@@ -217,15 +217,15 @@ body {
       <span class="mdi mdi-account" aria-hidden="true"></span>
       <input type="text" id="username" name="username" class="form-control" placeholder="用户名 / 邮箱" required>
     </div>
-    <div class="mb-3 has-feedback">
+    <div class="mb-2 has-feedback">
       <span class="mdi mdi-lock" aria-hidden="true"></span>
       <input type="password" id="password" name="password" class="form-control" placeholder="密码" required>
-      <?php if ($mail_forgot_enabled): ?>
-      <div class="text-right mt-2">
-        <a href="forgot_password.php" class="form-link">忘记密码？</a>
-      </div>
-      <?php endif; ?>
     </div>
+    <?php if ($mail_forgot_enabled): ?>
+    <div class="text-right mb-3">
+      <a href="forgot_password.php" class="form-link">忘记密码？</a>
+    </div>
+    <?php endif; ?>
     <?php echo huli_turnstile_widget_html(); ?>
     <div class="mb-3 d-grid">
       <button class="btn btn-primary" type="submit">登 录</button>
