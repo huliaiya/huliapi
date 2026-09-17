@@ -786,7 +786,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   <div class="mb-3">
                     <label for="update_schedule_time" class="form-label">每天更新时间</label>
                     <input class="form-control" type="time" id="update_schedule_time" name="update_schedule_time" value="<?php echo htmlspecialchars($settings['update_schedule_time'] ?? ''); ?>">
-                    <small class="form-text text-muted">例如 03:30，表示每天凌晨 3 点 30 分触发。需配合定时任务（cron）才能生效，请将以下命令加入 crontab（每分钟执行）以让系统在设定的时间自动更新：<br><code>* * * * * php <?php echo htmlspecialchars(dirname($_SERVER['SCRIPT_NAME'] ?? '') === '/admin' ? '/cli/update_scheduler.php' : '../cli/update_scheduler.php'); ?></code></small>
+                    <small class="form-text text-muted">例如 03:30，表示每天凌晨 3 点 30 分触发。开启开关并保存后会自动生效：站点随后任一页面被访问时即自动检测，到点则后台更新（无需配置 cron；若主机支持 cron 也可另行添加）。</small>
                   </div>
                   <div>
                     <button type="submit" class="btn btn-primary">保存设置</button>
