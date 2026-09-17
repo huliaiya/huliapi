@@ -7,166 +7,122 @@ if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失。"); }
 if (file_exists('../common/version.php')) { require_once '../common/version.php'; } else { define('SENLIN_CLIENT_VERSION', '0.0.0'); }
 require_once '../common/github_update.php';
+require_once '../common/updater.php';
 
 function huli_api($data) {
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode($data);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-function huli_find_root($dir) {
-    $entries = scandir($dir);
-    foreach ($entries as $entry) {
-        if ($entry === '.' || $entry === '..') { continue; }
-        $p = $dir . '/' . $entry;
-        if (is_dir($p) && file_exists($p . '/index.php') && is_dir($p . '/admin')) {
-            return $p;
-        }
-    }
-    foreach ($entries as $entry) {
-        if ($entry === '.' || $entry === '..' || !is_dir($dir . '/' . $entry)) { continue; }
-        return $dir . '/' . $entry;
-    }
-    return $dir;
+function huli_emit_json($data) {
+    if (!headers_sent()) { header('Content-Type: application/json; charset=utf-8'); }
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    while (ob_get_level() > 0) { @ob_end_flush(); }
+    @flush();
 }
 
-function huli_rrmdir($dir) {
-    if (!is_dir($dir)) { return; }
-    $items = scandir($dir);
-    foreach ($items as $item) {
-        if ($item === '.' || $item === '..') { continue; }
-        $path = $dir . '/' . $item;
-        if (is_dir($path)) { huli_rrmdir($path); } else { @unlink($path); }
-    }
-    @rmdir($dir);
-}
-
-function huli_download($url, $dest) {
-    $fp = fopen($dest, 'w+');
-    if (!$fp) { throw new Exception('无法创建临时文件，请检查临时目录权限。'); }
-    $ch = curl_init(str_replace(' ', '%20', $url));
-    curl_setopt($ch, CURLOPT_TIMEOUT, 300);
-    curl_setopt($ch, CURLOPT_FILE, $fp);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_FAILONERROR, true);
-    curl_setopt($ch, CURLOPT_USERAGENT, 'huliapi-updater');
-    $ok = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $err = curl_error($ch);
-    curl_close($ch);
-    fclose($fp);
-    if (!$ok) {
-        $msg = $err ? $err : 'HTTP ' . $http_code;
-        throw new Exception('下载更新包失败: ' . $msg);
-    }
-    if ($http_code < 200 || $http_code >= 300) {
-        throw new Exception('下载更新包失败: HTTP ' . $http_code . '（可能是 GitHub 限流或链接失效）');
-    }
+function huli_site_url() {
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    if ($host === '') { return ''; }
+    return $scheme . '://' . $host . '/';
 }
 
 function huli_api_check() {
     $info = huli_detect_update_info();
-    if (!$info) { huli_api(['success' => false, 'message' => '无法从 GitHub 获取更新信息。']); }
+    $stored_token = isset($_SESSION['huli_update_token']) ? huli_updater_safe_token($_SESSION['huli_update_token']) : '';
+    $task = $stored_token !== '' ? huli_updater_read_status($stored_token) : null;
+    if (!$info) {
+        huli_api(['success' => false, 'message' => '无法从 GitHub 获取更新信息。', 'task' => $task]);
+    }
     huli_api([
         'success' => true,
         'current_version' => SENLIN_CLIENT_VERSION,
         'current_date' => defined('SENLIN_CLIENT_RELEASE_DATE') ? SENLIN_CLIENT_RELEASE_DATE : '',
         'info' => $info,
         'update_available' => !empty($info['update_available']),
+        'task' => $task,
     ]);
 }
 
-function huli_api_prepare() {
+function huli_api_status() {
+    $token = isset($_POST['token']) ? $_POST['token'] : (isset($_SESSION['huli_update_token']) ? $_SESSION['huli_update_token'] : '');
+    $token = huli_updater_safe_token($token);
+    if ($token === '') { huli_api(['success' => false, 'message' => '没有正在进行的更新任务。']); }
+    $status = huli_updater_read_status($token);
+    if (!$status) { huli_api(['success' => false, 'message' => '未找到更新任务状态。']); }
+    huli_api(['success' => true, 'status' => $status]);
+}
+
+function huli_api_start() {
     $info = huli_detect_update_info();
     if (!$info) { huli_api(['success' => false, 'message' => '无法获取更新信息。']); }
     if (empty($info['update_available'])) { huli_api(['success' => false, 'message' => '已经是最新版本，无需更新。']); }
-    $zip = rtrim(sys_get_temp_dir(), '/') . '/huli_update_' . uniqid() . '.zip';
-    $extract = rtrim(sys_get_temp_dir(), '/') . '/huli_extract_' . uniqid();
-    try {
-        huli_download($info['download_url'], $zip);
-        if (!class_exists('ZipArchive')) { throw new Exception('服务器不支持ZipArchive，无法解压。请安装php-zip扩展。'); }
-        $za = new ZipArchive;
-        if ($za->open($zip) !== true) { throw new Exception('无法打开更新包文件。'); }
-        if (!@mkdir($extract, 0755, true)) { throw new Exception('无法创建临时解压目录。'); }
-        $za->extractTo($extract);
-        $za->close();
-    } catch (Exception $e) {
-        @unlink($zip);
-        huli_api(['success' => false, 'message' => $e->getMessage()]);
-    }
-    $_SESSION['huli_update_zip'] = $zip;
-    $_SESSION['huli_update_extract'] = $extract;
-    $_SESSION['huli_update_info'] = $info;
-    huli_api(['success' => true, 'message' => '更新包已下载并解压完成。', 'version' => $info['version']]);
-}
 
-function huli_api_apply() {
-    if (empty($_SESSION['huli_update_extract']) || empty($_SESSION['huli_update_info'])) {
-        huli_api(['success' => false, 'message' => '更新包状态已丢失，请刷新页面后重新更新。']);
-    }
-    $extract = $_SESSION['huli_update_extract'];
-    $info = $_SESSION['huli_update_info'];
-    $root = huli_find_root($extract);
-    $target = dirname(__FILE__, 2);
-    $admin_path = defined('ADMIN_PATH') && ADMIN_PATH !== '' ? ADMIN_PATH : 'admin';
-    $admin_redirect = ($admin_path !== 'admin');
-    $protected_files = ['config.php', 'install.lock', 'admin/fanghong_switch.txt'];
-    try {
-        $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
-        foreach ($iter as $item) {
-            $relative = str_replace('\\', '/', substr($item->getPathname(), strlen($root) + 1));
-            if ($relative === '') { continue; }
-            if (in_array($relative, $protected_files, true)) { continue; }
-            if (strpos($relative, 'install/') === 0) { continue; }
-            if ($admin_redirect && ($relative === 'admin' || strpos($relative, 'admin/') === 0)) {
-                $relative = $admin_path . substr($relative, 5);
-            }
-            $dest = $target . '/' . $relative;
-            if ($item->isDir()) {
-                if (!is_dir($dest)) { @mkdir($dest, 0755, true); }
-                continue;
-            }
-            @mkdir(dirname($dest), 0755, true);
-            if (!copy($item->getPathname(), $dest)) { throw new Exception('复制文件失败: ' . $relative); }
-        }
-        $repo = defined('SENLIN_CLIENT_REPO') ? SENLIN_CLIENT_REPO : 'huliaiya/huliapi';
-        $repo_branch = defined('SENLIN_CLIENT_REPO_BRANCH') ? SENLIN_CLIENT_REPO_BRANCH : 'main';
-        $update_branch = defined('SENLIN_CLIENT_UPDATE_BRANCH') ? SENLIN_CLIENT_UPDATE_BRANCH : 'miao';
-        $new_version_content = "<?php\ndefine('SENLIN_CLIENT_VERSION', '" . addslashes($info['version']) . "');\n";
-        if (!empty($info['published_at'])) {
-            $new_version_content .= "define('SENLIN_CLIENT_RELEASE_DATE', '" . addslashes(date('Y-m-d', strtotime($info['published_at']))) . "');\n";
-        }
-        $new_version_content .= "define('SENLIN_CLIENT_REPO', '" . addslashes($repo) . "');\ndefine('SENLIN_CLIENT_REPO_BRANCH', '" . addslashes($repo_branch) . "');\ndefine('SENLIN_CLIENT_UPDATE_BRANCH', '" . addslashes($update_branch) . "');\n?>";
-        if (file_put_contents($target . '/common/version.php', $new_version_content) === false) {
-            throw new Exception('无法自动更新本地版本号文件，请检查 /common/version.php 文件的权限。');
-        }
-        if (function_exists('opcache_invalidate')) { opcache_invalidate($target . '/common/version.php', true); }
-    } catch (Exception $e) {
-        huli_api(['success' => false, 'message' => '更新过程中发生错误: ' . $e->getMessage()]);
-    } finally {
-        if (!empty($_SESSION['huli_update_zip'])) { @unlink($_SESSION['huli_update_zip']); }
-        huli_rrmdir($extract);
-        unset($_SESSION['huli_update_zip'], $_SESSION['huli_update_extract'], $_SESSION['huli_update_info']);
-    }
-    $admin_path_changed = $admin_redirect;
-    $admin_msg = '';
-    if ($admin_path_changed) {
-        $admin_msg = '检测到您的后台目录为 /' . $admin_path . '/，本次更新已自动将后台代码更新到该目录，无需手动处理。';
-    }
-    huli_api([
-        'success' => true,
-        'message' => '系统已成功更新到版本 ' . $info['version'] . '！',
+    $token = huli_updater_new_token();
+    $_SESSION['huli_update_token'] = $token;
+    $task = [
+        'info' => $info,
+        'admin_id' => isset($_SESSION['admin_id']) ? (int)$_SESSION['admin_id'] : 0,
+        'site_url' => huli_site_url(),
+        'created_at' => time(),
+    ];
+    huli_updater_write_json(huli_updater_task_file($token), $task);
+    huli_updater_write_status($token, [
+        'status' => 'running',
+        'stage' => 'queued',
+        'percent' => 1,
+        'message' => '更新任务已创建，正在启动后台执行...',
         'version' => $info['version'],
-        'admin_path_changed' => $admin_path_changed,
-        'admin_path' => $admin_path,
-        'admin_msg' => $admin_msg,
+        'old_version' => SENLIN_CLIENT_VERSION,
+        'started_at' => time(),
+        'finished_at' => 0,
+        'error' => '',
     ]);
+
+    if (function_exists('fastcgi_finish_request')) {
+        @ignore_user_abort(true);
+        @set_time_limit(0);
+        huli_emit_json([
+            'success' => true,
+            'background' => true,
+            'mode' => 'fastcgi',
+            'token' => $token,
+            'message' => '更新已在后台开始执行，可以关闭此页面，完成后会向管理员邮箱发送通知。',
+        ]);
+        if (function_exists('session_write_close')) { @session_write_close(); }
+        @fastcgi_finish_request();
+        huli_updater_run_task($token, $task, $task['site_url']);
+        exit;
+    }
+
+    if (huli_updater_spawn($token)) {
+        huli_api([
+            'success' => true,
+            'background' => true,
+            'mode' => 'cli',
+            'token' => $token,
+            'message' => '更新已在后台开始执行，可以关闭此页面，完成后会向管理员邮箱发送通知。',
+        ]);
+    }
+
+    $result = huli_updater_run_task($token, $task, $task['site_url']);
+    $status = huli_updater_read_status($token);
+    $result['background'] = false;
+    $result['token'] = $token;
+    if (is_array($status)) {
+        $result['notified'] = !empty($status['notified']);
+        $result['notify_message'] = isset($status['notify_message']) ? $status['notify_message'] : '';
+        $result['status'] = isset($status['status']) ? $status['status'] : ($result['success'] ? 'success' : 'failed');
+    }
+    huli_api($result);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'check') { huli_api_check(); }
-    elseif ($_POST['action'] === 'prepare') { huli_api_prepare(); }
-    elseif ($_POST['action'] === 'apply') { huli_api_apply(); }
+    elseif ($_POST['action'] === 'start') { huli_api_start(); }
+    elseif ($_POST['action'] === 'status') { huli_api_status(); }
     huli_api(['success' => false, 'message' => '未知操作。']);
 }
 ?>
@@ -191,12 +147,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         <div class="row mb-4">
             <div class="col">
                 <h2 class="fw-bold">在线更新</h2>
-                <p class="text-muted mb-0">通过 GitHub 仓库自动检测最新版本和最近提交时间</p>
+                <p class="text-muted mb-0">通过 GitHub 仓库自动检测最新版本和最近提交时间，支持后台执行与邮件通知</p>
             </div>
             <div class="col-auto">
                 <button type="button" class="btn btn-outline-secondary" id="btn-recheck"><i class="mdi mdi-refresh"></i> 重新检测</button>
             </div>
         </div>
+        <div id="task-banner"></div>
         <div id="feedback-box"></div>
         <div class="row g-4">
             <div class="col-md-6">
@@ -218,6 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         <button type="button" id="update-btn" class="btn btn-danger w-100 py-2" disabled>
                             <i class="mdi mdi-download"></i> <span id="update-btn-text">检测中...</span>
                         </button>
+                        <p class="text-muted small mb-0 mt-2"><i class="mdi mdi-information-outline"></i> 更新在后台执行，提交后可以关闭此页面，完成后会向管理员邮箱发送通知。</p>
                     </div>
                 </div>
             </div>
@@ -243,8 +201,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         <div class="d-flex align-items-center mb-3">
           <div class="update-icon"><i class="mdi mdi-cloud-download-outline"></i></div>
           <div class="flex-grow-1">
-            <h5 class="modal-title mb-0">正在更新系统</h5>
-            <small class="text-muted">更新期间请勿关闭页面</small>
+            <h5 class="modal-title mb-0" id="progress-title">正在更新系统</h5>
+            <small class="text-muted" id="progress-hint">更新在后台执行，可以关闭此页面</small>
           </div>
         </div>
         <div class="progress update-progress mb-3" style="height: 10px;">
@@ -260,6 +218,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
           <li class="step" data-step="apply"><span class="step-dot"></span><span class="step-label">应用更新</span></li>
           <li class="step" data-step="finish"><span class="step-dot"></span><span class="step-label">完成</span></li>
         </ul>
+        <div class="d-flex justify-content-end mt-3">
+          <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">关闭（后台继续执行）</button>
+        </div>
       </div>
     </div>
   </div>
@@ -304,14 +265,14 @@ body[data-theme="dark"] .update-modal.modal-content,
 body.theme-dark .update-modal.modal-content {
     background: linear-gradient(135deg, rgba(28,42,58,.88), rgba(22,34,50,.82)) !important;
     border-color: rgba(134, 194, 255, .25) !important;
-    color: 
+    color: #e6edf3;
 }
 .update-icon {
     width: 48px; height: 48px;
     border-radius: 14px;
     display: inline-flex; align-items: center; justify-content: center;
     background: linear-gradient(135deg, rgba(134,194,255,.25), rgba(119,222,218,.18));
-    color: 
+    color: #4d8fd6;
     font-size: 26px;
     margin-right: 14px;
     box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
@@ -323,7 +284,7 @@ body.theme-dark .update-modal.modal-content {
     box-shadow: inset 0 1px 2px rgba(45,100,155,.12);
 }
 .update-progress .progress-bar {
-    background: linear-gradient(90deg, 
+    background: linear-gradient(90deg, #6cb6ff, #77ded9);
     border-radius: 999px;
     transition: width .35s cubic-bezier(.22,.61,.36,1);
     position: relative;
@@ -342,7 +303,7 @@ body.theme-dark .update-modal.modal-content {
 .progress-percent {
     font-size: 18px;
     font-weight: 700;
-    background: linear-gradient(135deg, 
+    background: linear-gradient(135deg, #4d8fd6, #3fbfae);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -375,30 +336,30 @@ body.theme-dark .update-modal.modal-content {
 }
 .update-steps .step .step-label {
     font-size: 11px;
-    color: 
+    color: #64748b;
     font-weight: 500;
 }
 .update-steps .step.active {
     background: linear-gradient(135deg, rgba(134,194,255,.22), rgba(119,222,218,.16));
 }
 .update-steps .step.active .step-dot {
-    background: linear-gradient(135deg, 
+    background: linear-gradient(135deg, #6cb6ff, #77ded9);
     box-shadow: 0 0 0 4px rgba(108,182,255,.18), inset 0 0 0 2px rgba(255,255,255,.7);
     animation: step-pulse 1.2s ease-in-out infinite;
 }
 .update-steps .step.active .step-label {
-    color: 
+    color: #2f78c4;
     font-weight: 600;
 }
 .update-steps .step.done {
     background: linear-gradient(135deg, rgba(134,194,255,.22), rgba(119,222,218,.18));
 }
 .update-steps .step.done .step-dot {
-    background: linear-gradient(135deg, 
+    background: linear-gradient(135deg, #6cb6ff, #77ded9);
     box-shadow: inset 0 0 0 2px rgba(255,255,255,.7), 0 2px 6px rgba(108,182,255,.35);
 }
 .update-steps .step.done .step-label {
-    color: 
+    color: #2f78c4;
     font-weight: 600;
 }
 @keyframes step-pulse {
@@ -410,7 +371,7 @@ body.theme-dark .update-modal.modal-content {
     border: 1px solid rgba(134,194,255,.25);
     border-radius: 12px;
     padding: 12px 14px;
-    color: 
+    color: #333;
     line-height: 1.7;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -423,16 +384,39 @@ body.theme-dark .update-modal.modal-content {
 <script>
 var updateAvailable = false;
 var updateVersion = '';
+var pollTimer = null;
+
+function esc(t) { return $('<div>').text(t == null ? '' : t).html(); }
 
 function showFeedback(type, message) {
   $('#feedback-box').html('<div class="alert alert-' + type + ' alert-dismissible fade show mb-4">' + message +
     '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
 }
 
+function renderTaskBanner(task) {
+  if (!task || !task.status) { $('#task-banner').empty(); return; }
+  if (task.status === 'running') {
+    if (task.stale) {
+      $('#task-banner').html('<div class="alert alert-warning mb-4"><i class="mdi mdi-alert-outline me-1"></i>检测到上次更新任务似乎已中断（超过 15 分钟无进度）。您可以重新发起更新。</div>');
+      return;
+    }
+    $('#task-banner').html('<div class="alert alert-info d-flex align-items-center mb-4">' +
+      '<i class="mdi mdi-progress-clock me-2"></i>' +
+      '<div class="flex-grow-1">后台更新任务正在执行（' + (task.percent || 0) + '%）' + esc(task.message || '') + ' 完成后会向管理员邮箱发送通知。</div>' +
+      '<button type="button" class="btn btn-sm btn-primary ms-2" id="banner-view-progress">查看进度</button></div>');
+  } else if (task.status === 'success') {
+    $('#task-banner').html('<div class="alert alert-success mb-4"><i class="mdi mdi-check-circle-outline me-1"></i>上次更新已成功完成（v' + esc(task.version || '') + '）。' + esc(task.notify_message || '') + '</div>');
+  } else if (task.status === 'failed') {
+    $('#task-banner').html('<div class="alert alert-danger mb-4"><i class="mdi mdi-alert-circle-outline me-1"></i>上次更新失败：' + esc(task.message || task.error || '未知错误') + '</div>');
+  } else {
+    $('#task-banner').empty();
+  }
+}
+
 function refreshCheck() {
   $.post('update.php', {action: 'check'}, function(res) {
     if (!res.success) {
-      showFeedback('danger', res.message || '检测更新失败');
+      showFeedback('danger', esc(res.message || '检测更新失败'));
       $('#new-version').text('N/A');
       $('#update-btn').prop('disabled', true).find('span').text('检测失败');
       return;
@@ -451,9 +435,9 @@ function refreshCheck() {
     }
     $('#update-source').html(sourceText);
     if (info.body && info.body.length) {
-      $('#changelog').html('<pre class="bg-light p-3 rounded" style="white-space: pre-wrap;">' + $('<div>').text(info.body).html() + '</pre>');
+      $('#changelog').html('<pre class="bg-light p-3 rounded" style="white-space: pre-wrap;">' + esc(info.body) + '</pre>');
     } else if (info.name) {
-      $('#changelog').html('<p>' + $('<div>').text(info.name).html() + '</p>');
+      $('#changelog').html('<p>' + esc(info.name) + '</p>');
     } else {
       $('#changelog').html('<p class="text-muted">暂无更新说明。</p>');
     }
@@ -464,6 +448,7 @@ function refreshCheck() {
       $('#update-btn').removeClass('btn-danger').addClass('btn-primary').prop('disabled', true);
       $('#update-btn-text').text('已是最新版本');
     }
+    renderTaskBanner(res.task);
   }).fail(function() {
     showFeedback('danger', '检测更新请求失败，请检查服务器网络。');
     $('#new-version').text('N/A');
@@ -473,14 +458,15 @@ function refreshCheck() {
 
 function setProgress(percent, text, step) {
   var p = Math.max(0, Math.min(100, Math.round(percent)));
-  window.__updateProgress = p;
   $('#progress-bar').css('width', p + '%').attr('aria-valuenow', p);
   $('#progress-percent').text(p + '%');
   if (text) { $('#progress-text').text(text); }
   if (step) {
+    if (step === 'queued') { step = 'download'; }
     $('.update-steps .step').removeClass('active done');
     var order = ['download', 'extract', 'apply', 'finish'];
     var idx = order.indexOf(step);
+    if (idx < 0) { idx = 0; }
     for (var i = 0; i <= idx; i++) {
       $('.update-steps .step[data-step="' + order[i] + '"]').addClass(i < idx ? 'done' : 'active');
     }
@@ -498,69 +484,104 @@ function showResultModal(title, html, type, sub) {
   new bootstrap.Modal($('#result-modal')).show();
 }
 
+function statusToResult(st) {
+  var r = st.result || {};
+  r.success = (st.status === 'success');
+  if (!r.message) { r.message = st.message; }
+  if (!r.version) { r.version = st.version; }
+  if (r.notified === undefined) { r.notified = st.notified; }
+  if (r.notify_message === undefined) { r.notify_message = st.notify_message; }
+  if (r.admin_path_changed === undefined) {
+    r.admin_path_changed = st.admin_path_changed;
+    r.admin_msg = st.admin_msg;
+    r.admin_path = st.admin_path;
+  }
+  return r;
+}
+
+function renderResult(res) {
+  var ok = !!res.success;
+  var html = '<div class="result-msg"><i class="mdi ' + (ok ? 'mdi-check-circle text-success' : 'mdi-alert-circle text-danger') + ' me-1"></i>' + esc(res.message) + '</div>';
+  if (res.admin_path_changed && res.admin_msg) {
+    html += '<div class="result-msg mt-2"><i class="mdi mdi-folder-arrow-right text-primary me-1"></i><strong>后台目录已自动更新：</strong>' +
+      esc(res.admin_msg) +
+      '<div class="small mt-1">当前后台地址：<a href="../' + esc(res.admin_path) + '/" target="_blank">/' + esc(res.admin_path) + '/</a></div></div>';
+  }
+  if (res.notify_message) {
+    html += '<div class="result-msg mt-2 small"><i class="mdi mdi-email-outline me-1"></i>' + esc(res.notify_message) + '</div>';
+  }
+  showResultModal(ok ? '更新完成' : '更新失败', html, ok ? 'success' : 'error',
+    ok ? ('已成功升级到 v' + (res.version || '')) : '后台更新任务执行失败');
+}
+
+function startPolling(token, progressModal) {
+  if (pollTimer) { clearInterval(pollTimer); }
+  pollTimer = setInterval(function() {
+    $.post('update.php', {action: 'status', token: token}, function(st) {
+      if (!st.success || !st.status) { return; }
+      var s = st.status;
+      setProgress(s.percent != null ? s.percent : 0, s.message || '', s.stage || 'download');
+      if (s.status === 'success' || s.status === 'failed') {
+        clearInterval(pollTimer); pollTimer = null;
+        setTimeout(function() {
+          $.post('update.php', {action: 'status', token: token}, function(st2) {
+            var finalStatus = (st2.success && st2.status) ? st2.status : s;
+            progressModal.hide();
+            renderResult(statusToResult(finalStatus));
+            refreshCheck();
+          }).fail(function() {
+            progressModal.hide();
+            renderResult(statusToResult(s));
+            refreshCheck();
+          });
+        }, 1500);
+      }
+    });
+  }, 2000);
+}
+
 $('#update-btn').on('click', function() {
   if (!updateAvailable) { return; }
-  if (!confirm('确定要更新到版本 v' + updateVersion + ' 吗？更新过程请勿关闭页面。')) { return; }
+  if (!confirm('确定要更新到版本 v' + updateVersion + ' 吗？\n更新将在后台执行，可以关闭此页面，完成后会向管理员邮箱发送通知。')) { return; }
   $(this).prop('disabled', true);
   var progressModal = new bootstrap.Modal($('#progress-modal'));
   progressModal.show();
-  setProgress(8, '正在下载更新包...', 'download');
-  var dlTimer = setInterval(function() {
-    var cur = window.__updateProgress || 8;
-    if (cur < 48) { setProgress(cur + 1); }
-  }, 250);
-  $.post('update.php', {action: 'prepare'}, function(res) {
-    clearInterval(dlTimer);
+  setProgress(3, '正在创建后台更新任务...', 'download');
+  $.post('update.php', {action: 'start'}, function(res) {
     if (!res.success) {
       progressModal.hide();
       $('#update-btn').prop('disabled', false);
-      showResultModal('更新失败', '<div class="alert alert-danger mb-0">' + $('<div>').text(res.message).html() + '</div>', 'error', '请检查服务器网络后重试');
+      renderResult({success: false, message: res.message || '启动更新失败'});
+      refreshCheck();
       return;
     }
-    setProgress(55, '正在解压更新文件...', 'extract');
-    var exTimer = setInterval(function() {
-      var cur = window.__updateProgress || 55;
-      if (cur < 85) { setProgress(cur + 2); }
-    }, 200);
-    $.post('update.php', {action: 'apply'}, function(res2) {
-      clearInterval(exTimer);
-      if (!res2.success) {
-        progressModal.hide();
-        $('#update-btn').prop('disabled', false);
-        showResultModal('更新失败', '<div class="alert alert-danger mb-0">' + $('<div>').text(res2.message).html() + '</div>', 'error', '应用更新时发生错误');
-        return;
-      }
-      setProgress(90, '正在应用更新...', 'apply');
-      var applyTimer = setInterval(function() {
-        var cur = window.__updateProgress || 90;
-        if (cur < 99) { setProgress(cur + 1); } else { clearInterval(applyTimer); }
-      }, 120);
-      setTimeout(function() {
-        clearInterval(applyTimer);
-        setProgress(100, '更新完成', 'finish');
-        setTimeout(function() {
-          progressModal.hide();
-          var html = '<div class="result-msg"><i class="mdi mdi-check-circle text-success me-1"></i>' + $('<div>').text(res2.message).html() + '</div>';
-          if (res2.admin_path_changed && res2.admin_msg) {
-            html += '<div class="result-msg mt-2"><i class="mdi mdi-folder-arrow-right text-primary me-1"></i><strong>后台目录已自动更新：</strong>' +
-              $('<div>').text(res2.admin_msg).html() +
-              '<div class="small mt-1">当前后台地址：<a href="../' + res2.admin_path + '/" target="_blank">/' + res2.admin_path + '/</a></div></div>';
-          }
-          showResultModal('更新完成', html, 'success', '已成功升级到 v' + res2.version);
-          refreshCheck();
-        }, 350);
-      }, 280);
-    }).fail(function() {
-      clearInterval(exTimer);
-      progressModal.hide();
-      $('#update-btn').prop('disabled', false);
-      showResultModal('更新失败', '<div class="alert alert-danger mb-0">应用更新请求失败，请检查服务器状态。</div>', 'error', '网络请求失败');
-    });
+    if (res.background) {
+      $('#progress-title').text('后台更新进行中');
+      $('#progress-hint').text('可以关闭此页面，完成后会向管理员邮箱发送通知');
+      startPolling(res.token, progressModal);
+      return;
+    }
+    progressModal.hide();
+    renderResult(res);
+    refreshCheck();
   }).fail(function() {
-    clearInterval(dlTimer);
     progressModal.hide();
     $('#update-btn').prop('disabled', false);
-    showResultModal('更新失败', '<div class="alert alert-danger mb-0">下载更新包请求失败，请检查服务器网络。</div>', 'error', '网络请求失败');
+    renderResult({success: false, message: '启动更新请求失败，请检查服务器网络。'});
+  });
+});
+
+$(document).on('click', '#banner-view-progress', function() {
+  var progressModal = new bootstrap.Modal($('#progress-modal'));
+  progressModal.show();
+  $('#progress-title').text('后台更新进行中');
+  $('#progress-hint').text('可以关闭此页面，完成后会向管理员邮箱发送通知');
+  $.post('update.php', {action: 'status'}, function(st) {
+    if (st.success && st.status && st.status.token) {
+      var s = st.status;
+      setProgress(s.percent != null ? s.percent : 0, s.message || '', s.stage || 'download');
+      startPolling(s.token, progressModal);
+    }
   });
 });
 
