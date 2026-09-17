@@ -93,7 +93,7 @@ function huli_api_start() {
     huli_updater_write_status($token, [
         'status' => 'running',
         'stage' => 'queued',
-        'percent' => 1,
+        'percent' => 2,
         'message' => '更新任务已创建，正在启动后台执行...',
         'version' => $info['version'],
         'old_version' => SENLIN_CLIENT_VERSION,
@@ -507,8 +507,11 @@ function refreshCheck() {
   });
 }
 
+var progressLast = -1;
 function setProgress(percent, text, step) {
   var p = Math.max(0, Math.min(100, Math.round(percent)));
+  if (p < progressLast) { p = progressLast; }
+  progressLast = p;
   $('#progress-bar').css('width', p + '%').attr('aria-valuenow', p);
   $('#progress-percent').text(p + '%');
   if (text) { $('#progress-text').text(text); }
@@ -597,7 +600,8 @@ $('#update-btn').on('click', function() {
   $(this).prop('disabled', true);
   var progressModal = new bootstrap.Modal($('#progress-modal'));
   progressModal.show();
-  setProgress(3, '正在创建后台更新任务...', 'download');
+  progressLast = 0;
+  setProgress(2, '正在创建后台更新任务...', 'download');
   $.post('update.php', {action: 'start'}, function(res) {
     if (!res.success) {
       progressModal.hide();
