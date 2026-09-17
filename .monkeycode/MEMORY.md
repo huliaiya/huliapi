@@ -58,3 +58,12 @@ Entries discovered by the Agent during task execution should follow this format:
 - Instructions:
   - PHP CLI is not pre-installed in this workspace; install it with `DEBIAN_FRONTEND=noninteractive apt-get install -y php-cli` to run `php -l` syntax checks and `php -S` smoke tests.
   - The huliapi PHP codebase contains no PHP 8-only syntax, so the supported minimum is PHP 7.4; do not reintroduce 8.0.0+ gates when adding env checks.
+
+[Project Knowledge Summary]
+- Date: 2026-09-17
+- Context: Discovered by Agent while fixing the admin Turnstile blank-page bug and pushing to both branches
+- Category: Workflow & Collaboration
+- Instructions:
+  - Bug fixes must be applied and pushed to BOTH branches: `main` (install) and `miao` (update), because the two branches have unrelated histories and are maintained in parallel.
+  - `main` and `miao` differ slightly in `admin/settings.php` (miao calls `huliReloadTurnstileSdk()` inside `loadE2EWidget`, main calls it in the reload button); when porting fixes use `git cherry-pick -n` so git auto-merges and preserves each branch's own style, then verify the branch-specific hunks remain intact.
+  - The two branches also differ by `.trae-html-share-packages/admin/_diag.html.zip` (present only in main); leave that file alone when porting changes.
