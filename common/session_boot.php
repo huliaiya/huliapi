@@ -13,3 +13,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     }
     @session_start();
 }
+
+if (file_exists(__DIR__ . '/updater_schedule.php')) {
+    require_once __DIR__ . '/updater_schedule.php';
+    huli_updater_maybe_run_schedule();
+}
