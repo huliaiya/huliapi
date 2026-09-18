@@ -69,6 +69,7 @@ $configSite = $settings['site_name'] ?? 'huliapi';
 $aiInstruction = '';
 $mcpAccessUrl = '';
 $mcpPromptFile = 'common/mcp/mcp_prompt_admin.md';
+$mcpPromptUrl = huli_mcp_public_url('/mcp_prompt.php?role=admin');
 if ($newToken !== '') {
     $aiInstruction = "请打开并读取本仓库固定文件 `{$mcpPromptFile}`（该文件长期存在、始终可查看，含完整接入步骤与全部可用工具清单），并严格按其内容完成 MCP 接入。\n"
         . "接入所需参数（对应指令文件中的 {{MCP_URL}} / {{TOKEN}} 占位）：\n"
@@ -282,7 +283,7 @@ $mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 
         <div class="card-body">
             <div class="small text-muted mb-2">复制下方命令并发送给你的 AI 编程助手（Claude Code / Codex / Cursor 等），它会自动读取固定指令文件并完成 MCP 接入：</div>
             <?php if ($aiInstruction !== ''): ?>
-            <div class="mb-2"><i class="mdi mdi-file-document-outline me-1 text-muted"></i>固定指令文件（始终可查看）：<code><?php echo htmlspecialchars($mcpPromptFile); ?></code></div>
+            <div class="mb-2"><i class="mdi mdi-download me-1 text-muted"></i>固定指令文件（始终可查看、可直接下载）：<a href="<?php echo htmlspecialchars($mcpPromptUrl); ?>" target="_blank" class="text-break"><?php echo htmlspecialchars($mcpPromptFile); ?></a></div>
             <div class="code-block" id="ai-instruction"><?php echo htmlspecialchars($aiInstruction); ?></div>
             <button class="btn btn-primary btn-sm btn-copy" data-copy="#ai-instruction"><i class="mdi mdi-content-copy me-1"></i>一键复制接入命令</button>
             <?php else: ?>
