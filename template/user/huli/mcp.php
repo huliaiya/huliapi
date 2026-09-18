@@ -71,7 +71,7 @@ $configSite = $settings['site_name'] ?? 'huliapi';
 $aiInstruction = '';
 $mcpAccessUrl = '';
 $mcpPromptFile = 'common/mcp/mcp_prompt_user.md';
-$mcpPromptUrl = huli_mcp_public_url('/mcp_prompt.php?role=user');
+$mcpPromptUrl = huli_mcp_public_url('/mcp_instructions_user.php');
 if ($newToken !== '') {
     $aiInstruction = "请打开并读取本仓库固定文件 `{$mcpPromptFile}`（该文件长期存在、始终可查看，含完整接入步骤与全部可用工具清单），并严格按其内容完成 MCP 接入。\n"
         . "接入所需参数（对应指令文件中的 {{MCP_URL}} / {{TOKEN}} 占位）：\n"
