@@ -151,79 +151,83 @@ try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    $user_columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('points', $user_columns)) {
-        $pdo->exec("ALTER TABLE `huli_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`");
-    }
-    if (!in_array('membership_level', $user_columns)) {
-        $pdo->exec("ALTER TABLE `huli_users` ADD `membership_level` ENUM('normal', 'super') NOT NULL DEFAULT 'normal'");
-    }
-    if (!in_array('membership_expire', $user_columns)) {
-        $pdo->exec("ALTER TABLE `huli_users` ADD `membership_expire` DATETIME NULL DEFAULT NULL");
-    }
-    if (!in_array('last_points_warn_date', $user_columns)) {
-        $pdo->exec("ALTER TABLE `huli_users` ADD `last_points_warn_date` DATE NULL DEFAULT NULL");
-    }
-    if (!in_array('last_balance_warn_date', $user_columns)) {
-        $pdo->exec("ALTER TABLE `huli_users` ADD `last_balance_warn_date` DATE NULL DEFAULT NULL");
-    }
-    $log_columns = $pdo->query("SHOW COLUMNS FROM `huli_api_logs`")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('billing_type', $log_columns)) {
-        $pdo->exec("ALTER TABLE `huli_api_logs` ADD `billing_type` VARCHAR(20) NOT NULL DEFAULT 'free' AFTER `is_success`");
-    }
-    if (!in_array('billing_amount', $log_columns)) {
-        $pdo->exec("ALTER TABLE `huli_api_logs` ADD `billing_amount` DECIMAL(10,4) NOT NULL DEFAULT 0 AFTER `billing_type`");
-    }
-    $index_check = $pdo->query("SHOW INDEX FROM `huli_api_logs` WHERE Key_name = 'idx_user_time'")->fetch();
-    if (!$index_check) $pdo->exec("ALTER TABLE `huli_api_logs` ADD INDEX `idx_user_time` (`user_id`, `request_time`)");
-    $ip_index_check = $pdo->query("SHOW INDEX FROM `huli_api_logs` WHERE Key_name = 'idx_ip_time'")->fetch();
-    if (!$ip_index_check) $pdo->exec("ALTER TABLE `huli_api_logs` ADD INDEX `idx_ip_time` (`ip_address`, `request_time`)");
-    $claim_table_check = $pdo->query("SHOW TABLES LIKE 'huli_daily_points_claim'")->fetch();
-    if (!$claim_table_check) {
-        $pdo->exec("CREATE TABLE huli_daily_points_claim (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            claim_date DATE NOT NULL,
-            points_granted INT NOT NULL DEFAULT 0,
-            claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY unique_user_date (user_id, claim_date),
-            INDEX idx_user (user_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    }
-    $rate_table_check = $pdo->query("SHOW TABLES LIKE 'huli_rate_limits'")->fetch();
-    if (!$rate_table_check) {
-        $pdo->exec("CREATE TABLE huli_rate_limits (
-            scope VARCHAR(16) NOT NULL,
-            identifier VARCHAR(64) NOT NULL,
-            window_start INT UNSIGNED NOT NULL,
-            request_count INT UNSIGNED NOT NULL DEFAULT 0,
-            PRIMARY KEY (scope, identifier, window_start)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    }
-    $required_settings = [
-        'enable_free_qps_limit'    => 1,
-        'qps_mode'                 => 'database',
-        'redis_host'               => '127.0.0.1',
-        'redis_port'               => 6379,
-        'redis_password'           => '',
-        'redis_database'           => 0,
-        'free_qps_seconds'         => 1,
-        'free_qps_limit'           => 10,
-        'enable_member_qps_limit'  => 1,
-        'member_qps_seconds'       => 1,
-        'member_qps_limit'         => 20,
-        'daily_free_points'        => 100,
-        'enable_daily_points'      => 1,
-        'warn_points_threshold'    => 5,
-        'warn_balance_threshold'   => 0.01,
-        'enable_warn_notification' => 1,
-        'enable_daily_points_notification' => 1
-    ];
-    $settings_check = $pdo->query("SELECT setting_key FROM huli_settings")->fetchAll(PDO::FETCH_COLUMN);
-    foreach ($required_settings as $key => $value) {
-        if (!in_array($key, $settings_check)) {
-            $stmt = $pdo->prepare("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES (?, ?)");
-            $stmt->execute([$key, $value]);
+    static $schema_checked = false;
+    if (!$schema_checked) {
+        $schema_checked = true;
+        $user_columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('points', $user_columns)) {
+            $pdo->exec("ALTER TABLE `huli_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`");
+        }
+        if (!in_array('membership_level', $user_columns)) {
+            $pdo->exec("ALTER TABLE `huli_users` ADD `membership_level` ENUM('normal', 'super') NOT NULL DEFAULT 'normal'");
+        }
+        if (!in_array('membership_expire', $user_columns)) {
+            $pdo->exec("ALTER TABLE `huli_users` ADD `membership_expire` DATETIME NULL DEFAULT NULL");
+        }
+        if (!in_array('last_points_warn_date', $user_columns)) {
+            $pdo->exec("ALTER TABLE `huli_users` ADD `last_points_warn_date` DATE NULL DEFAULT NULL");
+        }
+        if (!in_array('last_balance_warn_date', $user_columns)) {
+            $pdo->exec("ALTER TABLE `huli_users` ADD `last_balance_warn_date` DATE NULL DEFAULT NULL");
+        }
+        $log_columns = $pdo->query("SHOW COLUMNS FROM `huli_api_logs`")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('billing_type', $log_columns)) {
+            $pdo->exec("ALTER TABLE `huli_api_logs` ADD `billing_type` VARCHAR(20) NOT NULL DEFAULT 'free' AFTER `is_success`");
+        }
+        if (!in_array('billing_amount', $log_columns)) {
+            $pdo->exec("ALTER TABLE `huli_api_logs` ADD `billing_amount` DECIMAL(10,4) NOT NULL DEFAULT 0 AFTER `billing_type`");
+        }
+        $index_check = $pdo->query("SHOW INDEX FROM `huli_api_logs` WHERE Key_name = 'idx_user_time'")->fetch();
+        if (!$index_check) $pdo->exec("ALTER TABLE `huli_api_logs` ADD INDEX `idx_user_time` (`user_id`, `request_time`)");
+        $ip_index_check = $pdo->query("SHOW INDEX FROM `huli_api_logs` WHERE Key_name = 'idx_ip_time'")->fetch();
+        if (!$ip_index_check) $pdo->exec("ALTER TABLE `huli_api_logs` ADD INDEX `idx_ip_time` (`ip_address`, `request_time`)");
+        $claim_table_check = $pdo->query("SHOW TABLES LIKE 'huli_daily_points_claim'")->fetch();
+        if (!$claim_table_check) {
+            $pdo->exec("CREATE TABLE huli_daily_points_claim (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                claim_date DATE NOT NULL,
+                points_granted INT NOT NULL DEFAULT 0,
+                claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_date (user_id, claim_date),
+                INDEX idx_user (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
+        $rate_table_check = $pdo->query("SHOW TABLES LIKE 'huli_rate_limits'")->fetch();
+        if (!$rate_table_check) {
+            $pdo->exec("CREATE TABLE huli_rate_limits (
+                scope VARCHAR(16) NOT NULL,
+                identifier VARCHAR(64) NOT NULL,
+                window_start INT UNSIGNED NOT NULL,
+                request_count INT UNSIGNED NOT NULL DEFAULT 0,
+                PRIMARY KEY (scope, identifier, window_start)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
+        $required_settings = [
+            'enable_free_qps_limit'    => 1,
+            'qps_mode'                 => 'database',
+            'redis_host'               => '127.0.0.1',
+            'redis_port'               => 6379,
+            'redis_password'           => '',
+            'redis_database'           => 0,
+            'free_qps_seconds'         => 1,
+            'free_qps_limit'           => 10,
+            'enable_member_qps_limit'  => 1,
+            'member_qps_seconds'       => 1,
+            'member_qps_limit'         => 20,
+            'daily_free_points'        => 100,
+            'enable_daily_points'      => 1,
+            'warn_points_threshold'    => 5,
+            'warn_balance_threshold'   => 0.01,
+            'enable_warn_notification' => 1,
+            'enable_daily_points_notification' => 1
+        ];
+        $settings_check = $pdo->query("SELECT setting_key FROM huli_settings")->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($required_settings as $key => $value) {
+            if (!in_array($key, $settings_check)) {
+                $stmt = $pdo->prepare("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES (?, ?)");
+                $stmt->execute([$key, $value]);
+            }
         }
     }
     $settings = [];
