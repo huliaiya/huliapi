@@ -72,6 +72,8 @@ $out = str_replace(
     $out
 );
 
+huli_mcp_log_download($role, 'access_doc');
+
 try {
     huli_mcp_ensure_log_schema();
     $pdo = huli_mcp_pdo();

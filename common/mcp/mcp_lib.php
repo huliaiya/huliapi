@@ -38,6 +38,7 @@ function huli_mcp_store_token($role, $id, $token) {
     $table = $role === 'admin' ? 'huli_admins' : 'huli_users';
     $stmt = $pdo->prepare("UPDATE `$table` SET mcp_token_hash = ?, mcp_token_prefix = ? WHERE id = ?");
     $stmt->execute([$hash, $prefix, $id]);
+    huli_mcp_log_token_event($role, $id, 'generate', $prefix);
 }
 
 function huli_mcp_clear_token($role, $id) {
@@ -45,6 +46,210 @@ function huli_mcp_clear_token($role, $id) {
     $table = $role === 'admin' ? 'huli_admins' : 'huli_users';
     $stmt = $pdo->prepare("UPDATE `$table` SET mcp_token_hash = NULL, mcp_token_prefix = NULL WHERE id = ?");
     $stmt->execute([$id]);
+    huli_mcp_log_token_event($role, $id, 'revoke', '');
+}
+
+function huli_mcp_ensure_audit_schema() {
+    static $done = false;
+    if ($done) { return; }
+    $done = true;
+    $pdo = huli_mcp_pdo();
+    $tables = $pdo->query("SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()")->fetchAll(PDO::FETCH_COLUMN);
+
+    if (!in_array('huli_mcp_token_events', $tables)) {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_mcp_token_events` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `event_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `role` ENUM('user','admin') NOT NULL,
+            `user_id` INT UNSIGNED NOT NULL DEFAULT 0,
+            `username` VARCHAR(64) NOT NULL DEFAULT '',
+            `action` ENUM('generate','revoke') NOT NULL,
+            `token_prefix` VARCHAR(16) NOT NULL DEFAULT '',
+            `ip_address` VARCHAR(64) NOT NULL DEFAULT '',
+            `user_agent` VARCHAR(255) NOT NULL DEFAULT '',
+            PRIMARY KEY (`id`),
+            KEY `idx_role_time` (`role`,`event_time`),
+            KEY `idx_user` (`role`,`user_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MCP Token 生成/撤销流水'");
+    }
+
+    if (!in_array('huli_mcp_instruction_downloads', $tables)) {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_mcp_instruction_downloads` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `download_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `role` VARCHAR(16) NOT NULL DEFAULT '',
+            `ip_address` VARCHAR(64) NOT NULL DEFAULT '',
+            `user_agent` VARCHAR(255) NOT NULL DEFAULT '',
+            `via` ENUM('public','access_doc') NOT NULL DEFAULT 'public',
+            PRIMARY KEY (`id`),
+            KEY `idx_role_time` (`role`,`download_time`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MCP 接入指令下载记录'");
+    }
+
+    if (!in_array('huli_mcp_sessions', $tables)) {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_mcp_sessions` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `session_id` VARCHAR(64) NOT NULL DEFAULT '',
+            `started_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `ended_at` DATETIME NULL DEFAULT NULL,
+            `role` ENUM('user','admin') NOT NULL,
+            `user_id` INT UNSIGNED NOT NULL DEFAULT 0,
+            `username` VARCHAR(64) NOT NULL DEFAULT '',
+            `protocol` VARCHAR(64) NOT NULL DEFAULT '',
+            `ip_address` VARCHAR(64) NOT NULL DEFAULT '',
+            `user_agent` VARCHAR(255) NOT NULL DEFAULT '',
+            `messages_count` INT UNSIGNED NOT NULL DEFAULT 0,
+            `status` ENUM('active','closed','timed_out') NOT NULL DEFAULT 'active',
+            PRIMARY KEY (`id`),
+            KEY `idx_session` (`session_id`),
+            KEY `idx_role_time` (`role`,`started_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MCP 客户端连接会话'");
+    }
+
+    if (!in_array('huli_mcp_tool_calls', $tables)) {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_mcp_tool_calls` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `call_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `role` ENUM('user','admin') NOT NULL,
+            `user_id` INT UNSIGNED NOT NULL DEFAULT 0,
+            `username` VARCHAR(64) NOT NULL DEFAULT '',
+            `tool_name` VARCHAR(64) NOT NULL DEFAULT '',
+            `args_json` MEDIUMTEXT NULL DEFAULT NULL,
+            `status` ENUM('success','error') NOT NULL DEFAULT 'success',
+            `error_msg` VARCHAR(500) NULL DEFAULT NULL,
+            `ip_address` VARCHAR(64) NOT NULL DEFAULT '',
+            `latency_ms` INT UNSIGNED NOT NULL DEFAULT 0,
+            PRIMARY KEY (`id`),
+            KEY `idx_tool_time` (`tool_name`,`call_time`),
+            KEY `idx_role_time` (`role`,`call_time`),
+            KEY `idx_user` (`role`,`user_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MCP 工具调用记录（参数已脱敏）'");
+    }
+}
+
+function huli_mcp_audit_ip() {
+    return (string)($_SERVER['REMOTE_ADDR'] ?? '');
+}
+
+function huli_mcp_audit_ua() {
+    return (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+}
+
+function huli_mcp_resolve_username($role, $id) {
+    try {
+        $pdo = huli_mcp_pdo();
+        $table = $role === 'admin' ? 'huli_admins' : 'huli_users';
+        $stmt = $pdo->prepare("SELECT username FROM `$table` WHERE id = ? LIMIT 1");
+        $stmt->execute([(int)$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? (string)$row['username'] : '';
+    } catch (Throwable $e) { return ''; }
+}
+
+function huli_mcp_log_token_event($role, $id, $action, $tokenPrefix) {
+    try {
+        huli_mcp_ensure_audit_schema();
+        $pdo = huli_mcp_pdo();
+        $stmt = $pdo->prepare("INSERT INTO huli_mcp_token_events (role, user_id, username, action, token_prefix, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $role === 'admin' ? 'admin' : 'user',
+            (int)$id,
+            huli_mcp_resolve_username($role, $id),
+            $action === 'revoke' ? 'revoke' : 'generate',
+            $tokenPrefix !== '' ? substr($tokenPrefix, 0, 10) . '...' : '',
+            huli_mcp_audit_ip(),
+            huli_mcp_audit_ua(),
+        ]);
+    } catch (Throwable $e) { error_log('[mcp_lib] Token 流水写入失败: ' . $e->getMessage()); }
+}
+
+// 对工具调用参数做脱敏：隐藏 api_key / token / password / secret / key 等敏感字段值。
+function huli_mcp_sanitize_args(array $args) {
+    $sensitive = ['api_key', 'apikey', 'api-key', 'token', 'password', 'passwd', 'secret', 'secret_key', 'key', 'authorization'];
+    $sensitive = array_fill_keys($sensitive, true);
+    $out = [];
+    foreach ($args as $k => $v) {
+        $keyLower = strtolower((string)$k);
+        if (isset($sensitive[$keyLower]) || (strpos($keyLower, 'key') !== false)) {
+            $out[$k] = is_scalar($v) && $v !== null ? (strlen((string)$v) === 0 ? '' : '***' . str_repeat('*', (int)floor(strlen((string)$v) * 0.6))) : '***';
+            continue;
+        }
+        if (is_array($v)) {
+            $out[$k] = huli_mcp_sanitize_args($v);
+        } else {
+            $out[$k] = $v;
+        }
+    }
+    return $out;
+}
+
+function huli_mcp_log_tool_call($ctx, $toolName, array $args, $status, $errorMsg = '', $latencyMs = 0) {
+    try {
+        huli_mcp_ensure_audit_schema();
+        $pdo = huli_mcp_pdo();
+        $sanitized = huli_mcp_sanitize_args($args);
+        $argsJson = json_encode($sanitized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $argsJson = ($argsJson === false || strlen($argsJson) > 65000) ? null : $argsJson;
+        $stmt = $pdo->prepare("INSERT INTO huli_mcp_tool_calls (role, user_id, username, tool_name, args_json, status, error_msg, ip_address, latency_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $ctx['role'] ?? 'user',
+            (int)($ctx['id'] ?? 0),
+            (string)($ctx['username'] ?? ''),
+            $toolName,
+            $argsJson,
+            $status === 'error' ? 'error' : 'success',
+            (string)$errorMsg,
+            huli_mcp_audit_ip(),
+            (int)$latencyMs,
+        ]);
+    } catch (Throwable $e) { error_log('[mcp_lib] 工具调用记录写入失败: ' . $e->getMessage()); }
+}
+
+function huli_mcp_log_download($role, $via = 'public') {
+    try {
+        huli_mcp_ensure_audit_schema();
+        $pdo = huli_mcp_pdo();
+        $stmt = $pdo->prepare("INSERT INTO huli_mcp_instruction_downloads (role, ip_address, user_agent, via) VALUES (?, ?, ?, ?)");
+        $stmt->execute([(string)$role, huli_mcp_audit_ip(), huli_mcp_audit_ua(), $via === 'access_doc' ? 'access_doc' : 'public']);
+    } catch (Throwable $e) { error_log('[mcp_lib] 指令下载记录写入失败: ' . $e->getMessage()); }
+}
+
+function huli_mcp_session_start($sessionId, $ctx, $protocol) {
+    $dbId = null;
+    try {
+        huli_mcp_ensure_audit_schema();
+        $pdo = huli_mcp_pdo();
+        $stmt = $pdo->prepare("INSERT INTO huli_mcp_sessions (session_id, role, user_id, username, protocol, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            (string)$sessionId,
+            $ctx['role'] ?? 'user',
+            (int)($ctx['id'] ?? 0),
+            (string)($ctx['username'] ?? ''),
+            (string)$protocol,
+            huli_mcp_audit_ip(),
+            huli_mcp_audit_ua(),
+        ]);
+        $dbId = (int)$pdo->lastInsertId();
+    } catch (Throwable $e) { error_log('[mcp_lib] 会话建立记录写入失败: ' . $e->getMessage()); }
+    return $dbId;
+}
+
+function huli_mcp_session_bump($sessionId, $status = null) {
+    try {
+        huli_mcp_ensure_audit_schema();
+        $pdo = huli_mcp_pdo();
+        $stmt = $pdo->prepare("UPDATE huli_mcp_sessions SET messages_count = messages_count + 1" . ($status !== null ? ", status = '" . ($status === 'closed' ? 'closed' : 'timed_out') . "'" : "") . " WHERE session_id = ? ORDER BY id DESC LIMIT 1");
+        $stmt->execute([(string)$sessionId]);
+    } catch (Throwable $e) { error_log('[mcp_lib] 会话更新写入失败: ' . $e->getMessage()); }
+}
+
+function huli_mcp_session_close($sessionId, $status = 'closed') {
+    try {
+        huli_mcp_ensure_audit_schema();
+        $pdo = huli_mcp_pdo();
+        $stmt = $pdo->prepare("UPDATE huli_mcp_sessions SET status = ?, ended_at = NOW() WHERE session_id = ? AND status = 'active'");
+        $stmt->execute([$status === 'timed_out' ? 'timed_out' : 'closed', (string)$sessionId]);
+    } catch (Throwable $e) { error_log('[mcp_lib] 会话关闭写入失败: ' . $e->getMessage()); }
 }
 
 function huli_mcp_validate_token($token) {
