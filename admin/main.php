@@ -72,17 +72,23 @@ try {
         status ENUM('pending', 'processed') NOT NULL DEFAULT 'pending',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $stats['today_calls'] = $pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE DATE(request_time) = CURDATE()")->fetchColumn() ?: 0;
-    $stats['yesterday_calls'] = $pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE DATE(request_time) = CURDATE() - INTERVAL 1 DAY")->fetchColumn() ?: 0;
-    $stats['month_calls'] = $pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE MONTH(request_time) = MONTH(CURDATE()) AND YEAR(request_time) = YEAR(CURDATE())")->fetchColumn() ?: 0;
+    $todayStart = date('Y-m-d 00:00:00');
+    $todayEnd   = date('Y-m-d 00:00:00', strtotime('+1 day'));
+    $yestStart  = date('Y-m-d 00:00:00', strtotime('-1 day'));
+    $yestEnd    = $todayStart;
+    $monthStart = date('Y-m-01 00:00:00');
+    $monthEnd   = date('Y-m-01 00:00:00', strtotime('+1 month'));
+    $stats['today_calls'] = $pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE request_time >= '$todayStart' AND request_time < '$todayEnd'")->fetchColumn() ?: 0;
+    $stats['yesterday_calls'] = $pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE request_time >= '$yestStart' AND request_time < '$yestEnd'")->fetchColumn() ?: 0;
+    $stats['month_calls'] = $pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE request_time >= '$monthStart' AND request_time < '$monthEnd'")->fetchColumn() ?: 0;
     $stats['total_apis'] = $pdo->query("SELECT COUNT(*) FROM huli_apis")->fetchColumn() ?: 0;
     $stats['total_users'] = $pdo->query("SELECT COUNT(*) FROM huli_users")->fetchColumn() ?: 0;
     $stats['total_calls_all'] = $pdo->query("SELECT SUM(total_calls) FROM huli_apis")->fetchColumn() ?: 0;
     $stats['pending_feedback'] = $pdo->query("SELECT COUNT(*) FROM huli_feedback WHERE status = 'pending'")->fetchColumn() ?: 0;
-    $stats['success_orders'] = $pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'paid' AND DATE(created_at) = CURDATE()")->fetchColumn() ?: 0;
-    $stats['failed_orders'] = $pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'failed' AND DATE(created_at) = CURDATE()")->fetchColumn() ?: 0;
+    $stats['success_orders'] = $pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'paid' AND created_at >= '$todayStart' AND created_at < '$todayEnd'")->fetchColumn() ?: 0;
+    $stats['failed_orders'] = $pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'failed' AND created_at >= '$todayStart' AND created_at < '$todayEnd'")->fetchColumn() ?: 0;
     $stats['pending_orders'] = $pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'pending'")->fetchColumn() ?: 0;
-    $stats['today_income'] = $pdo->query("SELECT SUM(amount) FROM huli_orders WHERE status = 'paid' AND DATE(created_at) = CURDATE()")->fetchColumn() ?: 0;
+    $stats['today_income'] = $pdo->query("SELECT SUM(amount) FROM huli_orders WHERE status = 'paid' AND created_at >= '$todayStart' AND created_at < '$todayEnd'")->fetchColumn() ?: 0;
     $server_info['mysql_version'] = $pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
     $chart_query = $pdo->query("
         SELECT DATE(request_time) AS stat_date, COUNT(*) AS call_count
@@ -117,7 +123,7 @@ try {
     $top_apis_query = $pdo->query("
         SELECT api_id, COUNT(*) as call_count
         FROM huli_api_logs
-        WHERE DATE(request_time) = CURDATE()
+        WHERE request_time >= '$todayStart' AND request_time < '$todayEnd'
         GROUP BY api_id
         ORDER BY call_count DESC
         LIMIT 5

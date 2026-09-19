@@ -252,7 +252,8 @@ CREATE TABLE `huli_orders` (
   UNIQUE KEY `uk_provider_order` (`provider`,`provider_order_id`),
   UNIQUE KEY `uk_match_code` (`match_code`),
   KEY `user_id` (`user_id`),
-  KEY `status` (`status`)
+  KEY `status` (`status`),
+  KEY `status_created` (`status`,`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单管理表';
 DROP TABLE IF EXISTS `huli_qps_logs`;
 CREATE TABLE `huli_qps_logs` (
