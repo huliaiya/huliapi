@@ -79,11 +79,13 @@ function huli_mcp_handle_message($msg, $ctx) {
             $tool = $GLOBALS['HULI_MCP_TOOLS'][$name] ?? null;
             if (!$tool) {
                 huli_mcp_log($ctx, $method, $name, 'error', 'Unknown tool', (int)(microtime(true) * 1000) - $startMs);
+                huli_mcp_log_tool_call($ctx, $name, $args, 'error', 'Unknown tool', (int)(microtime(true) * 1000) - $startMs);
                 return huli_mcp_error(-32602, 'Unknown tool: ' . $name, $id);
             }
             try {
                 $result = call_user_func($tool['callable'], $ctx, $args);
                 huli_mcp_log($ctx, $method, $name, 'success', '', (int)(microtime(true) * 1000) - $startMs);
+                huli_mcp_log_tool_call($ctx, $name, $args, 'success', '', (int)(microtime(true) * 1000) - $startMs);
                 return huli_mcp_result([
                     'content' => [['type' => 'text', 'text' => is_string($result) ? $result : huli_mcp_json($result)]],
                     'isError' => false,
@@ -92,6 +94,7 @@ function huli_mcp_handle_message($msg, $ctx) {
                 $isDbError = $e instanceof PDOException;
                 $clientMsg = $isDbError ? '工具执行失败: 内部数据库错误' : ('工具执行失败: ' . $e->getMessage());
                 huli_mcp_log($ctx, $method, $name, 'error', $e->getMessage(), (int)(microtime(true) * 1000) - $startMs);
+                huli_mcp_log_tool_call($ctx, $name, $args, 'error', $e->getMessage(), (int)(microtime(true) * 1000) - $startMs);
                 return huli_mcp_result([
                     'content' => [['type' => 'text', 'text' => $clientMsg]],
                     'isError' => true,
@@ -151,6 +154,7 @@ function huli_mcp_handle_sse_endpoint($ctx) {
     header('Connection: keep-alive');
     header('X-Accel-Buffering: no');
     $sessionId = bin2hex(random_bytes(16));
+    huli_mcp_session_start($sessionId, $ctx, 'sse');
     echo "event: endpoint\ndata: " . huli_mcp_json([
         'uri' => 'mcp.php?transport=message&sessionId=' . $sessionId,
         'sessionId' => $sessionId,
@@ -161,6 +165,7 @@ function huli_mcp_handle_sse_endpoint($ctx) {
     flush();
     while (true) {
         if (connection_aborted()) {
+            huli_mcp_session_close($sessionId, 'closed');
             break;
         }
         echo ": keep-alive\n\n";
@@ -170,6 +175,7 @@ function huli_mcp_handle_sse_endpoint($ctx) {
         flush();
         usleep(15000000);
     }
+    huli_mcp_session_close($sessionId, 'closed');
 }
 
 function huli_mcp_handle_request() {
@@ -224,12 +230,21 @@ function huli_mcp_handle_request() {
     }
 
     if ($method === 'POST' && $transport === 'message') {
+        $sessionId = isset($_GET['sessionId']) ? (string)$_GET['sessionId'] : '';
         $raw = file_get_contents('php://input');
         $body = $raw === '' ? [] : json_decode($raw, true);
         if (!is_array($body)) {
             header('Content-Type: application/json; charset=utf-8');
             echo huli_mcp_json(huli_mcp_error(-32700, 'Parse error'));
             exit;
+        }
+        if ($sessionId !== '') {
+            $isInit = (is_array($body) && isset($body['method']) && $body['method'] === 'initialize');
+            if ($isInit) {
+                huli_mcp_session_start($sessionId, $ctx, 'streamable-http');
+            } else {
+                huli_mcp_session_bump($sessionId);
+            }
         }
         $result = huli_mcp_handle_message($body, $ctx);
         if ($result !== null) {
@@ -256,6 +271,16 @@ function huli_mcp_handle_request() {
     if (!is_array($body)) {
         huli_mcp_send_response(huli_mcp_error(-32700, 'Parse error'), $useSse);
         exit;
+    }
+
+    $sessionId = isset($_GET['sessionId']) ? (string)$_GET['sessionId'] : '';
+    if ($sessionId !== '') {
+        $isInit = (is_array($body) && isset($body['method']) && $body['method'] === 'initialize');
+        if ($isInit) {
+            huli_mcp_session_start($sessionId, $ctx, $useSse ? 'sse' : 'streamable-http');
+        } else {
+            huli_mcp_session_bump($sessionId);
+        }
     }
 
     $isBatch = $body === [] || array_keys($body) === range(0, count($body) - 1);

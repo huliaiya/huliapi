@@ -13,6 +13,11 @@ function huli_serve_mcp_prompt($role) {
         echo "# 错误\n\n未找到固定指令文件：mcp_prompt_" . $role . ".md";
         return;
     }
+
+    if (function_exists('huli_mcp_log_download')) {
+        try { huli_mcp_log_download($role, 'public'); }
+        catch (Throwable $e) { error_log('[mcp_prompt] 下载记录写入失败: ' . $e->getMessage()); }
+    }
     $roleName = $role === 'admin' ? '管理员' : '用户';
     $downloadFilename = 'huliapi-mcp-' . $role . '-接入指令.md';
     header('Content-Type: text/markdown; charset=utf-8');
