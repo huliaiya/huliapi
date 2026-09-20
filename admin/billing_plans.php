@@ -22,9 +22,13 @@ try {
         `is_card` TINYINT(1) NOT NULL DEFAULT 0,
         `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
-    $columns = $pdo->query("SHOW COLUMNS FROM `huli_billing_plans`")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('membership_days', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_billing_plans` ADD `membership_days` INT NOT NULL DEFAULT 0 AFTER `points_to_add`;");
+    static $_bp_schema_done = false;
+    if (!$_bp_schema_done) {
+        $_bp_schema_done = true;
+        $columns = $pdo->query("SHOW COLUMNS FROM `huli_billing_plans`")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('membership_days', $columns)) {
+            $pdo->exec("ALTER TABLE `huli_billing_plans` ADD `membership_days` INT NOT NULL DEFAULT 0 AFTER `points_to_add`;");
+        }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id'])) {
         $id = intval($_POST['id']);

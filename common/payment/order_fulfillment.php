@@ -23,6 +23,9 @@ if (!defined('HULI_ORDER_FULFILLMENT_LOADED')) {
 
     function huli_ensure_afdian_order_columns(PDO $pdo)
     {
+        static $done = false;
+        if ($done) { return; }
+        $done = true;
         try {
             $existing = $pdo->query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'huli_orders'")->fetchAll(PDO::FETCH_COLUMN);
         } catch (Exception $e) {

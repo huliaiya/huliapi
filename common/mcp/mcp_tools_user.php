@@ -169,7 +169,9 @@ huli_mcp_user_register('get_call_stats', '获取当前账号的调用统计：�
 ], function ($user, $args) {
     $pdo = huli_mcp_pdo();
     $limit = isset($args['limit']) ? max(1, min(50, (int)$args['limit'])) : 10;
-    $today = (int)$pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE user_id = " . (int)$user['id'] . " AND DATE(request_time) = CURDATE()")->fetchColumn();
+    $ts = date('Y-m-d 00:00:00');
+    $te = date('Y-m-d 00:00:00', strtotime('+1 day'));
+    $today = (int)$pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE user_id = " . (int)$user['id'] . " AND request_time >= '$ts' AND request_time < '$te'")->fetchColumn();
     $total = (int)$pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE user_id = " . (int)$user['id'])->fetchColumn();
     $stmt = $pdo->prepare("SELECT l.id, a.name AS api_name, l.request_time, l.is_success, l.response_code, l.billing_type, l.billing_amount FROM huli_api_logs l LEFT JOIN huli_apis a ON a.id = l.api_id WHERE l.user_id = ? ORDER BY l.request_time DESC LIMIT ?");
     $stmt->bindValue(1, (int)$user['id'], PDO::PARAM_INT);

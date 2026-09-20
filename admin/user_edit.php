@@ -11,9 +11,13 @@ $edit_mode = isset($_GET['id']);
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('points', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`;");
+    static $_ue_schema_done = false;
+    if (!$_ue_schema_done) {
+        $_ue_schema_done = true;
+        $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('points', $columns)) {
+            $pdo->exec("ALTER TABLE `huli_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`;");
+        }
     }
     $settings = [];
     $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");

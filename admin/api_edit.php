@@ -71,15 +71,19 @@ try {
         DB_PASS,
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
     );
-    $columns = $pdo->query("SHOW COLUMNS FROM `huli_apis`")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('admin_id', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_apis` ADD `admin_id` INT NOT NULL AFTER `id`;");
-    }
-    if (!in_array('category_id', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_apis` ADD `category_id` INT NULL AFTER `admin_id`;");
-    }
-    if (!in_array('points_per_call', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_apis` ADD `points_per_call` INT NOT NULL DEFAULT 1 AFTER `price_per_call`;");
+    static $_api_schema_done = false;
+    if (!$_api_schema_done) {
+        $_api_schema_done = true;
+        $columns = $pdo->query("SHOW COLUMNS FROM `huli_apis`")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('admin_id', $columns)) {
+            $pdo->exec("ALTER TABLE `huli_apis` ADD `admin_id` INT NOT NULL AFTER `id`;");
+        }
+        if (!in_array('category_id', $columns)) {
+            $pdo->exec("ALTER TABLE `huli_apis` ADD `category_id` INT NULL AFTER `admin_id`;");
+        }
+        if (!in_array('points_per_call', $columns)) {
+            $pdo->exec("ALTER TABLE `huli_apis` ADD `points_per_call` INT NOT NULL DEFAULT 1 AFTER `price_per_call`;");
+        }
     }
 
     if ($edit_mode) {

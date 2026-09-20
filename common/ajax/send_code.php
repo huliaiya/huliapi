@@ -58,16 +58,20 @@ try {
     }
 
      
-    $table_check = $pdo->query("SHOW TABLES LIKE 'huli_verification_code_logs'")->fetch();
-    if (!$table_check) {
-        $pdo->exec("CREATE TABLE huli_verification_code_logs (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            ip_address VARCHAR(45) NOT NULL,
-            email VARCHAR(255) NOT NULL,
-            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_ip_time (ip_address, sent_at),
-            INDEX idx_email_time (email, sent_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    static $_vc_schema_done = false;
+    if (!$_vc_schema_done) {
+        $_vc_schema_done = true;
+        $table_check = $pdo->query("SHOW TABLES LIKE 'huli_verification_code_logs'")->fetch();
+        if (!$table_check) {
+            $pdo->exec("CREATE TABLE huli_verification_code_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                ip_address VARCHAR(45) NOT NULL,
+                email VARCHAR(255) NOT NULL,
+                sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_ip_time (ip_address, sent_at),
+                INDEX idx_email_time (email, sent_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
     }
 
      
@@ -113,6 +117,7 @@ try {
     $code = str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
     $mail = new PHPMailer(true);
     $mail->isSMTP();
+    $mail->Timeout = 15;
     $mail->Host       = $settings['mail_smtp_host'];
     $mail->SMTPAuth   = true;
     $mail->Username   = $settings['mail_smtp_user'];

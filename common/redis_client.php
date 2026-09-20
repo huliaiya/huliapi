@@ -64,7 +64,7 @@ function huli_redis_connect(array $settings) {
 
     $redis = new Redis();
     $host = $config['scheme'] === 'rediss' ? 'tls://' . $config['host'] : $config['host'];
-    if (!$redis->connect($host, $config['port'], $config['timeout'])) {
+    if (!$redis->pconnect($host, $config['port'], $config['timeout'])) {
         throw new RuntimeException('Redis 连接失败');
     }
 

@@ -502,7 +502,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     </td>
                   </tr>
                   <?php else: ?>
-                    <?php foreach ($apis as $api):
+                    <?php
+                    $catMap = [];
+                    $catIds = array_unique(array_filter(array_column($apis, 'category_id')));
+                    if (!empty($catIds)) {
+                        $placeholders = implode(',', array_fill(0, count($catIds), '?'));
+                        $stmt_cm = $pdo->prepare("SELECT id, name FROM huli_api_categories WHERE id IN ($placeholders)");
+                        $stmt_cm->execute(array_values($catIds));
+                        $catMap = $stmt_cm->fetchAll(PDO::FETCH_KEY_PAIR);
+                    }
+                    foreach ($apis as $api):
                         $api = array_merge([
                             'visibility' => 'private',
                             'price_per_call' => 0,
@@ -538,7 +547,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <?php echo getStatusBadge($api['status']); ?>
                       </td>
                       <td class="d-col-category">
-                        <?php echo getCategoryName($pdo, $api['category_id']); ?>
+                        <?php echo htmlspecialchars($catMap[$api['category_id']] ?? '未知分类'); ?>
                       </td>
                       <td class="d-col-calls"><?php echo number_format($api['total_calls']); ?></td>
                       <td class="d-col-actions">

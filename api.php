@@ -16,9 +16,9 @@ try {
     $pdo = new PDO(
         "mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET,
         DB_USER,
-        DB_PASS
+        DB_PASS,
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 3]
     );
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $todayStart = date('Y-m-d 00:00:00');
     $todayEnd   = date('Y-m-d 00:00:00', strtotime('+1 day'));
     $yestStart  = date('Y-m-d 00:00:00', strtotime('-1 day'));

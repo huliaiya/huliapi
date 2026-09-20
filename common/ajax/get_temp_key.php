@@ -49,17 +49,21 @@ if (isset($_SESSION['last_temp_key_sent']) && time() - $_SESSION['last_temp_key_
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->exec("CREATE TABLE IF NOT EXISTS huli_temp_key_logs (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        ip_address VARCHAR(45) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('call_limit', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_users` ADD `call_limit` INT NOT NULL DEFAULT 0");
-    }
-    if (!in_array('expires_at', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_users` ADD `expires_at` DATETIME NULL DEFAULT NULL");
+    static $_tk_schema_done = false;
+    if (!$_tk_schema_done) {
+        $_tk_schema_done = true;
+        $pdo->exec("CREATE TABLE IF NOT EXISTS huli_temp_key_logs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            ip_address VARCHAR(45) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('call_limit', $columns)) {
+            $pdo->exec("ALTER TABLE `huli_users` ADD `call_limit` INT NOT NULL DEFAULT 0");
+        }
+        if (!in_array('expires_at', $columns)) {
+            $pdo->exec("ALTER TABLE `huli_users` ADD `expires_at` DATETIME NULL DEFAULT NULL");
+        }
     }
     $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -104,16 +108,22 @@ try {
     if (!$last_user_id) {
         throw new Exception("创建临时用户失败。");
     }
+    try {
+        $pdo->commit();
+    } catch (Exception $e) {
+        throw new Exception("创建临时用户失败。");
+    }
     $phpmailer_path = __DIR__ . '/../PHPMailer/src/Exception.php';
     if (!file_exists($phpmailer_path)) {
-        throw new Exception("邮件库缺失");
-    }
+        error_log('邮件库缺失，跳过邮件通知');
+    } else {
     require $phpmailer_path;
     require __DIR__ . '/../PHPMailer/src/PHPMailer.php';
     require __DIR__ . '/../PHPMailer/src/SMTP.php';
     $mail = new PHPMailer(true);
     try {
         $mail->SMTPDebug = 0;
+        $mail->Timeout = 15;
         $mail->Debugoutput = function($str, $level) {
             if ($level <= 1) {
                 error_log('PHPMailer: ' . $str);
@@ -172,13 +182,11 @@ try {
 </html>';
         $mail->send();
     } catch (Exception $e) {
-        $pdo->rollBack();
         error_log('邮件发送失败: ' . $e->getMessage() . ' ErrorInfo: ' . $mail->ErrorInfo);
-        json_response(false, '邮件发送失败，请检查您的邮箱地址或联系管理员。');
+    }
     }
     $stmt_log_ip = $pdo->prepare("INSERT INTO huli_temp_key_logs (ip_address) VALUES (?)");
     $stmt_log_ip->execute([$ip_address]);
-    $pdo->commit();
     $_SESSION['last_temp_key_sent'] = time();
     json_response(true, '申请成功！临时密钥已发送至您的邮箱，请注意查收。');
 } catch (Exception $e) {

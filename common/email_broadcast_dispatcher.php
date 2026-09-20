@@ -9,6 +9,9 @@ define('HULI_BROADCAST_COLUMNS', [
 
 function huli_ensure_broadcast_columns(PDO $pdo)
 {
+    static $done = false;
+    if ($done) { return; }
+    $done = true;
     try {
         $existing = $pdo->query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'huli_email_broadcasts'")->fetchAll(PDO::FETCH_COLUMN);
     } catch (Exception $e) {
@@ -100,22 +103,25 @@ function huli_broadcast_send_one($pdo, $id, &$err = null)
     $failed = 0;
     $firstError = null;
     $site_name = $settings['site_name'] ?? 'huliapi';
+    $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+    $mail->isSMTP();
+    $mail->SMTPKeepAlive = true;
+    $mail->Timeout = 15;
+    $mail->Host = $settings['mail_smtp_host'];
+    $mail->SMTPAuth = true;
+    $mail->Username = $settings['mail_smtp_user'];
+    $mail->Password = $settings['mail_smtp_pass'];
+    $mail->SMTPSecure = ($settings['mail_smtp_secure'] ?? 'tls') === 'ssl' ? PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS : PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->Port = intval($settings['mail_smtp_port']);
+    $mail->CharSet = 'UTF-8';
+    $mail->setFrom($settings['mail_smtp_user'], $site_name);
+    $mail->isHTML(true);
     foreach ($users as $user) {
         $email = trim((string)($user['email'] ?? ''));
         if ($email === '') { continue; }
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
-            $mail->isSMTP();
-            $mail->Host = $settings['mail_smtp_host'];
-            $mail->SMTPAuth = true;
-            $mail->Username = $settings['mail_smtp_user'];
-            $mail->Password = $settings['mail_smtp_pass'];
-            $mail->SMTPSecure = ($settings['mail_smtp_secure'] ?? 'tls') === 'ssl' ? PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS : PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = intval($settings['mail_smtp_port']);
-            $mail->CharSet = 'UTF-8';
-            $mail->setFrom($settings['mail_smtp_user'], $site_name);
+            $mail->clearAddresses();
             $mail->addAddress($email);
-            $mail->isHTML(true);
             $mail->Subject = huli_broadcast_render_template($b['title'], $user, $settings, $b, false);
             $body = huli_broadcast_render_template($b['content'], $user, $settings, $b);
             $mail->Body = $body;
@@ -129,6 +135,7 @@ function huli_broadcast_send_one($pdo, $id, &$err = null)
             $pdo->prepare("UPDATE huli_email_broadcasts SET sent_count = ? WHERE id = ?")->execute([$sent, $id]);
         }
     }
+    $mail->smtpClose();
 
     if ($sent === 0 && $failed > 0) {
         $pdo->prepare("UPDATE huli_email_broadcasts SET status = 'scheduled', last_error = ? WHERE id = ?")

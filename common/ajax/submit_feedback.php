@@ -60,6 +60,7 @@ try {
                 $type_text = $type === 'api' ? '接口问题' : '意见建议';
                 $mail = new PHPMailer(true);
                 $mail->isSMTP();
+                $mail->Timeout = 15;
                 $mail->Host       = $settings['mail_smtp_host'];
                 $mail->SMTPAuth   = true;
                 $mail->Username   = $settings['mail_smtp_user'];

@@ -17,17 +17,20 @@ huli_mcp_admin_register('get_system_stats', '获取系统核心运营数据：�
     'type' => 'object',
     'properties' => new stdClass(),
 ], function ($pdo, $args) {
+    $todayStart = date('Y-m-d 00:00:00');
+    $todayEnd = date('Y-m-d 00:00:00', strtotime('+1 day'));
+    $yestStart = date('Y-m-d 00:00:00', strtotime('-1 day'));
     return [
-        'today_calls' => (int)$pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE DATE(request_time) = CURDATE()")->fetchColumn(),
-        'yesterday_calls' => (int)$pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE DATE(request_time) = CURDATE() - INTERVAL 1 DAY")->fetchColumn(),
+        'today_calls' => (int)$pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE request_time >= '$todayStart' AND request_time < '$todayEnd'")->fetchColumn(),
+        'yesterday_calls' => (int)$pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE request_time >= '$yestStart' AND request_time < '$todayStart'")->fetchColumn(),
         'total_calls' => (int)$pdo->query("SELECT COALESCE(SUM(total_calls), 0) FROM huli_apis")->fetchColumn(),
-        'today_income' => (float)$pdo->query("SELECT COALESCE(SUM(amount), 0) FROM huli_orders WHERE status = 'paid' AND DATE(created_at) = CURDATE()")->fetchColumn(),
+        'today_income' => (float)$pdo->query("SELECT COALESCE(SUM(amount), 0) FROM huli_orders WHERE status = 'paid' AND created_at >= '$todayStart' AND created_at < '$todayEnd'")->fetchColumn(),
         'total_users' => (int)$pdo->query("SELECT COUNT(*) FROM huli_users")->fetchColumn(),
-        'today_new_users' => (int)$pdo->query("SELECT COUNT(*) FROM huli_users WHERE DATE(created_at) = CURDATE()")->fetchColumn(),
+        'today_new_users' => (int)$pdo->query("SELECT COUNT(*) FROM huli_users WHERE created_at >= '$todayStart' AND created_at < '$todayEnd'")->fetchColumn(),
         'active_users' => (int)$pdo->query("SELECT COUNT(*) FROM huli_users WHERE status = 'active'")->fetchColumn(),
         'total_apis' => (int)$pdo->query("SELECT COUNT(*) FROM huli_apis")->fetchColumn(),
         'normal_apis' => (int)$pdo->query("SELECT COUNT(*) FROM huli_apis WHERE status = 'normal'")->fetchColumn(),
-        'today_success_orders' => (int)$pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'paid' AND DATE(created_at) = CURDATE()")->fetchColumn(),
+        'today_success_orders' => (int)$pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'paid' AND created_at >= '$todayStart' AND created_at < '$todayEnd'")->fetchColumn(),
         'pending_orders' => (int)$pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'pending'")->fetchColumn(),
         'pending_feedback' => (int)$pdo->query("SELECT COUNT(*) FROM huli_feedback WHERE status = 'pending'")->fetchColumn(),
     ];
@@ -81,7 +84,9 @@ huli_mcp_admin_register('get_user_detail', '获取单个用户的完整信息：
         throw new RuntimeException('用户不存在');
     }
     $uid = (int)$user['id'];
-    $user['today_calls'] = (int)$pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE user_id = $uid AND DATE(request_time) = CURDATE()")->fetchColumn();
+    $todayStart = date('Y-m-d 00:00:00');
+    $todayEnd = date('Y-m-d 00:00:00', strtotime('+1 day'));
+    $user['today_calls'] = (int)$pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE user_id = $uid AND request_time >= '$todayStart' AND request_time < '$todayEnd'")->fetchColumn();
     $user['total_calls'] = (int)$pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE user_id = $uid")->fetchColumn();
     $user['orders'] = $pdo->query("SELECT order_id, amount, status, provider, created_at FROM huli_orders WHERE user_id = $uid ORDER BY created_at DESC LIMIT 10")->fetchAll(PDO::FETCH_ASSOC);
     $user['transactions'] = $pdo->query("SELECT id, type, amount, description, status, created_at FROM huli_transactions WHERE user_id = $uid ORDER BY created_at DESC LIMIT 10")->fetchAll(PDO::FETCH_ASSOC);
@@ -601,27 +606,34 @@ huli_mcp_admin_register('get_mcp_stats', '获取 MCP 服务请求统计：今日
     'type' => 'object',
     'properties' => new stdClass(),
 ], function ($pdo, $args) {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS huli_mcp_logs (
-      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-      request_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      role ENUM('user','admin') NOT NULL,
-      user_id INT UNSIGNED NOT NULL DEFAULT 0,
-      username VARCHAR(64) NOT NULL DEFAULT '',
-      method VARCHAR(64) NOT NULL DEFAULT '',
-      tool_name VARCHAR(64) NULL DEFAULT NULL,
-      ip_address VARCHAR(64) NOT NULL DEFAULT '',
-      status ENUM('success','error','invalid') NOT NULL DEFAULT 'success',
-      error_msg VARCHAR(500) NULL DEFAULT NULL,
-      latency_ms INT UNSIGNED NOT NULL DEFAULT 0,
-      PRIMARY KEY (id),
-      KEY idx_request_time (request_time),
-      KEY idx_role_time (role, request_time),
-      KEY idx_user_time (role, user_id, request_time),
-      KEY idx_method (method),
-      KEY idx_tool (tool_name)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $today = (int)$pdo->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE DATE(request_time) = CURDATE()")->fetchColumn();
-    $yesterday = (int)$pdo->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE DATE(request_time) = CURDATE() - INTERVAL 1 DAY")->fetchColumn();
+    static $_mcp_log_schema_done = false;
+    if (!$_mcp_log_schema_done) {
+        $_mcp_log_schema_done = true;
+        $pdo->exec("CREATE TABLE IF NOT EXISTS huli_mcp_logs (
+          id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+          request_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          role ENUM('user','admin') NOT NULL,
+          user_id INT UNSIGNED NOT NULL DEFAULT 0,
+          username VARCHAR(64) NOT NULL DEFAULT '',
+          method VARCHAR(64) NOT NULL DEFAULT '',
+          tool_name VARCHAR(64) NULL DEFAULT NULL,
+          ip_address VARCHAR(64) NOT NULL DEFAULT '',
+          status ENUM('success','error','invalid') NOT NULL DEFAULT 'success',
+          error_msg VARCHAR(500) NULL DEFAULT NULL,
+          latency_ms INT UNSIGNED NOT NULL DEFAULT 0,
+          PRIMARY KEY (id),
+          KEY idx_request_time (request_time),
+          KEY idx_role_time (role, request_time),
+          KEY idx_user_time (role, user_id, request_time),
+          KEY idx_method (method),
+          KEY idx_tool (tool_name)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    }
+    $todayStart = date('Y-m-d 00:00:00');
+    $todayEnd = date('Y-m-d 00:00:00', strtotime('+1 day'));
+    $yestStart = date('Y-m-d 00:00:00', strtotime('-1 day'));
+    $today = (int)$pdo->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE request_time >= '$todayStart' AND request_time < '$todayEnd'")->fetchColumn();
+    $yesterday = (int)$pdo->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE request_time >= '$yestStart' AND request_time < '$todayStart'")->fetchColumn();
     $total = (int)$pdo->query("SELECT COUNT(*) FROM huli_mcp_logs")->fetchColumn();
     $success = (int)$pdo->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE status = 'success'")->fetchColumn();
     $error = (int)$pdo->query("SELECT COUNT(*) FROM huli_mcp_logs WHERE status IN ('error','invalid')")->fetchColumn();
