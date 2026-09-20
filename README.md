@@ -1,262 +1,166 @@
-# huliapi 安装版（main 分支）
+# huliapi 安装版
 
-版本：1.6.0  
-运行环境：PHP 7.4+、MySQL 5.7+ 或 MariaDB 10.3+
+版本：1.6.0
+运行环境：PHP 7.4+、MySQL 5.7+ 或 MariaDB 10.3+、Nginx/Apache
 
-`main` 分支是 huliapi 的完整安装分支，用于首次部署和初始化站点。这个分支包含安装入口、数据库初始化 SQL、默认配置文件和完整业务代码。
+huliapi（胡里 API）是一个可直接部署的 API 分发与管理平台：开箱即用的首页 + 用户中心，内置接口管理、计费、支付、卡密兑换、限流防刷、邮件与 Webhook 推送、MCP 接入能力，适合个人或团队搭建自己的 API 商城。
 
 ---
 
-## 分支说明
+## 一、功能特性
+
+### 接口与服务管理
+
+- **API 管理**：接口的新增、编辑、启停、分类归属；按 API 单独设置计费方式、调用单价、点数消耗、调用量统计。
+- **分类管理**：接口分类的新增、修改、排序，前台分类筛选。
+- **公告管理**：系统公告的新增、编辑、发布与停用。
+- **CDKEY / 卡密**：批量生成、导入、兑换；卡密支持 `balance`（余额）、`points`（点数）、`membership`（会员时长）三种类型；支持「临时密钥 / 体验卡」自动申请与邮箱发放。
+- **并发限流**：免费用户与会员可分别配置 QPS 限制；支持「数据库限流」与「Redis 限流」两种模式，防止接口被刷。
+- **调用统计**：今日/昨日/本月调用量、总调用量、成功率、Top 接口、按天/按月趋势图。
+
+### 用户与计费
+
+- **用户体系**：注册、登录、邮箱验证码、忘记密码、个人中心；支持管理员后台调整余额、点数、会员等级与到期时间。
+- **计费模型**：余额计费、点数计费、会员免费调用三种；支持余额/点数不足预警邮件通知。
+- **每日赠送**：可开启每日签到免费赠送点数，并支持赠送通知。
+- **卡密兑换**：用户中心输入卡密即可充值余额、点数或会员时长。
+
+### 支付能力
+
+- **爱发电（Afdian）**：支付发起、异步回调、订单查询、发货（点数/余额/会员自动入账）。
+- **易支付（Epay）**：通用易支付 SDK，支持支付宝/微信/QQ 扫码。
+- **支付回调**：完善的签名校验、订单状态流转（pending → paid/failed/canceled）、掉单查询与自动补单。
+
+### 推送与通知
+
+- **多通道推送**：邮件、企业微信、钉钉、飞书、Bark、通用 Webhook 六种通道。
+- **系统级配置**：管理员在后台统一配置各通道；支持通道测试。
+- **用户级配置**：用户中心独立设置个人推送接收地址与触发事件。
+- **邮件广播**：SMTP 广播任务（一次性 / 每日定时）、按用户属性模板化个性化内容；SMTP 长连接复用提升群发吞吐。
+- **邮件测试**：后台配置 SMTP 后可发测试邮件验证。
+
+### MCP（Model Context Protocol）
+
+- **MCP 服务器**：`mcp.php` 提供 Streamable HTTP / SSE 双传输；支持 Bearer Token 鉴权。
+- **双端工具**：管理员端 23 个管理工具（系统统计、用户/API/CDKEY/卡密管理、订单与支付、推送、MCP 日志审计等）；用户端 14 个工具（账户信息、API 调用、调用统计、订单/交易查询、卡密兑换、反馈等）。
+- **Token 隔离**：管理员与用户 Token 完全隔离，Token 仅以 SHA-256 哈希入库，明文只在生成时展示一次；Token 操作写入审计日志。
+- **指令下载**：管理员/用户 MCP 使用说明可直接通过公开下载入口获取，无需暴露内部路径。
+
+### 安全与审计
+
+- 登录一次一密（bcrypt），登录成功后刷新 Session ID。
+- 全部 SQL 走 PDO 预处理；管理后台 POST 校验来源（Origin/Referer 防 CSRF）。
+- Cloudflare Turnstile 人机验证（可选）。
+- IP 限流、验证码发送频率限制（邮箱/验证码日志表）。
+- 管理员登录日志、用户登录日志、API 调用日志、MCP 调用审计入库。
+- 环境内置 schema 探测进程级缓存，热点统计查询走索引扫描（全链路轻量化）。
+
+### 其他
+
+- **双模板**：前台首页 / 用户中心独立目录模板（`template/home/huli/`、`template/user/huli/`），支持换肤。
+- **在线更新**：从 GitHub 拉取更新（`main` 安装版 / `miao` 更新版两个分支），支持定时计划任务自动检查更新。
+
+---
+
+## 二、环境要求
+
+- PHP 7.4+（推荐 8.0+）；必需扩展：`pdo_mysql`、`mbstring`、`openssl`、`curl`；可选：`gd`（验证码/图片）、`zip`（在线更新解压）。
+- MySQL 5.7+ 或 MariaDB 10.3+。
+- Nginx 或 Apache。
+- 目录需可写（安装向导自动创建 `config.php` 与 `install/install.lock`）。
+- 建议启用 PHP OPcache。
+
+---
+
+## 三、安装教程
+
+### 方式 A：宝塔面板（推荐新手）
+
+1. **创建站点**
+   在宝塔「网站 → PHP项目 → 添加站点」，填写你的域名，运行目录保持默认（项目根），PHP 版本选 7.4 及以上。记下数据库账号（或在宝塔「数据库」里新建一个空库）。
+
+2. **上传代码**
+   在「网站根目录」里，把本仓库 `main` 分支的全部文件上传进去（推荐先在本地解压成 zip，再用宝塔「上传」→「解压」）。确认根目录下能看到 `index.php`、`api.php`、`main1.php`、`install/` 目录。
+
+3. **打开域名，自动进入安装**
+   浏览器访问 `http://你的域名/`。系统检测到 `install/install.lock` 不存在，会自动跳转到 `http://你的域名/install/` 安装向导。若未自动跳转，直接访问 `http://你的域名/install/` 即可。
+
+4. **填写安装向导**
+   按向导步骤依次填写：数据库地址/端口/库名/账号/密码、站点信息、管理员账号。安装器会自动写 `config.php`、建表、导入初始数据并生成 `install.lock`。
+
+5. **完成**
+   安装完成后回到 `http://你的域名/` 即可打开首页；`http://你的域名/admin/` 为管理后台，`http://你的域名/user/` 为用户中心。
+
+> 注意：安装完成后，为安全起见可从服务器移除 `install/` 目录（或删除 `install/install.lock` 前的写入权限）。若安装后访问提示「出现错误！配置文件丢失」，说明 `config.php` 未被写入，请检查目录写权限。
+
+### 方式 B：命令行（Linux 服务器）
+
+```bash
+# 1. 克隆安装分支
+git clone -b main https://github.com/huliaiya/huliapi.git
+cd huliapi
+
+# 2. 安装依赖（确保存在 vendor / PHPMailer）
+# 仓库已内置 PHPMailer 与支付 SDK，无需 composer；确保 PHP 已装 pdo_mysql、mbstring。
+
+# 3. 启动 PHP 内置服务器（本地调试）
+php -S 0.0.0.0:8000
+# 浏览器打开 http://服务器IP:8000/ ，自动进入 install/ 向导
+```
+
+### 方式 C：已有站点升级（`miao` 分支）
+
+已部署的站点升级请使用 `miao` 分支（更新版），该分支不包含 `install/` 安装向导、不会覆盖站点已有 `config.php`。详见下方「更新方式」。
+
+---
+
+## 四、目录结构（main 分支）
+
+- `API/`：公开接口入口。
+- `admin/`：管理后台。
+- `cli/`：命令行 / 定时任务脚本（`cron.php`、`email_broadcast_tick.php`、`query_pending_orders.php`、`update_scheduler.php`、`update_worker.php`）。
+- `common/`：公共服务（数据库、邮箱、支付、推送、Redis、Turnstile、MCP、模板管理、在线更新）。
+- `template/`：模板目录（`home/` 首页、`user/` 用户中心）。
+- `install/`：安装向导与 `install.lock` 安装锁。
+- `index.php` / `main1.php` / `api.php`：站点入口，未安装时自动跳转安装向导。
+
+---
+
+## 五、分支说明
 
 | 分支 | 用途 | 说明 |
 |------|------|------|
-| `main` | 安装版 | 用于首次部署，包含 `config.php`、`install/`、初始化 SQL 和完整安装入口。 |
-| `miao` | 更新版 | 用于已安装站点更新，保留运行配置，避免覆盖本地安装状态。 |
+| `main` | 安装版 | 首次部署使用；包含 `install/` 安装向导、可自动生成 `config.php`。 |
+| `miao` | 更新版 | 已安装站点升级用；不覆盖本地配置与安装状态。 |
 
-首次部署使用 `main` 分支。已有站点更新使用 `miao` 分支。
+## 六、更新方式
 
----
-
-## 功能概览
-
-- API 接口管理与分类管理。
-- 用户注册、登录、余额、套餐、充值和卡密兑换。
-- 管理员后台仪表盘、订单管理、用户管理、接口管理。
-- 邮件群发与定时群发。
-- 多通道推送通知，支持邮件、企业微信、钉钉、飞书、Bark、Webhook。
-- 管理员系统级推送配置与用户级独立推送配置。
-- 用户登录日志、管理员登录日志与安全审计。
-- Cloudflare Turnstile 人机验证。
-- 首页模板和用户中心模板管理。
+已安装站点通过后台「系统管理 → 系统更新」或 `cli/update_worker.php` 拉取 `miao` 分支更新。手动更新时请使用 `miao` 分支，并保留现有 `config.php` 与安装状态文件。
 
 ---
 
-## 环境要求
+## 七、常见问题
 
-- PHP 7.4 或更高版本（推荐 8.0 及以上）。
-- MySQL 5.7+ 或 MariaDB 10.3+。
-- Nginx 或 Apache。
-- PHP 扩展：PDO、pdo_mysql、curl、openssl、mbstring、gd；可选：zip（仅后台在线更新解压需要，未安装不影响正常使用）。
-- 推荐启用 PHP OPcache。
+### 安装后打不开首页 / 提示丢失配置？
 
----
+检查站点根目录下是否存在 `config.php`，以及目录是否可写（安装向导需写入配置文件）。确认访问路径是站点根目录而非子目录。
 
-## 安装流程
+### 宝塔安装后一直停在安装向导？
 
-### 1. 克隆安装版分支
+确认浏览器访问的是站点根域名（非 `/admin/` 等子路径）。若已自动生成 `install.lock` 但仍跳转，检查 `index.php` 与 `main1.php` 的跳转判断是否被缓存（浏览器强刷 / 清 OPcache）。
 
-```bash
-git clone -b main https://github.com/huliaiya/huliapi.git
-cd huliapi
-```
+### 验证码不显示？
 
-### 2. 配置 Web 服务器
+检查「系统设置 → Turnstile」是否正确配置 Site Key / Secret Key，且站点域名已在 Cloudflare 后台的 Turnstile 域名白名单内。
 
-将站点根目录指向项目目录。Nginx 示例：
+### 邮件发送失败？
 
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    root /path/to/huliapi;
-    index index.php;
+在后台「系统设置 → 邮件」配置 SMTP 并先使用「测试邮件」功能验证；确认 SMTP 账号/密码/端口/加密方式正确，并确保服务器 25/465/587 出站端口放行。
 
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
+### 支付回调不生效？
 
-    location ~ \.php$ {
-        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        include fastcgi_params;
-    }
-}
-```
+确认在爱发电/易支付后台填写的回调地址与本站 `common/payment/notify.php` 一致，且服务器能收到公网回调。
 
-### 3. 设置目录权限
+### 应该用哪个分支？
 
-```bash
-chmod -R 755 .
-chmod 644 config.php
-```
-
-根据服务器环境，确保 Web 运行用户可写入安装过程需要更新的配置文件。
-
-### 4. 运行安装向导
-
-浏览器访问：
-
-```text
-http://your-domain.com/install/
-```
-
-按安装向导填写数据库连接信息、站点信息和管理员账号。
-
-### 5. 安装完成处理
-
-安装完成后会生成安装锁。生产环境建议限制 `install/` 访问权限，或在确认后移除安装入口以提高安全性。
-
----
-
-## 安装版文件组成
-
-`main` 分支主要包含：
-
-- `config.php`：默认配置文件，安装流程会写入数据库连接等配置。
-- `install/`：安装入口与初始化 SQL。
-- `admin/`：后台管理功能。
-- `API/`：接口入口。
-- `common/`：公共函数、支付、推送、安全、模板管理逻辑。
-- `template/home/huli/`：首页模板。
-- `template/user/huli/`：用户中心模板。
-- `assets/`：静态资源。
-- `cli/`：定时任务脚本。
-
----
-
-## 更新方式
-
-已安装站点请通过后台「系统管理 -> 系统更新」执行更新。更新来源为 `miao` 分支。
-
-更新版分支用于覆盖业务代码和模板文件，同时保留本地配置和安装状态。
-
-手动更新时请使用 `miao` 分支，并保留现有站点的 `config.php` 和安装状态文件。
-
----
-
-## 本版本重点功能
-
-- 管理员系统级多通道推送配置。
-- 用户级独立推送通知配置。
-- 支持邮件、企业微信、钉钉、飞书、Bark、Webhook 六类通道。
-- 用户中心新增推送通知设置页。
-- 用户登录日志页支持 IP、地理位置、ISP、UA 横向滚动查看。
-- 登录成功后记录 IP 查询接口调用。
-- 首页模板目录统一为 `template/home/huli/`。
-- 用户中心模板目录统一为 `template/user/huli/`。
-- 图形验证码已移除，仅保留 Cloudflare Turnstile。
-
----
-
-## 首次配置清单
-
-安装完成后进入后台「系统设置」检查以下内容：
-
-- Turnstile Site Key 和 Secret Key。两个 Key 必须来自同一个 Turnstile 站点，并在 Cloudflare 的 Hostname Management 中授权本站域名。
-- SMTP 主机、端口、账号、密码和加密方式。
-- 支付配置。
-- ICP 备案号和公安备案号。
-- favicon URL。
-- 推送通道配置。
-- 首页模板和用户中心模板。
-
-管理员启用某个推送通道后，用户中心才会显示对应配置项。
-
----
-
-## 推送通知说明
-
-推送配置分为两层：
-
-- 管理员系统级配置：后台「系统设置 -> 基础设置」底部配置各通道基础参数。
-- 用户级配置：用户中心「推送通知」页面配置个人接收地址和触发事件。
-
-通道能力：
-
-- 邮件：管理员可测试，用户端提供接收配置。
-- 企业微信：支持 Webhook。
-- 钉钉：支持 Webhook。
-- 飞书：支持 Webhook。
-- Bark：支持 Device Key。
-- Webhook：支持自定义 HTTP 回调地址。
-
----
-
-## 模板说明
-
-当前模板目录使用语义化命名：
-
-- 首页模板：`template/home/huli/`
-- 用户中心模板：`template/user/huli/`
-
-数据库模板表中的 `folder` 字段必须与目录名称一致。旧版本中的纯数字目录名已经统一迁移为 `huli`。
-
----
-
-## 安全说明
-
-- 后台登录使用 bcrypt 密码哈希。
-- 登录成功后刷新 Session ID，降低会话固定风险。
-- 数据库操作使用 PDO 预处理语句。
-- 输出内容使用 `htmlspecialchars()` 转义。
-- 人机验证使用 Cloudflare Turnstile。
-- 管理员登录日志和用户登录日志独立记录。
-
-## MCP 服务
-
-huliapi 内置 Model Context Protocol (MCP) 服务，支持 Streamable HTTP 与 SSE 两种传输协议，可供 Claude Desktop、Cursor、Dify 等支持 MCP 的客户端接入。
-
-### 服务地址
-
-`/mcp.php`（例如 `https://你的域名/mcp.php`），协议版本 `2024-11-05`，使用 Bearer Token 鉴权。
-
-### 用户端与管理员端隔离
-
-- **用户 MCP**：在「用户中心 - MCP 配置」页面生成 Token。包含账户信息查询、API 调用、调用统计、交易记录、订单查询、套餐浏览、卡密兑换、反馈提交、公告查看等 14 个用户工具。
-- **管理员 MCP**：在「管理后台 - MCP 配置」页面生成 Token。包含系统统计、用户管理、余额/点数调整、API 管理、订单查看、卡密生成/管理、套餐管理、公告发布、反馈回复、调用日志、MCP 请求统计与历史日志查询、交易查询等 23 个管理工具。
-- 两种 Token 完全隔离：用户 Token 调用管理工具会返回 `Unknown tool`，反之亦然。Token 仅以 SHA-256 哈希形式存储于数据库，明文只在生成时展示一次。
-
-### 客户端配置示例
-
-```json
-{
-  "mcpServers": {
-    "huliapi": {
-      "url": "https://你的域名/mcp.php",
-      "headers": {
-        "Authorization": "Bearer 你的Token"
-      }
-    }
-  }
-}
-```
-
----
-
-## 常见问题
-
-### 应该用哪个分支安装？
-
-首次安装使用 `main` 分支。
-
-### 已经安装过的站点应该用哪个分支更新？
-
-已有站点使用 `miao` 分支更新。
-
-### 安装后无法连接数据库怎么办？
-
-检查 `config.php` 中的数据库主机、数据库名、用户名、密码和字符集配置。
-
-### 安装后首页模板加载失败怎么办？
-
-检查数据库 `huli_site_home_templates.folder` 是否为 `huli`，并确认 `template/home/huli/` 存在。
-
-### 用户中心推送通知入口看不到怎么办？
-
-需要管理员先在后台启用对应推送通道，用户端才会显示可配置项。
-
-### 邮件发送失败怎么办？
-
-在后台「系统设置」检查 SMTP 配置，并使用后台测试功能验证邮件发送能力。
-
-### Turnstile 验证不通过怎么办？
-
-按以下顺序排查：
-
-1. 生产环境需要在后台替换为真实的 Cloudflare Turnstile Site Key 和 Secret Key。
-2. 两个 Key 必须来自同一个 Turnstile 站点。测试密钥与正式密钥混用时校验必然失败。
-3. 在 Cloudflare Turnstile 站点的 Hostname Management 中添加本站实际访问域名。未授权的域名或直接用 IP 访问都会被拒绝。
-4. 粘贴 Key 时不要带入空格或换行。
-
-验证失败时页面会显示 Cloudflare 返回的具体原因，服务端同时向 PHP error_log 写入 `[turnstile]` 前缀的日志，可据此定位。
+首次安装用 `main`；已有站点升级用 `miao`。
