@@ -148,8 +148,7 @@ $relative_path = ltrim($relative_path, '/\\');
 $endpoint = preg_replace('/\.php$/i', '', $relative_path);
 $encoded_endpoint = implode('/', array_map('rawurlencode', explode('/', $endpoint)));
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 3]);
 
     static $schema_checked = false;
     if (!$schema_checked) {

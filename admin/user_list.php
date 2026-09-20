@@ -19,15 +19,19 @@ $level_map = [
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('points', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`;");
-    }
-    if (!in_array('membership_level', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_users` ADD `membership_level` VARCHAR(20) NOT NULL DEFAULT 'normal' AFTER `points`;");
-    }
-    if (!in_array('membership_expire', $columns)) {
-        $pdo->exec("ALTER TABLE `huli_users` ADD `membership_expire` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `membership_level`;");
+    static $_ul_schema_done = false;
+    if (!$_ul_schema_done) {
+        $_ul_schema_done = true;
+        $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('points', $columns)) {
+            $pdo->exec("ALTER TABLE `huli_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`;");
+        }
+        if (!in_array('membership_level', $columns)) {
+            $pdo->exec("ALTER TABLE `huli_users` ADD `membership_level` VARCHAR(20) NOT NULL DEFAULT 'normal' AFTER `points`;");
+        }
+        if (!in_array('membership_expire', $columns)) {
+            $pdo->exec("ALTER TABLE `huli_users` ADD `membership_expire` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `membership_level`;");
+        }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id']) && !isset($_POST['ids'])) {
         $id = intval($_POST['id']);

@@ -15,17 +15,20 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false,
     ];
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
-    $columns = $pdo->query("SHOW COLUMNS FROM `huli_cdkeys`")->fetchAll(PDO::FETCH_COLUMN);
-    $needsAlter = false;
-    if (!in_array('type', $columns)) { $needsAlter = true; }
-    elseif ($pdo->query("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='huli_cdkeys' AND COLUMN_NAME='type'")->fetchColumn() !== "ENUM('balance', 'points', 'membership')") { $needsAlter = true; }
-    if (!in_array('points', $columns)) { $needsAlter = true; }
-    if (!in_array('membership_days', $columns)) { $needsAlter = true; }
-    if (!in_array('status', $columns)) { $needsAlter = true; }
-    elseif ($pdo->query("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='huli_cdkeys' AND COLUMN_NAME='status'")->fetchColumn() !== "ENUM('unused', 'used')") { $needsAlter = true; }
-    if (!in_array('used_by_user_id', $columns)) { $needsAlter = true; }
-    if (!in_array('used_at', $columns)) { $needsAlter = true; }
-    if ($needsAlter) {
+    static $_cd_schema_done = false;
+    if (!$_cd_schema_done) {
+        $_cd_schema_done = true;
+        $columns = $pdo->query("SHOW COLUMNS FROM `huli_cdkeys`")->fetchAll(PDO::FETCH_COLUMN);
+        $needsAlter = false;
+        if (!in_array('type', $columns)) { $needsAlter = true; }
+        elseif ($pdo->query("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='huli_cdkeys' AND COLUMN_NAME='type'")->fetchColumn() !== "ENUM('balance', 'points', 'membership')") { $needsAlter = true; }
+        if (!in_array('points', $columns)) { $needsAlter = true; }
+        if (!in_array('membership_days', $columns)) { $needsAlter = true; }
+        if (!in_array('status', $columns)) { $needsAlter = true; }
+        elseif ($pdo->query("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='huli_cdkeys' AND COLUMN_NAME='status'")->fetchColumn() !== "ENUM('unused', 'used')") { $needsAlter = true; }
+        if (!in_array('used_by_user_id', $columns)) { $needsAlter = true; }
+        if (!in_array('used_at', $columns)) { $needsAlter = true; }
+        if ($needsAlter) {
         try {
             $pdo->beginTransaction();
             if (!in_array('type', $columns)) {
@@ -54,6 +57,7 @@ try {
         } catch (Exception $e) {
             if ($pdo->inTransaction()) { $pdo->rollBack(); }
         }
+    }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST['action']) && $_POST['action'] === 'generate') {

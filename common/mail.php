@@ -6,13 +6,18 @@ require_once __DIR__ . '/PHPMailer/src/Exception.php';
 require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
 require_once __DIR__ . '/PHPMailer/src/SMTP.php';
 function send_mail($to, $subject, $body, $pdo) {
+    static $cfg_cache = null;
     try {
-        $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
-        $settings = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
+        if ($cfg_cache === null) {
+            $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
+            $cfg_cache = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
+        }
+        $settings = $cfg_cache;
         $site_name = $settings['site_name'] ?? 'huliapi';
         $mail = new PHPMailer(true);
         $mail->isSMTP();
         $mail->SMTPDebug = SMTP::DEBUG_OFF;
+        $mail->Timeout    = 15;
         $mail->Host       = $settings['mail_smtp_host'] ?? '';
         $mail->SMTPAuth   = true;
         $mail->Username   = $settings['mail_smtp_user'] ?? '';

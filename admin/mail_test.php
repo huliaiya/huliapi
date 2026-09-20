@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['recipient_email'])) {
         }
         $mail = new PHPMailer(true);
         $mail->isSMTP();
-        $mail->SMTPDebug = SMTP::DEBUG_SERVER;
+        $mail->Timeout = 15;
         $mail->Host       = $settings['mail_smtp_host'] ?? '';
         $mail->SMTPAuth   = true;
         $mail->Username   = $settings['mail_smtp_user'] ?? '';

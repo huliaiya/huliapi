@@ -9,9 +9,13 @@ $feedback_msg = ''; $feedback_type = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('expires_at', $columns)) $pdo->exec("ALTER TABLE `huli_users` ADD `expires_at` TIMESTAMP NULL DEFAULT NULL AFTER `status`;");
-    if (!in_array('call_limit', $columns)) $pdo->exec("ALTER TABLE `huli_users` ADD `call_limit` INT NULL DEFAULT NULL AFTER `expires_at`;");
+    static $_tk_schema_done = false;
+    if (!$_tk_schema_done) {
+        $_tk_schema_done = true;
+        $columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('expires_at', $columns)) $pdo->exec("ALTER TABLE `huli_users` ADD `expires_at` TIMESTAMP NULL DEFAULT NULL AFTER `status`;");
+        if (!in_array('call_limit', $columns)) $pdo->exec("ALTER TABLE `huli_users` ADD `call_limit` INT NULL DEFAULT NULL AFTER `expires_at`;");
+    }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($_POST['action'] === 'cleanup') {
             $stmt = $pdo->prepare("DELETE FROM huli_users WHERE username LIKE 'temp_%' AND (expires_at < NOW() OR call_limit <= 0)");

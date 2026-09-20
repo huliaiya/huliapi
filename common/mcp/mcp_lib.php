@@ -15,6 +15,9 @@ function huli_mcp_pdo() {
 }
 
 function huli_mcp_ensure_schema() {
+    static $done = false;
+    if ($done) { return; }
+    $done = true;
     $pdo = huli_mcp_pdo();
     $user_cols = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
     if (!in_array('mcp_token_hash', $user_cols)) {

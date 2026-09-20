@@ -26,9 +26,9 @@ function huli_turnstile_settings()
         $pdo = new PDO(
             'mysql:host=' . DB_HOST . ';port=' . (defined('DB_PORT') ? DB_PORT : 3306) . ';dbname=' . DB_NAME . ';charset=' . (defined('DB_CHARSET') ? DB_CHARSET : 'utf8mb4'),
             DB_USER,
-            defined('DB_PASS') ? DB_PASS : ''
+            defined('DB_PASS') ? DB_PASS : '',
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 3]
         );
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $rows = $pdo->query(
             "SELECT setting_key, setting_value FROM huli_settings
              WHERE setting_key IN ('turnstile_enabled','turnstile_site_key','turnstile_secret_key')"
