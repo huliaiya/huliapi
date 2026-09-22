@@ -80,7 +80,49 @@ function huli_updater_write_status($token, array $patch) {
     $data = array_merge($current, $patch);
     $data['updated_at'] = time();
     $data['token'] = $token;
+
+    // 重要状态落库：既写文件(兼容 worker/旧版)，也写入数据库 huli_updater_jobs
+    huli_updater_persist_status_db($token, $data);
+
     return huli_updater_write_json($file, $data);
+}
+
+/**
+ * 将更新任务状态写入数据库（幂等 upsert，失败静默回退到文件不影响功能）。
+ */
+function huli_updater_persist_status_db($token, array $data) {
+    try {
+        $pdo = huli_updater_make_pdo();
+        if (!$pdo) { return; }
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE);
+        if ($json === false || strlen($json) > 100000) { return; }
+        $stmt = $pdo->prepare("INSERT INTO huli_updater_jobs (token, payload, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE payload = VALUES(payload), updated_at = VALUES(updated_at)");
+        $stmt->execute([$token, $json, time()]);
+    } catch (Throwable $e) {
+        error_log('[updater] 状态落库失败: ' . $e->getMessage());
+    }
+}
+
+/**
+ * 更新完成时把结果写入 huli_update_history 便于后台审计（失败静默）。
+ */
+function huli_updater_record_history_db($token, array $data) {
+    $status = (string)($data['status'] ?? '');
+    if (!in_array($status, ['success', 'failed', 'finished', 'error'], true)) { return; }
+    try {
+        $pdo = huli_updater_make_pdo();
+        if (!$pdo) { return; }
+        $stmt = $pdo->prepare("INSERT INTO huli_update_history (token, new_version, old_version, result, detail, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+        $stmt->execute([
+            $token,
+            (string)($data['version'] ?? ''),
+            (string)($data['old_version'] ?? ''),
+            ($status === 'success' || $status === 'finished') ? 'success' : 'failed',
+            mb_substr((string)($data['message'] ?? ''), 0, 2000),
+        ]);
+    } catch (Throwable $e) {
+        error_log('[updater] 历史入库失败: ' . $e->getMessage());
+    }
 }
 
 function huli_updater_read_status($token) {
@@ -401,6 +443,12 @@ function huli_updater_run(array $info, $token) {
         'admin_msg' => $result['admin_msg'],
         'result' => $result,
         'notified' => false,
+    ]);
+    huli_updater_record_history_db($token, [
+        'status' => $result['success'] ? 'success' : 'failed',
+        'version' => $new_version,
+        'old_version' => $old_version,
+        'message' => $result['message'],
     ]);
     return $result;
 }
