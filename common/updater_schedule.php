@@ -33,15 +33,23 @@ function huli_updater_maybe_run_schedule() {
     if ($time === '' || !preg_match('#^([01][0-9]|2[0-3]):[0-5][0-9]$#', $time)) { return false; }
     if (date('H:i') !== $time) { return false; }
 
-    // 当天已触发过则跳过
-    $markerFile = huli_updater_logs_dir() . '/update_schedule_last.json';
-    $marker = huli_updater_read_json($markerFile);
-    if (is_array($marker) && isset($marker['date']) && (string)$marker['date'] === date('Y-m-d')) { return false; }
+    // 当天已触发过则跳过（重要状态落库：优先 huli_settings，文件仅兜底）
+    $markerDate = '';
+    try {
+        $markerDate = (string)$pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'updater_schedule_last_date'")->fetchColumn();
+    } catch (Throwable $e) { $markerDate = ''; }
+    if ($markerDate === '') {
+        $markerFile = huli_updater_logs_dir() . '/update_schedule_last.json';
+        $marker = huli_updater_read_json($markerFile);
+        if (is_array($marker) && isset($marker['date'])) { $markerDate = (string)$marker['date']; }
+    }
+    if ($markerDate === date('Y-m-d')) { return false; }
 
     $info = null;
     try { $info = huli_detect_update_info(); } catch (Throwable $e) { $info = null; }
     if (!is_array($info) || empty($info['update_available'])) {
-        huli_updater_write_json($markerFile, ['date' => date('Y-m-d'), 'result' => 'no-update']);
+        huli_updater_write_json(huli_updater_logs_dir() . '/update_schedule_last.json', ['date' => date('Y-m-d'), 'result' => 'no-update']);
+        huli_updater_mark_schedule_date_db($pdo, date('Y-m-d'));
         return false;
     }
 
