@@ -32,11 +32,14 @@ $mail_reg_enabled = false;
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('allow_registration', 'mail_reg_enabled')");
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('allow_registration', 'mail_reg_enabled', 'site_name')");
     $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
     $registration_allowed = isset($settings['allow_registration']) ? (bool)$settings['allow_registration'] : true;
     $mail_reg_enabled = isset($settings['mail_reg_enabled']) ? (bool)$settings['mail_reg_enabled'] : false;
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!$registration_allowed) {
+            throw new Exception('注册功能已关闭');
+        }
         $username = trim($_POST['username'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $password = trim($_POST['password'] ?? '');

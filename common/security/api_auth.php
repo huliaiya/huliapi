@@ -4,21 +4,10 @@
 ob_start();
 
 require_once __DIR__ . '/../redis_client.php';
+require_once __DIR__ . '/../client_ip.php';
 
 function getUserIP() {
-    $ip_keys = ['HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_CLIENT_IP', 'REMOTE_ADDR'];
-    foreach ($ip_keys as $key) {
-        if (!empty($_SERVER[$key])) {
-            $ip_list = explode(',', $_SERVER[$key]);
-            foreach ($ip_list as $ip) {
-                $ip = trim($ip);
-                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                    return $ip;
-                }
-            }
-        }
-    }
-    return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    return huli_client_ip();
 }
 
 function checkApiRateLimit($pdo, $settings, $scope, $identifier, $limit, $window) {

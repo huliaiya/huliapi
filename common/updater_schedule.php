@@ -10,8 +10,11 @@ if (!defined('HULI_UPDATER_SCHEDULE_LIB')) { define('HULI_UPDATER_SCHEDULE_LIB',
 function huli_updater_maybe_run_schedule() {
     $root = dirname(__DIR__);
 
+    $logsDir = $root . '/logs';
+    if (!is_dir($logsDir)) { @mkdir($logsDir, 0755, true); }
+
     // 秒级闸门：约每 45 秒才重新评估一次，避免每个请求都走完整逻辑
-    $gate = $root . '/logs/update_schedule_gate.lock';
+    $gate = $logsDir . '/update_schedule_gate.lock';
     if (is_file($gate) && (time() - (int)@filemtime($gate)) < 45) { return false; }
     if (!@touch($gate) && !is_file($gate)) { return false; }
 
@@ -34,12 +37,12 @@ function huli_updater_maybe_run_schedule() {
     if (date('H:i') !== $time) { return false; }
 
     // 当天已触发过则跳过（重要状态落库：优先 huli_settings，文件仅兜底）
+    $markerFile = huli_updater_logs_dir() . '/update_schedule_last.json';
     $markerDate = '';
     try {
         $markerDate = (string)$pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'updater_schedule_last_date'")->fetchColumn();
     } catch (Throwable $e) { $markerDate = ''; }
     if ($markerDate === '') {
-        $markerFile = huli_updater_logs_dir() . '/update_schedule_last.json';
         $marker = huli_updater_read_json($markerFile);
         if (is_array($marker) && isset($marker['date'])) { $markerDate = (string)$marker['date']; }
     }

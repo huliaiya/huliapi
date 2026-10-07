@@ -63,6 +63,18 @@ function huli_updater_write_json($file, array $data) {
     return true;
 }
 
+function huli_updater_mark_schedule_date_db($pdo, $date) {
+    if (!$pdo) { return false; }
+    $date = (string)$date;
+    if ($date === '') { return false; }
+    try {
+        $stmt = $pdo->prepare("INSERT INTO huli_settings (setting_key, setting_value) VALUES ('updater_schedule_last_date', ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+        return (bool)$stmt->execute([$date]);
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
 function huli_updater_read_json($file) {
     if (!is_file($file)) { return null; }
     $raw = @file_get_contents($file);
@@ -81,7 +93,7 @@ function huli_updater_write_status($token, array $patch) {
     $data['updated_at'] = time();
     $data['token'] = $token;
 
-    // 重要状态落库：既写文件(兼容 worker/旧版)，也写入数据库 huli_updater_jobs
+    // 重要状态落库：既写文件(兼容 worker/旧版)，也写入数据库 huli_update_jobs
     huli_updater_persist_status_db($token, $data);
 
     return huli_updater_write_json($file, $data);
@@ -96,7 +108,7 @@ function huli_updater_persist_status_db($token, array $data) {
         if (!$pdo) { return; }
         $json = json_encode($data, JSON_UNESCAPED_UNICODE);
         if ($json === false || strlen($json) > 100000) { return; }
-        $stmt = $pdo->prepare("INSERT INTO huli_updater_jobs (token, payload, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE payload = VALUES(payload), updated_at = VALUES(updated_at)");
+        $stmt = $pdo->prepare("INSERT INTO huli_update_jobs (token, payload, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE payload = VALUES(payload), updated_at = VALUES(updated_at)");
         $stmt->execute([$token, $json, time()]);
     } catch (Throwable $e) {
         error_log('[updater] 状态落库失败: ' . $e->getMessage());

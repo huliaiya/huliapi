@@ -45,7 +45,7 @@ try {
     $stmt_insert = $pdo->prepare($sql);
     $stmt_insert->execute([$order_id, $user_id, $plan_id, $amount, $match_code]);
     $status_url = "recharge_status.php?order_id=" . urlencode($order_id);
-    if (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+    if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
         echo json_encode([
             'success' => true,
             'payment_url' => $status_url,
@@ -58,7 +58,7 @@ try {
 } catch (PDOException $e) {
     error_log('[recharge.php] 数据库错误: ' . $e->getMessage());
     $error_msg = '创建订单失败，请稍后重试。';
-    if (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+    if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
         http_response_code(500);
         echo json_encode([
             'success' => false,
@@ -73,7 +73,7 @@ try {
     exit;
 } catch (Exception $e) {
     $error_msg = '创建订单失败: ' . $e->getMessage();
-    if (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+    if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
         http_response_code($e->getCode() ?: 500);
         echo json_encode([
             'success' => false,

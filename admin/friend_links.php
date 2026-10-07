@@ -172,6 +172,13 @@ try {
     }
     if (isset($_POST['batch_action']) && isset($_POST['ids'])) {
         $ids = array_map('intval', $_POST['ids']);
+        $ids = array_values(array_filter($ids, function ($v) { return $v > 0; }));
+        if (empty($ids)) {
+            $_SESSION['feedback_msg'] = '未选择任何有效友链。';
+            $_SESSION['feedback_type'] = 'error';
+            header('Location: friend_links.php');
+            exit;
+        }
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $pdo->beginTransaction();
         try {
@@ -616,7 +623,7 @@ function getStatusBadge($status) {
                     </h3>
                     <p class="text-xs text-gray-500 mt-0.5">
                       <i class="fa fa-globe mr-1"></i>
-                      <?= mb_strlen($link['url']) > 30 ? mb_substr($link['url'], 0, 30) . '...' : $link['url'] ?>
+                      <?= htmlspecialchars(mb_strlen($link['url']) > 30 ? mb_substr($link['url'], 0, 30) . '...' : $link['url']) ?>
                     </p>
                   </div>
                 </div>

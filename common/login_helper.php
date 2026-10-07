@@ -1,15 +1,10 @@
 <?php
 if (!defined('HULI_LOGIN_LIB')) { define('HULI_LOGIN_LIB', 1); }
 
+require_once __DIR__ . '/client_ip.php';
+
 function huli_get_client_ip() {
-    $candidates = ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR'];
-    foreach ($candidates as $k) {
-        if (!empty($_SERVER[$k])) {
-            $ip = trim(explode(',', $_SERVER[$k])[0]);
-            if (filter_var($ip, FILTER_VALIDATE_IP)) { return $ip; }
-        }
-    }
-    return '0.0.0.0';
+    return huli_client_ip();
 }
 
 function huli_geo_lookup($ip, $pdo = null) {

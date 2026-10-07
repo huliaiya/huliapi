@@ -3,7 +3,8 @@
 <?php
 require_once __DIR__ . '/../../../common/url_helper.php';
 $conf['qqjump']=1;
-if(strpos($_SERVER['HTTP_USER_AGENT'], 'QQ/')||strpos($_SERVER['HTTP_USER_AGENT'], 'MicroMessenger')!==false && $conf['qqjump']==1){
+$huli_ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+if(strpos($huli_ua, 'QQ/') !== false || (strpos($huli_ua, 'MicroMessenger') !== false && $conf['qqjump']==1)){
 $siteurl=htmlspecialchars(huli_current_origin() . $_SERVER["REQUEST_URI"], ENT_QUOTES, 'UTF-8');
 echo "
 <html>
@@ -84,7 +85,7 @@ function checkUserLoginStatus() {
     try {
         $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-         $stmt = $pdo->prepare("SELECT username, email, qq FROM huli_users WHERE id = ? AND status = 1");
+         $stmt = $pdo->prepare("SELECT username, email, qq FROM huli_users WHERE id = ? AND status = 'active'");
          $stmt->execute([$_SESSION['user_id']]);
          $user = $stmt->fetch(PDO::FETCH_ASSOC);
          if ($user) {

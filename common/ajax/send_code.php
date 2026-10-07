@@ -18,7 +18,7 @@ if (!file_exists('../../common/PHPMailer/src/Exception.php')) { json_response(fa
 require '../../common/PHPMailer/src/Exception.php';
 require '../../common/PHPMailer/src/PHPMailer.php';
 require '../../common/PHPMailer/src/SMTP.php';
-$email = filter_var(trim($_POST['email']), FILTER_VALIDATE_EMAIL);
+$email = filter_var(trim($_POST['email'] ?? ''), FILTER_VALIDATE_EMAIL);
 $type = $_POST['type'] ?? '';
 if (!$email) { json_response(false, '请输入有效的邮箱地址。'); }
 if (!in_array($type, ['register', 'reset', 'admin_reset', 'friend_link', 'feedback'])) { json_response(false, '无效的操作类型。'); }
@@ -39,23 +39,8 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
      
-    $ip_keys = ['HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_CLIENT_IP', 'REMOTE_ADDR'];
-    $client_ip = '0.0.0.0';
-    foreach ($ip_keys as $key) {
-        if (!empty($_SERVER[$key])) {
-            $ip_list = explode(',', $_SERVER[$key]);
-            foreach ($ip_list as $ip) {
-                $ip = trim($ip);
-                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                    $client_ip = $ip;
-                    break 2;
-                }
-            }
-        }
-    }
-    if ($client_ip === '0.0.0.0') {
-        $client_ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    }
+    require_once __DIR__ . '/../client_ip.php';
+    $client_ip = huli_client_ip();
 
      
     static $_vc_schema_done = false;
@@ -114,7 +99,7 @@ try {
     if (empty($settings['mail_smtp_host']) || empty($settings['mail_smtp_user']) || empty($settings['mail_smtp_pass'])) {
         json_response(false, '系统邮件服务未配置，请联系管理员。');
     }
-    $code = str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
+    $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $mail = new PHPMailer(true);
     $mail->isSMTP();
     $mail->Timeout = 15;

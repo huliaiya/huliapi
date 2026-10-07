@@ -26,10 +26,9 @@ $disclaimer_required = true;
 function huli_installer_disclaimer_text() {
     return "免责声明与使用条款\n\n" .
         "1. 本系统仅供合法用途，严禁用于任何违反当地法律法规的活动。\n" .
-        "2. 安装即表示您同意：系统收集的部署信息（域名、IP、PHP 版本、SMTP 与 Turnstile 配置摘要）将通过 yanzhengapi@163.com 邮箱回执至开发者，用于版本通知与安全审计。\n" .
-        "3. 您承诺妥善保管管理员账号、数据库密码、SMTP 凭据与 Turnstile 密钥，不向第三方泄露。\n" .
-        "4. 因使用本系统所产生的任何后果由使用者自行承担，开发者不承担任何责任。\n" .
-        "5. 如不同意以上条款，请立即停止安装并删除本程序。\n\n" .
+        "2. 您承诺妥善保管管理员账号、数据库密码、SMTP 凭据与 Turnstile 密钥，不向第三方泄露。\n" .
+        "3. 因使用本系统所产生的任何后果由使用者自行承担，开发者不承担任何责任。\n" .
+        "4. 如不同意以上条款，请立即停止安装并删除本程序。\n\n" .
         "如已阅读并同意上述全部条款，请在下方输入框中输入“我已同意”后开始安装。";
 }
 
@@ -172,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo = new PDO($dsn, $db['user'], $db['pwd'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
                 $log .= "> 正在清理现有数据表...\n";
                 $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
-                $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
+                $tables = $pdo->query("SHOW TABLES LIKE 'huli\\_%'")->fetchAll(PDO::FETCH_COLUMN);
                 if (!empty($tables)) {
                     foreach ($tables as $table) {
                         try {
@@ -184,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
-                $log .= "✓ 数据库清理完成\n";
+                $log .= "✓ 数据库清理完成（仅清理本系统 huli_ 前缀数据表）\n";
                 $log .= "> 正在解析SQL文件...\n";
                 $sql = @file_get_contents('install.sql');
                 if (!$sql) throw new Exception('无法读取 install.sql 文件');
@@ -259,23 +258,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $log .= "✓ 安装锁文件创建成功\n";
 
                  
-                $receipt_sent = false;
-                $receipt_error = '';
-                try {
-                    $receipt_sent = send_install_receipt($install, $db, $log);
-                } catch (Throwable $mailEx) {
-                    $receipt_error = $mailEx->getMessage();
-                    error_log('[install] receipt mail failed: ' . $receipt_error);
-                }
-                if ($receipt_sent) {
-                    $log .= "✓ 已发送免责声明回执邮件到 yanzhengapi@163.com\n";
-                } else {
-                    $log .= "⚠ 免责声明回执邮件发送失败（不影响安装）\n";
-                }
-
                 $_SESSION['install_log'] = $log;
                 $_SESSION['installed_admin'] = $install;
-                $_SESSION['receipt_sent'] = $receipt_sent;
                 header('Location: ?step=' . STEP_COMPLETE);
                 exit;
             }
@@ -287,66 +271,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (file_exists(__DIR__ . '/install.lock')) @unlink(__DIR__ . '/install.lock');
         }
     }
-}
-
-function send_install_receipt($install, $db, $log) {
-    $smtp_host = $install['smtp_host'] ?? '';
-    if ($smtp_host === '') return false;
-    $domain = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'unknown');
-    $ip = $_SERVER['SERVER_ADDR'] ?? ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-    $phpv = PHP_VERSION;
-    $server_software = $_SERVER['SERVER_SOFTWARE'] ?? 'unknown';
-    $time = date('Y-m-d H:i:s');
-
-    $subject = '[huliapi 安装回执] ' . $domain . ' - ' . $time;
-    $body = huli_installer_disclaimer_text()
-        . "\n\n========================================\n"
-        . "安装回执\n"
-        . "========================================\n"
-        . "时间:        " . $time . "\n"
-        . "域名:        " . $domain . "\n"
-        . "服务器 IP:   " . $ip . "\n"
-        . "PHP 版本:    " . $phpv . "\n"
-        . "Web 软件:    " . $server_software . "\n"
-        . "管理员账号:  " . $install['admin_username'] . "\n"
-        . "管理员邮箱:  " . $install['admin_email'] . "\n"
-        . "后台路径:    /" . $install['admin_path'] . "/\n"
-        . "数据库名:    " . $db['name'] . "\n"
-        . "数据库主机:  " . $db['host'] . "\n"
-        . "SMTP 主机:   " . $install['smtp_host'] . "\n"
-        . "SMTP 端口:   " . $install['smtp_port'] . "\n"
-        . "SMTP 用户:   " . $install['smtp_user'] . "\n"
-        . "Turnstile:   " . ($install['turnstile_enabled'] === '1' ? '启用' : '关闭') . "\n";
-
-    if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer') && !class_exists('PHPMailer')) {
-        $base = __DIR__ . '/../common/PHPMailer/src/';
-        if (file_exists($base . 'Exception.php')) require_once $base . 'Exception.php';
-        if (file_exists($base . 'PHPMailer.php')) require_once $base . 'PHPMailer.php';
-        if (file_exists($base . 'SMTP.php')) require_once $base . 'SMTP.php';
-    }
-    if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer') && !class_exists('PHPMailer')) {
-        $autoload = __DIR__ . '/../vendor/autoload.php';
-        if (file_exists($autoload)) require_once $autoload;
-    }
-    if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer') && !class_exists('PHPMailer')) {
-        return false;
-    }
-    $cls = class_exists('PHPMailer\\PHPMailer\\PHPMailer') ? 'PHPMailer\\PHPMailer\\PHPMailer' : 'PHPMailer';
-    $mail = new $cls();
-    $mail->isSMTP();
-    $mail->Host       = $install['smtp_host'];
-    $mail->Port       = (int)$install['smtp_port'];
-    $mail->SMTPSecure = $install['smtp_secure'];
-    $mail->SMTPAuth   = true;
-    $mail->Username   = $install['smtp_user'];
-    $mail->Password   = $install['smtp_pass'];
-    $mail->CharSet    = 'UTF-8';
-    $mail->SMTPDebug  = 0;
-    $mail->setFrom($install['smtp_user'], 'huliapi Installer');
-    $mail->addAddress('yanzhengapi@163.com', 'huliapi Dev');
-    $mail->Subject = $subject;
-    $mail->Body    = $body;
-    return $mail->send();
 }
 
 function huli_installer_extension_available($key) {
@@ -991,7 +915,7 @@ body {
           </div>
         </div>
 
-        <div class="section-heading"><i class="mdi mdi-email-fast-outline"></i><span>SMTP 邮件配置</span><small>必填，用于系统邮件通知与免责声明回执</small></div>
+        <div class="section-heading"><i class="mdi mdi-email-fast-outline"></i><span>SMTP 邮件配置</span><small>必填，用于系统邮件通知</small></div>
 
         <div class="form-row">
           <div class="form-group mb-4">
@@ -1025,7 +949,7 @@ body {
         <div class="form-group mb-4">
           <label class="form-label">SMTP 密码 <span style="color:var(--danger)">*</span></label>
           <input class="form-control<?= $has_error('mail_smtp_pass') ?>" type="password" name="mail_smtp_pass" value="<?= htmlspecialchars($_SESSION['install_config']['smtp_pass'] ?? '') ?>" required>
-          <?php if ($f('mail_smtp_pass')): ?><div class="invalid-feedback"><i class="mdi mdi-alert-circle-outline mr-1"></i><?= $f('mail_smtp_pass') ?></div><?php else: ?><small class="text-muted">授权码或登录密码均可，安装完成后会自动发送一封免责声明回执邮件至开发者邮箱</small><?php endif; ?>
+          <?php if ($f('mail_smtp_pass')): ?><div class="invalid-feedback"><i class="mdi mdi-alert-circle-outline mr-1"></i><?= $f('mail_smtp_pass') ?></div><?php else: ?><small class="text-muted">授权码或登录密码均可，用于发送验证码、通知等系统邮件</small><?php endif; ?>
         </div>
 
         <div class="section-heading"><i class="mdi mdi-shield-account-outline"></i><span>Cloudflare 人机验证</span><small>默认使用测试密钥，正式上线前请替换</small></div>
@@ -1136,11 +1060,6 @@ body {
               <i class="mdi mdi-key credential-icon"></i>
               <span class="credential-label">初始密码</span>
               <span class="credential-value">安装时设置的密码</span>
-            </div>
-            <div class="credential-item">
-              <i class="mdi mdi-email-check-outline credential-icon" style="color: <?= !empty($_SESSION['receipt_sent']) ? 'var(--success)' : 'var(--warning)' ?>;"></i>
-              <span class="credential-label">回执邮件</span>
-              <span class="credential-value"><?= !empty($_SESSION['receipt_sent']) ? '已发送至 yanzhengapi@163.com（含免责声明）' : '发送失败，请检查 SMTP 配置（不影响安装）' ?></span>
             </div>
             <div class="credential-item">
               <i class="mdi mdi-alert-circle credential-icon" style="color: var(--warning);"></i>

@@ -20,7 +20,7 @@ function checkUserLoginStatus() {
     try {
         $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-         $stmt = $pdo->prepare("SELECT username, email, qq, membership_level, membership_expire FROM huli_users WHERE id = ? AND status = 1");
+         $stmt = $pdo->prepare("SELECT username, email, qq, membership_level, membership_expire FROM huli_users WHERE id = ? AND status = 'active'");
          $stmt->execute([$_SESSION['user_id']]);
          $user = $stmt->fetch(PDO::FETCH_ASSOC);
          if ($user) {

@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin_id'])) {
     header('Location: login.php');
     exit;
 }
+$admin_id = (int)$_SESSION['admin_id'];
 if (file_exists('../config.php')) {
     require_once '../config.php';
 } else {
@@ -22,8 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
         $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $stmt = $pdo->prepare("SELECT file_path FROM huli_apis WHERE id = ?");
-        $stmt->execute([$id]);
+        $stmt = $pdo->prepare("SELECT file_path FROM huli_apis WHERE id = ? AND admin_id = ?");
+        $stmt->execute([$id, $admin_id]);
         $api = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$api) {
             throw new Exception('接口不存在');
@@ -37,8 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
             }
         }
-        $stmt = $pdo->prepare("DELETE FROM huli_apis WHERE id = ?");
-        $result = $stmt->execute([$id]);
+        $stmt = $pdo->prepare("DELETE FROM huli_apis WHERE id = ? AND admin_id = ?");
+        $result = $stmt->execute([$id, $admin_id]);
         if (!$result || $stmt->rowCount() === 0) {
             throw new Exception('数据库记录删除失败');
         }
@@ -79,18 +80,18 @@ try {
         }
         switch ($_POST['batch_action']) {
             case 'activate':
-                $stmt = $pdo->prepare("UPDATE huli_apis SET status = 'normal' WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
-                $stmt->execute($ids);
+                $stmt = $pdo->prepare("UPDATE huli_apis SET status = 'normal' WHERE admin_id = ? AND id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
+                $stmt->execute(array_merge([$admin_id], $ids));
                 $_SESSION['feedback_msg'] = '已启用选中的 ' . $stmt->rowCount() . ' 个接口';
                 break;
             case 'deactivate':
-                $stmt = $pdo->prepare("UPDATE huli_apis SET status = 'error' WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
-                $stmt->execute($ids);
+                $stmt = $pdo->prepare("UPDATE huli_apis SET status = 'error' WHERE admin_id = ? AND id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
+                $stmt->execute(array_merge([$admin_id], $ids));
                 $_SESSION['feedback_msg'] = '已禁用选中的 ' . $stmt->rowCount() . ' 个接口';
                 break;
             case 'delete':
-                $stmt = $pdo->prepare("SELECT id, file_path FROM huli_apis WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
-                $stmt->execute($ids);
+                $stmt = $pdo->prepare("SELECT id, file_path FROM huli_apis WHERE admin_id = ? AND id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
+                $stmt->execute(array_merge([$admin_id], $ids));
                 $apisToDelete = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 $fileErrors = [];
                 foreach ($apisToDelete as $api) {
@@ -105,8 +106,8 @@ try {
                     }
                 }
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
-                $stmt = $pdo->prepare("DELETE FROM huli_apis WHERE id IN ($placeholders)");
-                $stmt->execute($ids);
+                $stmt = $pdo->prepare("DELETE FROM huli_apis WHERE admin_id = ? AND id IN ($placeholders)");
+                $stmt->execute(array_merge([$admin_id], $ids));
                 $deletedCount = $stmt->rowCount();
                 $msg = "已删除选中的 $deletedCount 个接口";
                 if (!empty($fileErrors)) {
@@ -123,6 +124,8 @@ try {
     }
     $searchParams = [];
     $whereClause = [];
+    $searchParams[':admin_id'] = $admin_id;
+    $whereClause[] = "admin_id = :admin_id";
     if (isset($_GET['name']) && !empty($_GET['name'])) {
         $searchParams[':name'] = '%' . $_GET['name'] . '%';
         $whereClause[] = "name LIKE :name";

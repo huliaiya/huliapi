@@ -26,14 +26,16 @@ $email_from_get = isset($_GET['email']) ? trim($_GET['email']) : '';
 $error_msg = '';
 $success_msg = '';
 $turnstile_reason = '';
+$settings = [];
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('site_name')")->fetchAll(PDO::FETCH_KEY_PAIR);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $email = trim($_POST['email']);
-        $code = trim($_POST['code']);
-        $password = trim($_POST['password']);
-        $confirm_password = trim($_POST['confirm_password']);
+        $email = trim($_POST['email'] ?? '');
+        $code = trim($_POST['code'] ?? '');
+        $password = trim($_POST['password'] ?? '');
+        $confirm_password = trim($_POST['confirm_password'] ?? '');
         if (!huli_turnstile_verify($turnstile_reason)) {
             throw new Exception($turnstile_reason ?: '人机验证失败，请完成 Cloudflare 验证后重试');
         }

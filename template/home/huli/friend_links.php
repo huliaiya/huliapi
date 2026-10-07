@@ -42,7 +42,7 @@ function checkUserLoginStatus()
     }
     try {
         $pdo = getDb();
-        $stmt = $pdo->prepare("SELECT username, email FROM huli_users WHERE id = ? AND status = 1");
+        $stmt = $pdo->prepare("SELECT username, email FROM huli_users WHERE id = ? AND status = 'active'");
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 

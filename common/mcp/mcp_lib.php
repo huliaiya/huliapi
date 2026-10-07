@@ -327,6 +327,57 @@ function huli_mcp_public_url($path = '/mcp.php') {
     return huli_mcp_detect_scheme() . '://' . $host . $path;
 }
 
+function huli_mcp_safe_outbound_host($host) {
+    $host = trim((string)$host);
+    if ($host === '') { return false; }
+    if (filter_var($host, FILTER_VALIDATE_IP)) {
+        return (bool)filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+    }
+    $ips = [];
+    if (function_exists('dns_get_record')) {
+        foreach ([DNS_A, DNS_AAAA] as $type) {
+            $recs = @dns_get_record($host, $type);
+            if (is_array($recs)) {
+                foreach ($recs as $r) {
+                    if (!empty($r['ip'])) { $ips[] = $r['ip']; }
+                    if (!empty($r['ipv6'])) { $ips[] = $r['ipv6']; }
+                }
+            }
+        }
+    }
+    if (!$ips) {
+        $ip = @gethostbyname($host);
+        if ($ip && $ip !== $host) { $ips[] = $ip; }
+    }
+    if (!$ips) { return false; }
+    foreach ($ips as $ip) {
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function huli_mcp_safe_outbound_url($url) {
+    $parts = @parse_url((string)$url);
+    if (!$parts || empty($parts['scheme']) || empty($parts['host'])) { return false; }
+    $scheme = strtolower($parts['scheme']);
+    if ($scheme !== 'http' && $scheme !== 'https') { return false; }
+    $host = strtolower($parts['host']);
+    $port = isset($parts['port']) ? (int)$parts['port'] : ($scheme === 'https' ? 443 : 80);
+    $selfHosts = [];
+    foreach (['HTTP_HOST', 'SERVER_NAME', 'SERVER_ADDR'] as $k) {
+        if (!empty($_SERVER[$k])) {
+            $selfHosts[] = strtolower(preg_replace('/:\d+$/', '', (string)$_SERVER[$k]));
+        }
+    }
+    $selfPort = isset($_SERVER['SERVER_PORT']) ? (int)$_SERVER['SERVER_PORT'] : ($scheme === 'https' ? 443 : 80);
+    if (in_array($host, $selfHosts, true)) {
+        return $port === $selfPort;
+    }
+    return huli_mcp_safe_outbound_host($host);
+}
+
 function huli_mcp_ensure_log_schema() {
     static $done = false;
     if ($done) { return; }

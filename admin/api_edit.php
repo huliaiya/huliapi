@@ -187,7 +187,6 @@ try {
             if (!$existingAuthCode) {
                 $file_content = $auth_bootstrap . $clean_code;
             } else {
-                $file_content = ltrim($file_content, '<?php');
                 $file_content = '<?php ' . $clean_code;
             }
             if (!preg_match('/\?>\s*$/', $file_content)) {
@@ -197,7 +196,10 @@ try {
             $method = 'GET';
         } else {
             $remote_url = trim($_POST['remote_url']);
-            $method = $_POST['method'];
+            $method = strtoupper(trim((string)($_POST['method'] ?? 'GET')));
+            if (!in_array($method, ['GET', 'POST'], true)) {
+                $method = 'GET';
+            }
             if (empty($remote_url)) {
                 throw new Exception('远程接口地址不能为空。');
             }
