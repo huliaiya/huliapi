@@ -21,6 +21,8 @@ require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
 require_once ROOT_PATH . 'common/mail.php';
 require_once ROOT_PATH . 'common/url_helper.php';
+require_once ROOT_PATH . 'common/gallery.php';
+require_once ROOT_PATH . 'common/friend_link_lib.php';
 
  
 function getDb()
@@ -126,6 +128,7 @@ $apply_type    = '';
 $total_links  = 0;
 $broken_links  = 0;
 $pdo           = getDb();
+huli_ensure_friend_link_columns($pdo);
 
 try {
      
@@ -152,6 +155,7 @@ try {
         $url          = trim($_POST['url'] ?? '');
         $description  = trim($_POST['description'] ?? '');
         $logo_url     = trim($_POST['logo_url'] ?? '');
+        $email        = trim($_POST['email'] ?? '');
 
          
         if (empty($site_name) || empty($url)) {
@@ -166,6 +170,12 @@ try {
         if (!empty($logo_url) && !filter_var($logo_url, FILTER_VALIDATE_URL)) {
             throw new Exception("LOGO URL格式不正确，请以http://或https://开头");
         }
+        if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception("联系邮箱格式不正确");
+        }
+        if (mb_strlen($email, 'UTF-8') > 100) {
+            throw new Exception("联系邮箱长度不能超过100个字符");
+        }
         if (!empty($description) && mb_strlen($description, 'UTF-8') > 200) {
             throw new Exception("网站描述长度不能超过200个字符");
         }
@@ -174,10 +184,10 @@ try {
          
         $stmt_apply = $pdo->prepare("
             INSERT INTO huli_friend_links
-            (site_name, url, description, logo, user_id, status, created_at)
-            VALUES (?, ?, ?, ?, ?, 'pending', NOW())
+            (site_name, url, description, logo, user_id, email, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())
         ");
-        $stmt_apply->execute([$site_name, $url, $description, $logo_url, $user_id]);
+        $stmt_apply->execute([$site_name, $url, $description, $logo_url, $user_id, ($email !== '' ? $email : null)]);
 
          
         $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
@@ -199,6 +209,7 @@ try {
         $mailDesc      = htmlspecialchars($description, ENT_QUOTES);
         $mailLogo      = htmlspecialchars($logo_url, ENT_QUOTES);
         $mailUid       = (int)$user_id;
+        $mailEmail     = htmlspecialchars($email !== '' ? $email : '未填写', ENT_QUOTES);
         $mailTime      = date('Y-m-d H:i:s');
 
         $subject = '【huliapi】友链申请通知';
@@ -224,6 +235,7 @@ try {
             <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">网站描述：</span> ' . $mailDesc . '</p>
             <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">LOGO链接：</span> ' . $mailLogo . '</p>
             <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">申请用户ID：</span> ' . $mailUid . '</p>
+            <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">联系邮箱：</span> ' . $mailEmail . '</p>
             <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">申请时间：</span> ' . $mailTime . '</p>
         </div>
         <div style="background-color: #f8f9fa; border-radius: 8px; padding: 15px; margin: 20px 0;">
@@ -270,29 +282,42 @@ $csrf_token = createCsrfToken();
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="../../../assets/css/liquid-glass.css?v=3">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; }
-.container-fluid { max-width: 1200px; margin: 0 auto; padding: 1rem !important; }
-.card { border-radius: 1rem !important; border: none !important; box-shadow: 0 2px 15px rgba(0,0,0,0.05) !important; transition: all 0.3s ease; }
-.card-header { border-bottom: 1px solid #f1f3f5 !important; border-radius: 1rem 1rem 0 0 !important; padding: 1rem 1.5rem !important; }
+body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; background: transparent; color: var(--glass-text, #17233b); line-height: 1.6; min-height: 100vh; }
+.huli-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)),
+        url('<?php echo htmlspecialchars(huli_session_gallery_image()); ?>');
+    background-size: cover, cover;
+    background-position: center, center;
+    background-repeat: no-repeat, no-repeat;
+    pointer-events: none;
+}
+.container-fluid { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 1rem !important; }
+.card { border-radius: 1rem !important; border: 1px solid rgba(180, 220, 245, .5) !important; background: linear-gradient(140deg, rgba(255, 255, 255, .58) 0%, rgba(220, 238, 252, .44) 100%) !important; backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%); box-shadow: 0 12px 32px rgba(64, 120, 180, .12) !important; transition: all 0.3s ease; }
+.card-header { border-bottom: 1px solid rgba(180, 220, 245, .42) !important; border-radius: 1rem 1rem 0 0 !important; padding: 1rem 1.5rem !important; background: linear-gradient(135deg, rgba(238, 247, 255, .5), rgba(219, 234, 254, .34)) !important; }
 .card-body { padding: 1.5rem !important; }
 .btn { border-radius: 0.5rem !important; padding: 0.5rem 1.25rem !important; font-weight: 500 !important; transition: all 0.2s ease; border: none !important; }
 .btn-primary { background-color: #4096ff !important; }
 .btn-primary:hover { background-color: #337ecc !important; box-shadow: 0 4px 12px rgba(64, 150, 255, 0.3); }
 .btn-secondary { background-color: #86909c !important; }
 .btn-secondary:hover { background-color: #737f8c !important; }
-.form-control { border-radius: 0.5rem !important; border: 1px solid #e5e6eb !important; padding: 0.75rem 1rem !important; transition: all 0.2s ease; }
-.form-control:focus { border-color: #4096ff !important; box-shadow: 0 0 0 3px rgba(64, 150, 255, 0.1) !important; outline: none !important; }
+.form-control { border-radius: 0.5rem !important; border: 1px solid rgba(180, 220, 245, .6) !important; background: rgba(255, 255, 255, .72) !important; padding: 0.75rem 1rem !important; transition: all 0.2s ease; }
+.form-control:focus { border-color: #4096ff !important; box-shadow: 0 0 0 3px rgba(64, 150, 255, 0.12) !important; background: rgba(255, 255, 255, .9) !important; outline: none !important; }
 .alert { border-radius: 0.5rem !important; border: none !important; padding: 1rem 1.25rem !important; margin-bottom: 1.5rem !important; }
 .badge { border-radius: 0.3rem !important; padding: 0.25rem 0.5rem !important; font-size: 0.75rem !important; }
-.modal-content { border-radius: 1rem !important; border: none !important; box-shadow: 10px 10px 30px rgba(0,0,0,0.1); }
-.modal-header { border-bottom: 1px solid #f1f3f5 !important; padding: 1rem 1.5rem !important; }
-.modal-footer { border-top: 1px solid #f1f3f5 !important; padding: 1rem 1.5rem !important; }
-.friend-card { transition: all 0.3s ease; border-radius: 0.75rem; box-shadow: 0 3px 10px rgba(0,0,0,0.07); overflow: hidden; position: relative; border: 1px solid #f0f2f5; margin-bottom: 1rem; background: #fff; height: 100%; }
-.friend-card:hover { box-shadow: 0 10px 20px rgba(0,0,0,0.12); border-color: #e5e9f2; }
+.modal-content { border-radius: 1rem !important; border: 1px solid rgba(180, 220, 245, .55) !important; background: linear-gradient(140deg, rgba(255, 255, 255, .8) 0%, rgba(224, 240, 253, .68) 100%) !important; backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%); box-shadow: 10px 30px 40px rgba(0,0,0,0.12); }
+.modal-header { border-bottom: 1px solid rgba(180, 220, 245, .42) !important; padding: 1rem 1.5rem !important; }
+.modal-footer { border-top: 1px solid rgba(180, 220, 245, .42) !important; padding: 1rem 1.5rem !important; }
+.friend-card { transition: all 0.3s ease; border-radius: 0.85rem; box-shadow: 0 8px 22px rgba(64, 120, 180, 0.10); overflow: hidden; position: relative; border: 1px solid rgba(180, 220, 245, .5); margin-bottom: 1rem; background: linear-gradient(140deg, rgba(255, 255, 255, .6) 0%, rgba(220, 238, 252, .44) 100%); backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%); height: 100%; }
+.friend-card:hover { box-shadow: 0 14px 30px rgba(64, 120, 180, 0.18); border-color: rgba(93, 159, 232, .55); }
 .friend-card .card-body { padding: 1rem !important; }
-.friend-logo-container { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 6px; flex-shrink: 0; overflow: hidden; border: 1px solid #e9ecef; }
+.friend-logo-container { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, .6); border-radius: 6px; flex-shrink: 0; overflow: hidden; border: 1px solid rgba(180, 220, 245, .55); }
 .friend-logo-img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; background: #f5f5f5; }
 .friend-logo-container:hover .friend-logo-img { transform: scale(1.1); }
 .friend-logo-icon { font-size: 22px; color: #4d5b76; }
@@ -302,8 +327,8 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
 .friend-card p { margin-bottom: 0; font-size: 0.9rem; color: #6c757d; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; }
 .friend-status { position: absolute; top: 0.6rem; right: 0.6rem; z-index: 10; }
 .stats-container { display: flex; gap: 1rem; margin: 1.5rem 1.5rem 2rem; align-items: center; flex-wrap: wrap; }
-.stats-card { flex: 1; min-width: 200px; border-radius: 0.75rem; transition: all 0.3s ease; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.07); display: flex; align-items: center; padding: 1rem 1.5rem; height: 90px; background: #fff; }
-.stats-card:hover { box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+.stats-card { flex: 1; min-width: 200px; border-radius: 0.85rem; transition: all 0.3s ease; overflow: hidden; box-shadow: 0 8px 22px rgba(64, 120, 180, 0.10); display: flex; align-items: center; padding: 1rem 1.5rem; height: 90px; border: 1px solid rgba(180, 220, 245, .5); background: linear-gradient(140deg, rgba(255, 255, 255, .58), rgba(220, 238, 252, .42)); backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%); }
+.stats-card:hover { box-shadow: 0 8px 15px rgba(64, 120, 180, 0.18); }
 .stats-card .mdi { font-size: 2rem; margin-right: 1.2rem; flex-shrink: 0; }
 .stats-info { flex-grow: 1; }
 .stats-card h5.card-title { font-size: 0.9rem; margin-bottom: 0.2rem; color: #495057; font-weight: 500; }
@@ -345,11 +370,12 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
 </noscript>
 </head>
 <body>
+<div class="huli-bg"></div>
 <div class="container-fluid px-3 py-4">
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white">
+                <div class="card-header">
                     <h4 class="mb-0 fw-bold">友情链接</h4>
                     <p class="text-muted small mb-0">展示合作网站链接及自助申请功能</p>
                 </div>
@@ -370,7 +396,7 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                     </div>
                 </div>
                 <div class="card mb-4 shadow-sm">
-                    <div class="card-header d-flex justify-content-between align-items-center bg-white">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0 fw-medium"><i class="mdi mdi-website me-2"></i>友情链接列表</h5>
                         <?php if ($is_logged_in): ?>
                             <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#applyLinkModal">
@@ -454,7 +480,7 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                 <div class="modal fade" id="applyLinkModal" tabindex="-1" aria-labelledby="applyLinkModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content shadow">
-                            <div class="modal-header bg-white">
+                            <div class="modal-header">
                                 <h5 class="modal-title fw-medium" id="applyLinkModalLabel"><i class="mdi mdi-pencil-plus me-2"></i>申请友情链接</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
@@ -472,6 +498,12 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                                             <label for="url" class="form-label">网站URL <span class="text-danger">*</span></label>
                                             <input type="url" class="form-control" id="url" name="url" placeholder="请输入http://或https://开头的网址" required>
                                             <div class="invalid-feedback">请填写有效的URL地址</div>
+                                        </div>
+                                        <div class="col-12">
+                                            <label for="email" class="form-label">联系邮箱</label>
+                                            <input type="email" class="form-control" id="email" name="email" value="<?= htmlspecialchars($user_info['email'] ?? '') ?>" placeholder="用于接收审核结果通知（选填）" maxlength="100">
+                                            <div class="invalid-feedback">请填写有效的邮箱地址</div>
+                                            <div class="form-text text-muted small mt-1">审核通过后，我们会向该邮箱发送通知</div>
                                         </div>
                                         <div class="col-12">
                                             <label for="logo_url" class="form-label">网站LOGO链接</label>
@@ -504,7 +536,7 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                                     <input type="hidden" name="apply_friend_link" value="1">
                                 </form>
                             </div>
-                            <div class="modal-footer bg-white">
+                            <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                                 <button type="submit" form="friend-link-form" class="btn btn-primary">
                                     <i class="mdi mdi-send me-2"></i>提交申请
