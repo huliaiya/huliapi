@@ -239,7 +239,11 @@ try {
                 $value = isset($_POST[$key]) ? '1' : '0';
             } else {
                 if (!array_key_exists($key, $_POST)) continue;
-                $value = trim($_POST[$key]);
+                if ($key === 'turnstile_site_key' || $key === 'turnstile_secret_key') {
+                    $value = huli_turnstile_normalize_key($_POST[$key]);
+                } else {
+                    $value = trim($_POST[$key]);
+                }
             }
             $stmt->execute([$key, $value]);
         }
