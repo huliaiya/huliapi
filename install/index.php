@@ -65,8 +65,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $smtp_secure  = $_POST['mail_smtp_secure'] ?? 'ssl';
             $smtp_user    = trim($_POST['mail_smtp_user'] ?? '');
             $smtp_pass    = $_POST['mail_smtp_pass'] ?? '';
-            $turnstile_site_key   = trim($_POST['turnstile_site_key'] ?? '');
-            $turnstile_secret_key = trim($_POST['turnstile_secret_key'] ?? '');
+            $turnstile_site_key   = preg_replace('/[^0-9A-Za-z_-]+/', '', trim($_POST['turnstile_site_key'] ?? ''));
+            $turnstile_secret_key = preg_replace('/[^0-9A-Za-z_-]+/', '', trim($_POST['turnstile_secret_key'] ?? ''));
+            if ($turnstile_site_key === null) $turnstile_site_key = '';
+            if ($turnstile_secret_key === null) $turnstile_secret_key = '';
+            if (strlen($turnstile_site_key) > 3 && stripos($turnstile_site_key, 'key') === 0 && stripos($turnstile_site_key, '0x', 3) === 3) $turnstile_site_key = substr($turnstile_site_key, 3);
+            if (strlen($turnstile_secret_key) > 3 && stripos($turnstile_secret_key, 'key') === 0 && stripos($turnstile_secret_key, '0x', 3) === 3) $turnstile_secret_key = substr($turnstile_secret_key, 3);
             $turnstile_enabled    = isset($_POST['turnstile_enabled']) ? '1' : '0';
 
              
