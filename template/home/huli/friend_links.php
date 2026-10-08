@@ -147,9 +147,6 @@ try {
         if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
             throw new Exception("请求非法，请刷新页面重试");
         }
-        if (!$is_logged_in) {
-            throw new Exception("请先登录后再申请友链");
-        }
 
         $site_name    = trim($_POST['site_name'] ?? '');
         $url          = trim($_POST['url'] ?? '');
@@ -170,7 +167,10 @@ try {
         if (!empty($logo_url) && !filter_var($logo_url, FILTER_VALIDATE_URL)) {
             throw new Exception("LOGO URL格式不正确，请以http://或https://开头");
         }
-        if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (empty($email)) {
+            throw new Exception("联系邮箱为必填项");
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new Exception("联系邮箱格式不正确");
         }
         if (mb_strlen($email, 'UTF-8') > 100) {
@@ -180,14 +180,14 @@ try {
             throw new Exception("网站描述长度不能超过200个字符");
         }
 
-        $user_id = $_SESSION['user_id'];
-         
+        $user_id = $is_logged_in ? (int)$_SESSION['user_id'] : 0;
+        
         $stmt_apply = $pdo->prepare("
             INSERT INTO huli_friend_links
             (site_name, url, description, logo, user_id, email, status, created_at)
             VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())
         ");
-        $stmt_apply->execute([$site_name, $url, $description, $logo_url, $user_id, ($email !== '' ? $email : null)]);
+        $stmt_apply->execute([$site_name, $url, $description, $logo_url, $user_id, $email]);
 
          
         $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
@@ -208,8 +208,8 @@ try {
         $mailUrl       = htmlspecialchars($url, ENT_QUOTES);
         $mailDesc      = htmlspecialchars($description, ENT_QUOTES);
         $mailLogo      = htmlspecialchars($logo_url, ENT_QUOTES);
-        $mailUid       = (int)$user_id;
-        $mailEmail     = htmlspecialchars($email !== '' ? $email : '未填写', ENT_QUOTES);
+        $mailUid       = $user_id > 0 ? (string)(int)$user_id : '游客（未登录）';
+        $mailEmail     = htmlspecialchars($email, ENT_QUOTES);
         $mailTime      = date('Y-m-d H:i:s');
 
         $subject = '【huliapi】友链申请通知';
@@ -398,16 +398,9 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                 <div class="card mb-4 shadow-sm">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0 fw-medium"><i class="mdi mdi-website me-2"></i>友情链接列表</h5>
-                        <?php if ($is_logged_in): ?>
-                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#applyLinkModal">
-                                <i class="mdi mdi-pencil-plus me-1"></i>申请友链
-                            </button>
-                        <?php else: ?>
-                            <div class="login-tip">
-                                <i class="mdi mdi-login"></i>
-                                <span>请登录后申请友链</span>
-                            </div>
-                        <?php endif; ?>
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#applyLinkModal">
+                            <i class="mdi mdi-pencil-plus me-1"></i>申请友链
+                        </button>
                     </div>
                     <div class="card-body p-4">
                         <?php if ($apply_msg): ?>
@@ -420,14 +413,10 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                             <?php if (empty($links)): ?>
                                 <div class="col-12 text-center py-5 text-muted">
                                     <i class="mdi mdi-information-outline display-4 mb-3 text-secondary"></i>
-                                    <p class="fs-6">暂无友情链接，欢迎登录后申请合作</p>
-                                    <?php if ($is_logged_in): ?>
-                                        <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#applyLinkModal">
-                                            <i class="mdi mdi-pencil-plus me-1"></i>立即申请
-                                        </button>
-                                    <?php else: ?>
-                                        <p class="unlogin-hint mt-3">请先登录后进行友链申请</p>
-                                    <?php endif; ?>
+                                    <p class="fs-6">暂无友情链接，欢迎申请合作</p>
+                                    <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#applyLinkModal">
+                                        <i class="mdi mdi-pencil-plus me-1"></i>立即申请
+                                    </button>
                                 </div>
                             <?php else: ?>
                                 <?php foreach ($links as $link): ?>
@@ -476,7 +465,6 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                         </div>
                     </div>
                 </div>
-                <?php if ($is_logged_in): ?>
                 <div class="modal fade" id="applyLinkModal" tabindex="-1" aria-labelledby="applyLinkModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content shadow">
@@ -500,10 +488,10 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                                             <div class="invalid-feedback">请填写有效的URL地址</div>
                                         </div>
                                         <div class="col-12">
-                                            <label for="email" class="form-label">联系邮箱</label>
-                                            <input type="email" class="form-control" id="email" name="email" value="<?= htmlspecialchars($user_info['email'] ?? '') ?>" placeholder="用于接收审核结果通知（选填）" maxlength="100">
+                                            <label for="email" class="form-label">联系邮箱 <span class="text-danger">*</span></label>
+                                            <input type="email" class="form-control" id="email" name="email" value="<?= htmlspecialchars($user_info['email'] ?? '') ?>" placeholder="请输入联系邮箱，用于接收审核结果通知" maxlength="100" required>
                                             <div class="invalid-feedback">请填写有效的邮箱地址</div>
-                                            <div class="form-text text-muted small mt-1">审核通过后，我们会向该邮箱发送通知</div>
+                                            <div class="form-text text-muted small mt-1">审核通过或拒绝后，我们会向该邮箱发送通知</div>
                                         </div>
                                         <div class="col-12">
                                             <label for="logo_url" class="form-label">网站LOGO链接</label>
@@ -545,7 +533,6 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                         </div>
                     </div>
                 </div>
-                <?php endif; ?>
             </div>
         </div>
     </div>
