@@ -153,6 +153,12 @@ php -S 0.0.0.0:8000
 
 检查「系统设置 → Turnstile」是否正确配置 Site Key / Secret Key，且站点域名已在 Cloudflare 后台的 Turnstile 域名白名单内。
 
+### 登录/注册时提示"人机验证配置有误：Turnstile Secret Key 不正确"？
+
+该提示对应 Cloudflare 返回的 `invalid-input-secret`，表示后台保存的 Secret Key 无法被 Cloudflare 识别，与站点代码无关。最常见原因是复制 Secret Key 时连前缀/标签或不可见字符一起粘贴，例如误存成 `Key0x4AAAAAA...`（多了一个 `Key`）；也可能是密钥已在 Cloudflare 后台轮换，或填成了另一个 Turnstile 站点的密钥。
+
+解决：进入「系统设置 → 人机验证」，确认 Site Key 与 Secret Key 来自同一个 Turnstile 站点，清空 Secret Key 后从 Cloudflare 站点详情重新复制当前值（形如 `0x4AAAAAA...`，不带 `Key`、`Site Key` 等前缀）并保存，再点「端到端测试」，Cloudflare 原始响应为 `success:true` 即正常。当前版本保存时会自动清理首尾空白与不可见字符，并剔除误带的 `Key` 前缀。
+
 ### 邮件发送失败？
 
 在后台「系统设置 → 邮件」配置 SMTP 并先使用「测试邮件」功能验证；确认 SMTP 账号/密码/端口/加密方式正确，并确保服务器 25/465/587 出站端口放行。
