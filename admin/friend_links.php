@@ -12,6 +12,7 @@ if (file_exists('../config.php')) {
 } else {
     die("出现错误！配置文件丢失。");
 }
+require_once __DIR__ . '/../common/friend_link_lib.php';
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
 $feedback_type = '';
@@ -35,6 +36,7 @@ try {
             PDO::ATTR_EMULATE_PREPARES => false,
         ]
     );
+    huli_ensure_friend_link_columns($pdo);
     $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = [];
     while ($row = $stmt_settings->fetch(PDO::FETCH_ASSOC)) {
@@ -55,49 +57,11 @@ try {
             case 'approve':
                 $stmt = $pdo->prepare("UPDATE huli_friend_links SET status='approved', reviewed_at=NOW() WHERE id = ?");
                 $stmt->execute([$id]);
-                $stmt_link = $pdo->prepare("SELECT site_name, url, user_id FROM huli_friend_links WHERE id = ?");
+                $stmt_link = $pdo->prepare("SELECT site_name, url, user_id, email FROM huli_friend_links WHERE id = ?");
                 $stmt_link->execute([$id]);
                 $link = $stmt_link->fetch(PDO::FETCH_ASSOC);
-                if ($link && $link['user_id']) {
-                    $stmt_user = $pdo->prepare("SELECT email FROM huli_users WHERE id = ?");
-                    $stmt_user->execute([$link['user_id']]);
-                    $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
-                    if ($user && $user['email']) {
-                        require_once '../common/mail.php';
-                        $subject = '【' . $site_name . '】友链申请已通过';
-                        $body = '<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 15px; background-color: #f0f3f8; font-family: \'PingFang SC\', \'Microsoft YaHei\', sans-serif;">
-<div style="max-width: 600px; margin: 0 auto; width: 100%; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(32,102,255,0.08);">
-    <div style="padding: 30px 20px; text-align: center; background: linear-gradient(135deg, #2066ff 0%, #1955d4 100%); border-radius: 16px 16px 0 0;">
-        <img style="max-height: 45px; width: auto; max-width: 100%;" src="' . $logo_url . '" alt="' . $site_name . '" />
-    </div>
-    <div style="padding: 30px 20px;">
-        <h1 style="color: #2066ff; font-size: 24px; margin: 0 0 25px; text-align: center; font-weight: bold;">友链申请已通过</h1>
-        <p style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0; font-weight: 600;">尊敬的用户：</p>
-        <p style="color: #333333; font-size: 15px; line-height: 1.8; margin: 10px 0; font-weight: 600;">您的友链申请已通过审核，详情如下：</p>
-        <div style="background: linear-gradient(to right, #f8f9ff, #f0f5ff); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(32,102,255,0.1);">
-            <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">网站名称：</span> ' . htmlspecialchars($link['site_name']) . '</p>
-            <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">网站URL：</span> <a href="' . htmlspecialchars($link['url']) . '" target="_blank">' . htmlspecialchars($link['url']) . '</a></p>
-        </div>
-        <div style="background-color: #f8f9fa; border-radius: 8px; padding: 15px; margin: 20px 0;">
-            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0; font-weight: 600;"><span style="color: #2066ff;">●</span> 您的友链已成功展示，感谢您的合作</p>
-            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 8px 0 0; font-weight: 600;"><span style="color: #2066ff;">●</span> 如有任何问题，请联系管理员</p>
-        </div>
-        <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 20px 0 0; font-weight: 600;">如有任何问题，请联系客服支持。</p>
-    </div>
-    <div style="padding: 20px 15px; background-color: #f8f9fa; border-radius: 0 0 16px 16px; border-top: 1px solid #eef0f5;">
-        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' huliapi 版权所有</p>
-    </div>
-</div>
-</body>
-</html>';
-                        send_mail($user['email'], $subject, $body, $pdo);
-                    }
+                if ($link) {
+                    huli_friend_link_send_notify($pdo, $link, 'approve', '', $site_name, $logo_url, $current_year);
                 }
                 $_SESSION['feedback_msg'] = '友链已通过审核';
                 break;
@@ -105,50 +69,11 @@ try {
                 $note = isset($_POST['reject_note']) ? trim($_POST['reject_note']) : '未提供原因';
                 $stmt = $pdo->prepare("UPDATE huli_friend_links SET status='rejected', review_note=?, reviewed_at=NOW() WHERE id = ?");
                 $stmt->execute([$note, $id]);
-                $stmt_link = $pdo->prepare("SELECT site_name, url, user_id FROM huli_friend_links WHERE id = ?");
+                $stmt_link = $pdo->prepare("SELECT site_name, url, user_id, email FROM huli_friend_links WHERE id = ?");
                 $stmt_link->execute([$id]);
                 $link = $stmt_link->fetch(PDO::FETCH_ASSOC);
-                if ($link && $link['user_id']) {
-                    $stmt_user = $pdo->prepare("SELECT email FROM huli_users WHERE id = ?");
-                    $stmt_user->execute([$link['user_id']]);
-                    $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
-                    if ($user && $user['email']) {
-                        require_once '../common/mail.php';
-                        $subject = '【' . $site_name . '】友链申请已拒绝';
-                        $body = '<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 15px; background-color: #f0f3f8; font-family: \'PingFang SC\', \'Microsoft YaHei\', sans-serif;">
-<div style="max-width: 600px; margin: 0 auto; width: 100%; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(32,102,255,0.08);">
-    <div style="padding: 30px 20px; text-align: center; background: linear-gradient(135deg, #2066ff 0%, #1955d4 100%); border-radius: 16px 16px 0 0;">
-        <img style="max-height: 45px; width: auto; max-width: 100%;" src="' . $logo_url . '" alt="' . $site_name . '" />
-    </div>
-    <div style="padding: 30px 20px;">
-        <h1 style="color: #2066ff; font-size: 24px; margin: 0 0 25px; text-align: center; font-weight: bold;">友链申请已拒绝</h1>
-        <p style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0; font-weight: 600;">尊敬的用户：</p>
-        <p style="color: #333333; font-size: 15px; line-height: 1.8; margin: 10px 0; font-weight: 600;">您的友链申请未通过审核，详情如下：</p>
-        <div style="background: linear-gradient(to right, #f8f9ff, #f0f5ff); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(32,102,255,0.1);">
-            <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">网站名称：</span> ' . htmlspecialchars($link['site_name']) . '</p>
-            <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">网站URL：</span> <a href="' . htmlspecialchars($link['url']) . '" target="_blank">' . htmlspecialchars($link['url']) . '</a></p>
-            <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">拒绝原因：</span> ' . htmlspecialchars($note) . '</p>
-        </div>
-        <div style="background-color: #f8f9fa; border-radius: 8px; padding: 15px; margin: 20px 0;">
-            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0; font-weight: 600;"><span style="color: #2066ff;">●</span> 如有疑问，请联系管理员</p>
-            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 8px 0 0; font-weight: 600;"><span style="color: #2066ff;">●</span> 您可以根据原因修改后重新申请</p>
-        </div>
-        <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 20px 0 0; font-weight: 600;">如有任何问题，请联系客服支持。</p>
-    </div>
-    <div style="padding: 20px 15px; background-color: #f8f9fa; border-radius: 0 0 16px 16px; border-top: 1px solid #eef0f5;">
-        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' huliapi 版权所有</p>
-    </div>
-</div>
-</body>
-</html>';
-                        send_mail($user['email'], $subject, $body, $pdo);
-                    }
+                if ($link) {
+                    huli_friend_link_send_notify($pdo, $link, 'reject', $note, $site_name, $logo_url, $current_year);
                 }
                 $_SESSION['feedback_msg'] = '友链已拒绝';
                 break;
@@ -171,132 +96,59 @@ try {
         exit;
     }
     if (isset($_POST['batch_action']) && isset($_POST['ids'])) {
-        $ids = array_map('intval', $_POST['ids']);
+        $ids = array_values(array_filter(array_map('intval', (array)$_POST['ids']), function ($v) { return $v > 0; }));
+        if (empty($ids)) {
+            $_SESSION['feedback_msg'] = '未选择任何有效友链。';
+            $_SESSION['feedback_type'] = 'error';
+            header('Location: friend_links.php');
+            exit;
+        }
+        $batch_action = $_POST['batch_action'];
+        $note = isset($_POST['reject_note']) ? trim($_POST['reject_note']) : '批量拒绝';
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $notifyType = '';
+        $notifyLinks = [];
         $pdo->beginTransaction();
         try {
-            switch ($_POST['batch_action']) {
+            switch ($batch_action) {
                 case 'approve':
                     $stmt = $pdo->prepare("UPDATE huli_friend_links SET status='approved', reviewed_at=NOW() WHERE id IN ($placeholders)");
                     $stmt->execute($ids);
-                    $stmt_links = $pdo->prepare("SELECT site_name, url, user_id FROM huli_friend_links WHERE id IN ($placeholders)");
-                    $stmt_links->execute($ids);
-                    $links = $stmt_links->fetchAll(PDO::FETCH_ASSOC);
-                    foreach ($links as $link) {
-                        if ($link && $link['user_id']) {
-                            $stmt_user = $pdo->prepare("SELECT email FROM huli_users WHERE id = ?");
-                            $stmt_user->execute([$link['user_id']]);
-                            $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
-                            if ($user && $user['email']) {
-                                require_once '../common/mail.php';
-                                $subject = '【' . $site_name . '】友链申请已通过';
-                                $body = '<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 15px; background-color: #f0f3f8; font-family: \'PingFang SC\', \'Microsoft YaHei\', sans-serif;">
-<div style="max-width: 600px; margin: 0 auto; width: 100%; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(32,102,255,0.08);">
-    <div style="padding: 30px 20px; text-align: center; background: linear-gradient(135deg, #2066ff 0%, #1955d4 100%); border-radius: 16px 16px 0 0;">
-        <img style="max-height: 45px; width: auto; max-width: 100%;" src="' . $logo_url . '" alt="' . $site_name . '" />
-    </div>
-    <div style="padding: 30px 20px;">
-        <h1 style="color: #2066ff; font-size: 24px; margin: 0 0 25px; text-align: center; font-weight: bold;">友链申请已通过</h1>
-        <p style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0; font-weight: 600;">尊敬的用户：</p>
-        <p style="color: #333333; font-size: 15px; line-height: 1.8; margin: 10px 0; font-weight: 600;">您的友链申请已通过审核，详情如下：</p>
-        <div style="background: linear-gradient(to right, #f8f9ff, #f0f5ff); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(32,102,255,0.1);">
-            <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">网站名称：</span> ' . htmlspecialchars($link['site_name']) . '</p>
-            <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">网站URL：</span> <a href="' . htmlspecialchars($link['url']) . '" target="_blank">' . htmlspecialchars($link['url']) . '</a></p>
-        </div>
-        <div style="background-color: #f8f9fa; border-radius: 8px; padding: 15px; margin: 20px 0;">
-            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0; font-weight: 600;"><span style="color: #2066ff;">●</span> 您的友链已成功展示，感谢您的合作</p>
-            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 8px 0 0; font-weight: 600;"><span style="color: #2066ff;">●</span> 如有任何问题，请联系管理员</p>
-        </div>
-        <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 20px 0 0; font-weight: 600;">如有任何问题，请联系客服支持。</p>
-    </div>
-    <div style="padding: 20px 15px; background-color: #f8f9fa; border-radius: 0 0 16px 16px; border-top: 1px solid #eef0f5;">
-        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' huliapi 版权所有</p>
-    </div>
-</div>
-</body>
-</html>';
-                                send_mail($user['email'], $subject, $body, $pdo);
-                            }
-                        }
-                    }
-                    $_SESSION['feedback_msg'] = '已批量通过' . count($ids) . '条友链';
+                    $notifyType = 'approve';
                     break;
                 case 'reject':
-                    $note = $_POST['reject_note'] ?? '批量拒绝';
                     $stmt = $pdo->prepare("UPDATE huli_friend_links SET status='rejected', review_note=?, reviewed_at=NOW() WHERE id IN ($placeholders)");
                     $stmt->execute(array_merge([$note], $ids));
-                    $stmt_links = $pdo->prepare("SELECT site_name, url, user_id FROM huli_friend_links WHERE id IN ($placeholders)");
-                    $stmt_links->execute($ids);
-                    $links = $stmt_links->fetchAll(PDO::FETCH_ASSOC);
-                    foreach ($links as $link) {
-                        if ($link && $link['user_id']) {
-                            $stmt_user = $pdo->prepare("SELECT email FROM huli_users WHERE id = ?");
-                            $stmt_user->execute([$link['user_id']]);
-                            $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
-                            if ($user && $user['email']) {
-                                require_once '../common/mail.php';
-                                $subject = '【' . $site_name . '】友链申请已拒绝';
-                                $body = '<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 15px; background-color: #f0f3f8; font-family: \'PingFang SC\', \'Microsoft YaHei\', sans-serif;">
-<div style="max-width: 600px; margin: 0 auto; width: 100%; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(32,102,255,0.08);">
-    <div style="padding: 30px 20px; text-align: center; background: linear-gradient(135deg, #2066ff 0%, #1955d4 100%); border-radius: 16px 16px 0 0;">
-        <img style="max-height: 45px; width: auto; max-width: 100%;" src="' . $logo_url . '" alt="' . $site_name . '" />
-    </div>
-    <div style="padding: 30px 20px;">
-        <h1 style="color: #2066ff; font-size: 24px; margin: 0 0 25px; text-align: center; font-weight: bold;">友链申请已拒绝</h1>
-        <p style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0; font-weight: 600;">尊敬的用户：</p>
-        <p style="color: #333333; font-size: 15px; line-height: 1.8; margin: 10px 0; font-weight: 600;">您的友链申请未通过审核，详情如下：</p>
-        <div style="background: linear-gradient(to right, #f8f9ff, #f0f5ff); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(32,102,255,0.1);">
-            <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">网站名称：</span> ' . htmlspecialchars($link['site_name']) . '</p>
-            <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">网站URL：</span> <a href="' . htmlspecialchars($link['url']) . '" target="_blank">' . htmlspecialchars($link['url']) . '</a></p>
-            <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">拒绝原因：</span> ' . htmlspecialchars($note) . '</p>
-        </div>
-        <div style="background-color: #f8f9fa; border-radius: 8px; padding: 15px; margin: 20px 0;">
-            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0; font-weight: 600;"><span style="color: #2066ff;">●</span> 如有疑问，请联系管理员</p>
-            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 8px 0 0; font-weight: 600;"><span style="color: #2066ff;">●</span> 您可以根据原因修改后重新申请</p>
-        </div>
-        <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 20px 0 0; font-weight: 600;">如有任何问题，请联系客服支持。</p>
-    </div>
-    <div style="padding: 20px 15px; background-color: #f8f9fa; border-radius: 0 0 16px 16px; border-top: 1px solid #eef0f5;">
-        <p style="color: #999999; font-size: 13px; text-align: center; margin: 0; line-height: 1.8; font-weight: 500;">本邮件由系统自动发送，请勿直接回复<br />Copyright © 2025-' . $current_year . ' huliapi 版权所有</p>
-    </div>
-</div>
-</body>
-</html>';
-                                send_mail($user['email'], $subject, $body, $pdo);
-                            }
-                        }
-                    }
-                    $_SESSION['feedback_msg'] = '已批量拒绝' . count($ids) . '条友链';
+                    $notifyType = 'reject';
                     break;
                 case 'delete':
                     $stmt = $pdo->prepare("DELETE FROM huli_friend_links WHERE id IN ($placeholders)");
                     $stmt->execute($ids);
-                    $_SESSION['feedback_msg'] = '已批量删除' . count($ids) . '条友链';
                     break;
                 case 'toggle':
                     $stmt = $pdo->prepare("UPDATE huli_friend_links SET is_hidden = 1 - is_hidden WHERE id IN ($placeholders)");
                     $stmt->execute($ids);
-                    $_SESSION['feedback_msg'] = '已批量切换' . count($ids) . '条友链显示状态';
                     break;
             }
+            if ($notifyType !== '') {
+                $stmt_links = $pdo->prepare("SELECT site_name, url, user_id, email FROM huli_friend_links WHERE id IN ($placeholders)");
+                $stmt_links->execute($ids);
+                $notifyLinks = $stmt_links->fetchAll(PDO::FETCH_ASSOC);
+            }
             $pdo->commit();
-            $_SESSION['feedback_type'] = 'success';
         } catch (Exception $e) {
             $pdo->rollBack();
             throw $e;
         }
+        if ($notifyType !== '' && !empty($notifyLinks)) {
+            @set_time_limit(0);
+            foreach ($notifyLinks as $link) {
+                huli_friend_link_send_notify($pdo, $link, $notifyType, $note, $site_name, $logo_url, $current_year);
+            }
+        }
+        $batchLabels = ['approve' => '已批量通过', 'reject' => '已批量拒绝', 'delete' => '已批量删除', 'toggle' => '已批量切换'];
+        $_SESSION['feedback_msg'] = ($batchLabels[$batch_action] ?? '已批量处理') . count($ids) . '条友链';
+        $_SESSION['feedback_type'] = 'success';
         $redirectParams = [];
         if (isset($get_page)) $redirectParams[] = "page={$get_page}";
         if (isset($get_status)) $redirectParams[] = "status={$get_status}";
@@ -323,7 +175,7 @@ try {
     $countStmt->execute($params);
     $totalRecords = $countStmt->fetchColumn();
     $totalPages = max(1, ceil($totalRecords / $limit));
-    $stmt = $pdo->prepare("SELECT id, site_name, url, logo, user_id, sort_order, created_at, status, is_hidden, review_note FROM huli_friend_links {$whereStr} ORDER BY sort_order DESC, created_at DESC LIMIT ?, ?");
+    $stmt = $pdo->prepare("SELECT id, site_name, url, logo, user_id, email, sort_order, created_at, status, is_hidden, review_note FROM huli_friend_links {$whereStr} ORDER BY sort_order DESC, created_at DESC LIMIT ?, ?");
     foreach ($params as $key => $value) {
         $stmt->bindValue($key + 1, $value);
     }
@@ -432,8 +284,29 @@ function getStatusBadge($status) {
       }
     }
   </style>
+  <style>
+    body {
+      background:
+        radial-gradient(circle at 12% 14%, rgba(255, 222, 200, .28), transparent 34rem),
+        radial-gradient(circle at 88% 86%, rgba(192, 224, 250, .30), transparent 32rem),
+        radial-gradient(circle at 50% 8%, rgba(232, 244, 252, .22), transparent 38rem),
+        radial-gradient(circle at 8% 92%, rgba(214, 240, 230, .24), transparent 30rem),
+        linear-gradient(135deg, #f0f6fc 0%, #f6faf8 48%, #eef6fb 100%) fixed;
+      color: #17233b;
+    }
+    .glass-panel {
+      background: linear-gradient(135deg, rgba(255, 255, 255, .62) 0%, rgba(220, 238, 252, .46) 100%);
+      backdrop-filter: blur(16px) saturate(160%);
+      -webkit-backdrop-filter: blur(16px) saturate(160%);
+      border: 1px solid rgba(180, 220, 245, .55);
+      box-shadow: 0 12px 32px rgba(45, 100, 155, .12), inset 0 1px 0 rgba(255, 255, 255, .65);
+    }
+    .glass-panel .glass-input {
+      background: rgba(255, 255, 255, .7);
+    }
+  </style>
 </head>
-<body class="bg-gray-50 font-inter text-dark">
+<body class="font-inter text-dark">
   <div class="container mx-auto px-4 py-6">
     <div class="mb-6 fade-in">
       <div>
@@ -466,7 +339,7 @@ function getStatusBadge($status) {
       </div>
     </div>
     <?php endif; ?>
-    <div class="bg-white rounded-xl shadow-sm p-6 mb-6 card-shadow fade-in" style="animation-delay: 0.1s">
+    <div class="glass-panel rounded-xl p-6 mb-6 fade-in" style="animation-delay: 0.1s">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold text-gray-800">
           <i class="fa fa-filter text-primary mr-2"></i>搜索筛选
@@ -528,7 +401,7 @@ function getStatusBadge($status) {
         </div>
       </form>
     </div>
-    <div class="bg-white rounded-xl shadow-sm p-4 mb-6 card-shadow fade-in" style="animation-delay: 0.2s">
+    <div class="glass-panel rounded-xl p-4 mb-6 fade-in" style="animation-delay: 0.2s">
       <div class="flex flex-wrap gap-2 justify-between">
         <div class="flex flex-wrap gap-2">
           <button type="button" id="batch-check-all" class="btn-effect inline-flex items-center px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none">
@@ -561,7 +434,7 @@ function getStatusBadge($status) {
         </div>
       </div>
     </div>
-    <div class="bg-white rounded-xl shadow-sm p-6 mb-6 card-shadow fade-in" style="animation-delay: 0.3s">
+    <div class="glass-panel rounded-xl p-6 mb-6 fade-in" style="animation-delay: 0.3s">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold text-gray-800">
           <i class="fa fa-list-alt text-primary mr-2"></i>友链列表
@@ -570,7 +443,7 @@ function getStatusBadge($status) {
       <div id="skeleton-loader" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 hidden"></div>
       <div id="content-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <?php if (empty($links)): ?>
-          <div class="col-span-full bg-gray-50 rounded-lg p-8 text-center slide-up">
+          <div class="col-span-full bg-white/40 rounded-lg p-8 text-center slide-up">
             <div class="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
               <i class="fa fa-link text-gray-400 text-2xl"></i>
             </div>
@@ -584,7 +457,7 @@ function getStatusBadge($status) {
           </div>
         <?php else: ?>
           <?php foreach ($links as $index => $link): ?>
-            <div class="card-hover bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm slide-up" style="animation-delay: <?= ($index % 6) * 0.05 ?>s">
+            <div class="card-hover glass-panel rounded-xl overflow-hidden slide-up" style="animation-delay: <?= ($index % 6) * 0.05 ?>s">
               <div class="p-4 border-b border-gray-100">
                 <div class="flex items-start">
                   <div class="flex-shrink-0 mr-3 mt-0.5">
@@ -629,6 +502,14 @@ function getStatusBadge($status) {
                     </span>
                     <span class="text-gray-900"><?= $link['user_id'] ? "用户ID:{$link['user_id']}" : '游客' ?></span>
                   </div>
+                  <?php if (!empty($link['email'])): ?>
+                  <div class="flex items-center text-sm">
+                    <span class="text-gray-500 w-20">
+                      <i class="fa fa-envelope-o mr-1"></i>联系邮箱:
+                    </span>
+                    <span class="text-gray-900 break-all"><?= htmlspecialchars($link['email']) ?></span>
+                  </div>
+                  <?php endif; ?>
                   <div class="flex items-center text-sm">
                     <span class="text-gray-500 w-20">
                       <i class="fa fa-sort-numeric-asc mr-1"></i>排序值:
@@ -657,7 +538,7 @@ function getStatusBadge($status) {
                   </div>
                 <?php endif; ?>
               </div>
-              <div class="p-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+              <div class="p-3 bg-white/40 border-t border-white/40 flex justify-between items-center">
                 <div class="flex space-x-2">
                   <a href="friend_link_edit.php?id=<?= $link['id'] ?>" class="btn-effect inline-flex items-center px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 focus:outline-none">
                     <i class="fa fa-pencil mr-1"></i>编辑
@@ -680,7 +561,7 @@ function getStatusBadge($status) {
       </div>
     </div>
     <?php if ($totalPages > 1): ?>
-    <div class="bg-white rounded-xl shadow-sm p-4 card-shadow fade-in" style="animation-delay: 0.4s">
+    <div class="glass-panel rounded-xl p-4 fade-in" style="animation-delay: 0.4s">
       <div class="flex flex-col sm:flex-row justify-between items-center">
         <div class="mb-4 sm:mb-0 text-sm text-gray-500">
           显示第 <span class="font-medium text-primary"><?= ($page - 1) * $limit + 1 ?></span> 至
@@ -766,7 +647,7 @@ function getStatusBadge($status) {
     </div>
     <?php endif; ?>
   <div id="rejectModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 opacity-0 pointer-events-none transition-opacity duration-300">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all duration-300 scale-95 translate-y-4">
+    <div class="glass-panel rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all duration-300 scale-95 translate-y-4">
       <div class="flex items-center justify-between p-4 border-b">
         <h3 class="text-lg font-medium text-gray-900">填写拒绝原因</h3>
         <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none close-modal" onclick="hideRejectModal()">
@@ -780,7 +661,7 @@ function getStatusBadge($status) {
             <label for="reject-note" class="block text-sm font-medium text-gray-700 mb-1">
               拒绝原因（选填）
             </label>
-            <textarea id="reject-note" name="reject_note" rows="3" class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary" placeholder="请输入拒绝原因，将显示给申请者"></textarea>
+            <textarea id="reject-note" name="reject_note" rows="3" class="glass-input block w-full border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary" placeholder="请输入拒绝原因，将显示给申请者"></textarea>
           </div>
         </form>
       </div>
@@ -795,7 +676,7 @@ function getStatusBadge($status) {
     </div>
   </div>
   <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-lg p-6 max-w-xs w-full text-center scale-in">
+    <div class="glass-panel rounded-lg p-6 max-w-xs w-full text-center scale-in">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
       <h3 class="text-lg font-medium text-gray-900 mb-2">处理中</h3>
       <p class="text-gray-500 text-sm">请稍候，正在执行操作...</p>

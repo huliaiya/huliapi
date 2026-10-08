@@ -214,6 +214,7 @@ CREATE TABLE `huli_friend_links` (
   `description` varchar(255) DEFAULT NULL COMMENT '网站描述',
   `logo` varchar(255) DEFAULT NULL COMMENT '网站LOGO',
   `user_id` int(11) DEFAULT NULL COMMENT '申请用户ID',
+  `email` varchar(100) DEFAULT NULL COMMENT '申请者联系邮箱（选填）',
   `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending' COMMENT '审核状态',
   `is_hidden` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否隐藏',
   `sort_order` int(11) NOT NULL DEFAULT 0 COMMENT '排序权重',
