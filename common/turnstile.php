@@ -11,7 +11,19 @@ if (file_exists(dirname(__DIR__) . '/config.php')) {
 define('HULI_TURNSTILE_TEST_SITE_KEYS', '|1x00000000000000000000AA|2x00000000000000000000AB|1x00000000000000000000BB|2x00000000000000000000BB|3x00000000000000000000FF|');
 define('HULI_TURNSTILE_TEST_SECRET_KEYS', '|1x0000000000000000000000000000000AA|2x0000000000000000000000000000000AA|3x0000000000000000000000000000000AA|');
 
- 
+  
+function huli_turnstile_normalize_key($value)
+{
+    $stripped = preg_replace('/[^0-9A-Za-z_-]+/', '', (string)$value);
+    if ($stripped === null) {
+        $stripped = trim((string)$value);
+    }
+    if (strlen($stripped) > 3 && stripos($stripped, 'key') === 0 && stripos($stripped, '0x', 3) === 3) {
+        $stripped = substr($stripped, 3);
+    }
+    return $stripped;
+}
+
 function huli_turnstile_settings()
 {
     static $settings = null;
@@ -33,8 +45,8 @@ function huli_turnstile_settings()
             "SELECT setting_key, setting_value FROM huli_settings
              WHERE setting_key IN ('turnstile_enabled','turnstile_site_key','turnstile_secret_key')"
         )->fetchAll(PDO::FETCH_KEY_PAIR);
-        $settings['site_key'] = isset($rows['turnstile_site_key']) ? trim((string)$rows['turnstile_site_key']) : '';
-        $settings['secret_key'] = isset($rows['turnstile_secret_key']) ? trim((string)$rows['turnstile_secret_key']) : '';
+        $settings['site_key'] = isset($rows['turnstile_site_key']) ? huli_turnstile_normalize_key($rows['turnstile_site_key']) : '';
+        $settings['secret_key'] = isset($rows['turnstile_secret_key']) ? huli_turnstile_normalize_key($rows['turnstile_secret_key']) : '';
         $switch_on = isset($rows['turnstile_enabled']) && trim((string)$rows['turnstile_enabled']) === '1';
         $settings['enabled'] = $switch_on && $settings['site_key'] !== '' && $settings['secret_key'] !== '';
     } catch (Exception $e) {
@@ -72,7 +84,7 @@ function huli_turnstile_error_message($codes)
     $codes = (array)$codes;
     $map = array(
         'missing-input-secret'   => '人机验证配置有误：后台未填写 Turnstile Secret Key',
-        'invalid-input-secret'   => '人机验证配置有误：Turnstile Secret Key 不正确，请核对后台填写的密钥',
+        'invalid-input-secret'   => '人机验证配置有误：Cloudflare 无法识别当前 Secret Key（可能已轮换、属于其他 Turnstile 站点，或复制时带了不可见字符）。请在 Cloudflare 后台该站点重新复制 Secret Key 后保存',
         'missing-input-response' => '未检测到人机验证结果，请完成验证后再提交',
         'invalid-input-response' => '人机验证未通过：验证令牌无效。请确认后台的 Site Key 与 Secret Key 来自同一个 Turnstile 站点，且当前域名已在 Cloudflare 中授权',
         'bad-request'            => '人机验证请求格式错误，请稍后重试',
@@ -216,7 +228,7 @@ function huli_turnstile_uuid_v4()
  
 function huli_turnstile_siteverify_raw($secret, $token)
 {
-    $secret = trim((string)$secret);
+    $secret = huli_turnstile_normalize_key($secret);
     $token = trim((string)$token);
     $post_data = array(
         'secret' => $secret,
@@ -251,13 +263,16 @@ function huli_turnstile_siteverify_raw($secret, $token)
  
 function huli_turnstile_check_keys($site, $secret)
 {
-    $site = trim((string)$site);
-    $secret = trim((string)$secret);
+    $site = huli_turnstile_normalize_key($site);
+    $secret = huli_turnstile_normalize_key($secret);
     if ($site === '' || $secret === '') {
         return array('ok' => false, 'msg' => '请先填写 Site Key 与 Secret Key 再检测。', 'site_is_test' => false, 'secret_is_test' => false);
     }
     $site_is_test = strpos(HULI_TURNSTILE_TEST_SITE_KEYS, '|' . $site . '|') !== false;
     $secret_is_test = strpos(HULI_TURNSTILE_TEST_SECRET_KEYS, '|' . $secret . '|') !== false;
+    if ($site === $secret) {
+        return array('ok' => false, 'msg' => '检测失败：Site Key 与 Secret Key 完全相同，很可能把 Site Key 误填进了 Secret Key 字段。Secret Key 不是 Site Key，请在 Cloudflare Turnstile 站点详情中分别复制。', 'site_is_test' => $site_is_test, 'secret_is_test' => $secret_is_test);
+    }
     if (!preg_match('/^[0-9A-Za-z_-]{20,80}$/', $site)) {
         return array('ok' => false, 'msg' => '检测失败：Site Key 格式不合法。Cloudflare Site Key 形如 "0x4AAAAAA..."，请从 Cloudflare 后台重新复制。', 'site_is_test' => $site_is_test, 'secret_is_test' => $secret_is_test);
     }
