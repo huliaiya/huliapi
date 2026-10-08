@@ -14,6 +14,7 @@ if (file_exists('../config.php')) {
 require_once __DIR__ . '/../common/turnstile.php';
 require_once __DIR__ . '/../common/login_helper.php';
 require_once __DIR__ . '/../common/gallery.php';
+require_once __DIR__ . '/../common/admin_remember.php';
     $settings = ['site_name' => 'huliapi'];
     $favicon_url = '';
 try { $fp = new PDO("mysql:host=".DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS); $settings['site_name'] = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='site_name'")->fetchColumn() ?: 'huliapi'; $favicon_url = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; $mail_forgot_enabled = ((int)$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='mail_admin_forgot_enabled'")->fetchColumn() === 1); } catch(Exception $e) {}
@@ -43,6 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $updateStmt = $pdo->prepare("UPDATE huli_admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?");
                     $updateStmt->execute([$admin['id']]);
                     try { huli_record_login($pdo, 'admin', (int)$admin['id'], $_SESSION['admin_username'], 'success', ['email' => $admin['email'], 'notify' => true]); } catch (Throwable $e) {}
+                    if (!empty($_POST['remember'])) {
+                        huli_admin_remember_issue((int)$admin['id'], $pdo);
+                    } else {
+                        huli_admin_remember_revoke($pdo);
+                    }
                     header('Location: index.php');
                     exit;
                 } else {

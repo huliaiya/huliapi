@@ -22,6 +22,8 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'logout') {
+    require_once __DIR__ . '/../common/admin_remember.php';
+    huli_admin_remember_revoke();
     session_destroy();
     header('Location: login.php');
     exit;

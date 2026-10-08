@@ -18,3 +18,15 @@ if (file_exists(__DIR__ . '/updater_schedule.php')) {
     require_once __DIR__ . '/updater_schedule.php';
     huli_updater_maybe_run_schedule();
 }
+
+if (empty($_SESSION['admin_id']) && !empty($_COOKIE['huli_admin_remember'])) {
+    $huli_root = dirname(__DIR__);
+    if (file_exists($huli_root . '/config.php')) {
+        if (!defined('DB_HOST')) { require_once $huli_root . '/config.php'; }
+        if (!function_exists('huli_get_client_ip') && file_exists(__DIR__ . '/login_helper.php')) {
+            require_once __DIR__ . '/login_helper.php';
+        }
+        require_once __DIR__ . '/admin_remember.php';
+        huli_admin_remember_login();
+    }
+}

@@ -6,7 +6,7 @@ if (!isset($_SESSION['admin_id'])) {
     header('Location: login.php');
     exit;
 }
-require '../config.php';
+require_once '../config.php';
 $plan = [
     'id' => '',
     'name' => '',
