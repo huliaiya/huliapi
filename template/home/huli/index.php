@@ -334,19 +334,19 @@ body {
                 <span>用户中心</span></a>
             </li>
             <li class="nav-item">
-              <a class="multitabs" href="<?= $homeTemplateBaseUrl ?>friend_links.php" id="default-page">
+              <a class="multitabs" href="<?= $homeTemplateBaseUrl ?>friend_links.php">
                 <i class="mdi mdi-link"></i>
                 <span>友链列表</span>
               </a>
             </li>
                         <li class="nav-item">
-              <a class="multitabs" href="<?= $userTemplateBaseUrl ?>feedback.php" id="default-page">
+              <a class="multitabs" href="<?= $userTemplateBaseUrl ?>feedback.php">
                 <i class="mdi mdi-comment-question-outline"></i>
                 <span>问题反馈</span>
               </a>
             </li>
                         <li class="nav-item">
-              <a class="multitabs" href="<?= $userTemplateBaseUrl ?>payok.php" id="default-page">
+              <a class="multitabs" href="<?= $userTemplateBaseUrl ?>payok.php">
                 <i class="mdi mdi-credit-card-outline"></i>
                 <span>在线充值</span>
               </a>
@@ -359,7 +359,7 @@ body {
 </li>
 <?php if ($allow_temp_key && !$is_logged_in): ?>
     <li class="nav-item">
-        <a class="multitabs" href="<?= $userTemplateBaseUrl ?>temp_key.php" id="default-page">
+        <a class="multitabs" href="<?= $userTemplateBaseUrl ?>temp_key.php">
             <i class="mdi mdi-key-variant"></i>
             <span>申请临时密钥</span>
         </a>
