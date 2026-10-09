@@ -167,7 +167,9 @@ CREATE TABLE `huli_apis` (
   KEY `status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='API接口管理表';
 INSERT INTO `huli_apis` (`id`,`admin_id`,`category_id`,`name`,`description`,`endpoint`,`method`,`type`,`file_path`,`parameters`,`status`,`visibility`,`is_billable`,`request_example`,`response_format`,`points_per_call`) VALUES
-(1,1,1,'IP归属地查询','查询指定IP地址的归属地信息','ip','GET','local','API/ip.php','[{"name":"ip","type":"string","required":"no","desc":"要查询的IP地址，为空时返回当前出口IP"}]','normal','public',0,'/API/ip.php?ip=1.2.3.4','application/json',0);
+(1,1,1,'IP归属地查询','查询指定IP地址的归属地信息','ip','GET','local','API/ip.php','[{"name":"ip","type":"string","required":"no","desc":"要查询的IP地址，为空时返回当前出口IP"}]','normal','public',0,'/API/ip.php?ip=1.2.3.4','application/json',0),
+(2,1,1,'接口搜索','搜索站内对外可用的API接口，支持按关键词、分类、分页查询','search','GET','local','API/search.php','[{"name":"q","type":"string","required":"no","desc":"搜索关键词，匹配接口名称/描述/端点"},{"name":"category_id","type":"int","required":"no","desc":"按分类ID过滤"},{"name":"page","type":"int","required":"no","desc":"页码，默认1"},{"name":"per_page","type":"int","required":"no","desc":"每页数量，默认20，最大100"}]','normal','public',0,'/API/search.php?q=ip','application/json',0),
+(3,1,1,'调用统计','统计接口的累计调用、成功/失败次数、今日与本周调用量，支持全站或指定接口','stats','GET','local','API/stats.php','[{"name":"endpoint","type":"string","required":"no","desc":"指定接口的端点，为空时返回全站统计"}]','normal','public',0,'/API/stats.php?endpoint=ip','application/json',0);
 DROP TABLE IF EXISTS `huli_billing_plans`;
 CREATE TABLE `huli_billing_plans` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '方案ID',
