@@ -331,15 +331,24 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
 .friend-card h5 a:hover { color: #4096ff; }
 .friend-card p { margin-bottom: 0; font-size: 0.9rem; color: #6c757d; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; }
 .friend-status { position: absolute; top: 0.6rem; right: 0.6rem; z-index: 10; }
-.stats-container { display: flex; gap: 1rem; margin: 1.5rem 1.5rem 2rem; align-items: center; flex-wrap: wrap; }
-.stats-card { flex: 1; min-width: 200px; border-radius: 0.85rem; transition: all 0.3s ease; overflow: hidden; box-shadow: 0 8px 22px rgba(64, 120, 180, 0.10); display: flex; align-items: center; padding: 1rem 1.5rem; height: 90px; border: 1px solid rgba(180, 220, 245, .5); background: linear-gradient(140deg, rgba(255, 255, 255, .58), rgba(220, 238, 252, .42)); backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%); }
-.stats-card:hover { box-shadow: 0 8px 15px rgba(64, 120, 180, 0.18); }
-.stats-card .mdi { font-size: 2rem; margin-right: 1.2rem; flex-shrink: 0; }
-.stats-info { flex-grow: 1; }
-.stats-card h5.card-title { font-size: 0.9rem; margin-bottom: 0.2rem; color: #495057; font-weight: 500; }
-.stats-card .stat-value { font-size: 1.8rem; font-weight: 600; line-height: 1.2; }
-.stats-card.bg-primary-light { background: linear-gradient(135deg, rgba(64, 150, 255, 0.1) 0%, rgba(64, 150, 255, 0.05) 100%); color: #4096ff; }
-.stats-card.bg-danger-light { background: linear-gradient(135deg, rgba(255, 77, 79, 0.1) 0%, rgba(255, 77, 79, 0.05) 100%); color: #ff4d4f; }
+.friend-stat-badge { display: inline-flex; align-items: center; gap: .45rem; padding: .45rem .95rem; border-radius: 2rem; font-size: .875rem; background: rgba(64, 150, 255, .1); color: #2f7fe0; border: 1px solid rgba(64, 150, 255, .28); }
+.friend-stat-badge strong { font-weight: 700; font-size: .95rem; }
+.friend-stat-badge.is-danger { background: rgba(255, 77, 79, .08); color: #e0393e; border-color: rgba(255, 77, 79, .28); }
+.friend-empty-state { padding: 2.5rem 1rem 2rem; }
+.friend-empty-icon { width: 96px; height: 96px; margin: 0 auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(64, 150, 255, .16), rgba(105, 177, 255, .1)); border: 1px dashed rgba(64, 150, 255, .45); animation: emptyPulse 3s ease-in-out infinite; }
+.friend-empty-icon .mdi { font-size: 2.8rem; color: #4096ff; }
+@keyframes emptyPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(64, 150, 255, .18); } 50% { box-shadow: 0 0 0 14px rgba(64, 150, 255, 0); } }
+.apply-steps { display: flex; justify-content: center; align-items: flex-start; flex-wrap: wrap; margin-top: 2.25rem; }
+.apply-step { display: flex; flex-direction: column; align-items: center; min-width: 150px; max-width: 190px; padding: 0 1rem; text-align: center; }
+.apply-step .step-num { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #4096ff, #69b1ff); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .95rem; box-shadow: 0 6px 14px rgba(64, 150, 255, .35); }
+.apply-step .step-text strong { display: block; font-size: .93rem; color: #343a40; margin-top: .65rem; }
+.apply-step .step-text small { display: block; color: #8a94a6; font-size: .8rem; margin-top: .2rem; line-height: 1.45; }
+.apply-step-line { width: 72px; height: 2px; margin-top: 18px; background: linear-gradient(90deg, rgba(64, 150, 255, .15), #4096ff, rgba(64, 150, 255, .15)); border-radius: 1px; flex-shrink: 0; }
+.friend-url { display: inline-flex; align-items: center; gap: .35rem; margin-top: .55rem; font-size: .8rem; color: #8a94a6; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friend-url .mdi { font-size: .85rem; }
+.friend-card:hover .friend-url { color: #4096ff; }
+.friend-visit-hint { position: absolute; right: .6rem; bottom: .6rem; font-size: .75rem; color: #4096ff; opacity: 0; transform: translateX(-6px); transition: all .25s ease; }
+.friend-card:hover .friend-visit-hint { opacity: 1; transform: translateX(0); }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
@@ -348,11 +357,9 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
 .fade-in { animation: fadeIn 0.4s ease forwards; }
 .friend-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
 @media (max-width: 768px) {
-    .stats-container { margin: 1rem; }
-    .stats-card { height: 80px; padding: 0.8rem 1rem; }
-    .stats-card .stat-value { font-size: 1.5rem; }
     .friend-card-grid { grid-template-columns: 1fr; }
     .modal-dialog { margin: 1rem; }
+    .apply-step-line { width: 36px; }
     .card-header.d-flex {
         flex-wrap: wrap;
         gap: 10px;
@@ -370,96 +377,111 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm mb-4">
-                <div class="card-header">
-                    <h4 class="mb-0 fw-bold">友情链接</h4>
-                    <p class="text-muted small mb-0">展示合作网站链接及自助申请功能</p>
-                </div>
-                <div class="stats-container">
-                    <div class="stats-card bg-primary-light">
-                        <i class="mdi mdi-link-variant"></i>
-                        <div class="stats-info">
-                            <h5 class="card-title mb-1">友链总数</h5>
-                            <div class="stat-value"><?= (int)$total_links ?></div>
-                        </div>
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h4 class="mb-1 fw-bold">友情链接</h4>
+                        <p class="text-muted small mb-0">优质站点互换友链，申请提交后 1-3 个工作日内完成审核</p>
                     </div>
-                    <div class="stats-card bg-danger-light">
-                        <i class="mdi mdi-alert-circle-outline"></i>
-                        <div class="stats-info">
-                            <h5 class="card-title mb-1">异常友链</h5>
-                            <div class="stat-value"><?= (int)$broken_links ?></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card mb-4 shadow-sm">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0 fw-medium"><i class="mdi mdi-website me-2"></i>友情链接列表</h5>
-                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#applyLinkModal">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="friend-stat-badge"><i class="mdi mdi-link-variant"></i>友链总数 <strong><?= (int)$total_links ?></strong></span>
+                        <?php if ((int)$broken_links > 0): ?>
+                            <span class="friend-stat-badge is-danger"><i class="mdi mdi-alert-circle-outline"></i>异常友链 <strong><?= (int)$broken_links ?></strong></span>
+                        <?php endif; ?>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#applyLinkModal">
                             <i class="mdi mdi-pencil-plus me-1"></i>申请友链
                         </button>
                     </div>
-                    <div class="card-body p-4">
-                        <?php if ($apply_msg): ?>
-                            <div id="page-alert" class="alert alert-<?= htmlspecialchars($apply_type) ?> alert-dismissible fade show mb-4">
-                                <?= htmlspecialchars($apply_msg) ?>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        <?php endif; ?>
-                        <div class="friend-card-grid">
-                            <?php if (empty($links)): ?>
-                                <div class="col-12 text-center py-5 text-muted">
-                                    <i class="mdi mdi-information-outline display-4 mb-3 text-secondary"></i>
-                                    <p class="fs-6">暂无友情链接，欢迎申请合作</p>
-                                    <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#applyLinkModal">
-                                        <i class="mdi mdi-pencil-plus me-1"></i>立即申请
-                                    </button>
+                </div>
+                <div class="card-body p-4">
+                    <?php if ($apply_msg): ?>
+                        <div id="page-alert" class="alert alert-<?= htmlspecialchars($apply_type) ?> alert-dismissible fade show mb-4">
+                            <?= htmlspecialchars($apply_msg) ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (empty($links)): ?>
+                        <div class="friend-empty-state text-center">
+                            <div class="friend-empty-icon"><i class="mdi mdi-link-variant"></i></div>
+                            <h5 class="fw-bold mt-4 mb-2">期待与你互换友链</h5>
+                            <p class="text-muted mb-4 mx-auto" style="max-width: 460px;">欢迎 API 工具、开发者博客、技术社区等优质站点申请合作，共同成长</p>
+                            <button type="button" class="btn btn-primary btn-lg px-4" data-bs-toggle="modal" data-bs-target="#applyLinkModal">
+                                <i class="mdi mdi-pencil-plus me-1"></i>立即申请友链
+                            </button>
+                            <div class="apply-steps">
+                                <div class="apply-step">
+                                    <span class="step-num">1</span>
+                                    <div class="step-text"><strong>填写申请</strong><small>提交站点名称、链接与联系邮箱</small></div>
                                 </div>
-                            <?php else: ?>
-                                <?php foreach ($links as $link): ?>
-                                    <div class="friend-card">
-                                        <div class="friend-status">
-                                            <?php if ($link['status_check'] == 'broken'): ?>
-                                                <span class="badge bg-danger bg-opacity-10 text-danger">
-                                                    <i class="mdi mdi-alert-circle-outline me-1"></i>异常
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="badge bg-success bg-opacity-10 text-success">
-                                                    <i class="mdi mdi-check-circle-outline me-1"></i>正常
-                                                </span>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="card-body p-3">
-                                            <div class="d-flex">
-                                                <div class="friend-logo-container flex-shrink-0 me-3">
-                                                    <?php if (!empty($link['logo'])): ?>
-                                                        <img src="<?= htmlspecialchars($link['logo']) ?>" class="friend-logo-img" alt="<?= htmlspecialchars($link['site_name']) ?>" loading="lazy">
-                                                    <?php else: ?>
-                                                        <?php
-                                                        $siteType = 'mdi mdi-web';
-                                                        if (strpos($link['url'], 'blog') !== false) $siteType = 'mdi mdi-blog';
-                                                        elseif (strpos($link['url'], 'api') !== false) $siteType = 'mdi mdi-api';
-                                                        elseif (strpos($link['url'], 'shop') !== false) $siteType = 'mdi mdi-store';
-                                                        ?>
-                                                        <i class="friend-logo-icon <?= $siteType ?>"></i>
-                                                    <?php endif; ?>
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <h5 class="card-title mb-1 fw-medium">
-                                                        <a href="<?= htmlspecialchars($link['url']) ?>" target="_blank" rel="noopener noreferrer">
-                                                            <?= htmlspecialchars($link['site_name']) ?>
-                                                        </a>
-                                                    </h5>
-                                                    <p class="card-text text-sm">
-                                                        <?= htmlspecialchars($link['description'] ?? '暂无描述') ?>
-                                                    </p>
-                                                </div>
+                                <div class="apply-step-line"></div>
+                                <div class="apply-step">
+                                    <span class="step-num">2</span>
+                                    <div class="step-text"><strong>邮件通知</strong><small>申请信息将通过邮件通知管理员</small></div>
+                                </div>
+                                <div class="apply-step-line"></div>
+                                <div class="apply-step">
+                                    <span class="step-num">3</span>
+                                    <div class="step-text"><strong>审核上线</strong><small>通过后自动展示并邮件告知结果</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <h5 class="card-title mb-0 fw-medium"><i class="mdi mdi-website me-2"></i>友情链接列表</h5>
+                            <span class="text-muted small">共 <strong class="text-body"><?= count($links) ?></strong> 个站点</span>
+                        </div>
+                        <div class="friend-card-grid">
+                            <?php foreach ($links as $link): ?>
+                                <?php $link_host = parse_url($link['url'], PHP_URL_HOST) ?: $link['url']; ?>
+                                <div class="friend-card fade-in">
+                                    <div class="friend-status">
+                                        <?php if ($link['status_check'] == 'broken'): ?>
+                                            <span class="badge bg-danger bg-opacity-10 text-danger">
+                                                <i class="mdi mdi-alert-circle-outline me-1"></i>异常
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-success bg-opacity-10 text-success">
+                                                <i class="mdi mdi-check-circle-outline me-1"></i>正常
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <div class="d-flex">
+                                            <div class="friend-logo-container flex-shrink-0 me-3">
+                                                <?php if (!empty($link['logo'])): ?>
+                                                    <img src="<?= htmlspecialchars($link['logo']) ?>" class="friend-logo-img" alt="<?= htmlspecialchars($link['site_name']) ?>" loading="lazy">
+                                                <?php else: ?>
+                                                    <?php
+                                                    $siteType = 'mdi mdi-web';
+                                                    if (strpos($link['url'], 'blog') !== false) $siteType = 'mdi mdi-blog';
+                                                    elseif (strpos($link['url'], 'api') !== false) $siteType = 'mdi mdi-api';
+                                                    elseif (strpos($link['url'], 'shop') !== false) $siteType = 'mdi mdi-store';
+                                                    ?>
+                                                    <i class="friend-logo-icon <?= $siteType ?>"></i>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h5 class="card-title mb-1 fw-medium">
+                                                    <a href="<?= htmlspecialchars($link['url']) ?>" target="_blank" rel="noopener noreferrer">
+                                                        <?= htmlspecialchars($link['site_name']) ?>
+                                                    </a>
+                                                </h5>
+                                                <p class="card-text text-sm">
+                                                    <?= htmlspecialchars($link['description'] ?? '暂无描述') ?>
+                                                </p>
+                                                <div class="friend-url"><i class="mdi mdi-domain"></i><?= htmlspecialchars($link_host) ?></div>
                                             </div>
                                         </div>
                                     </div>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
+                                    <span class="friend-visit-hint"><i class="mdi mdi-open-in-new me-1"></i>访问</span>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
-                    </div>
+                    <?php endif; ?>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
                 <div class="modal fade" id="applyLinkModal" tabindex="-1" aria-labelledby="applyLinkModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content shadow">
@@ -532,10 +554,6 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
 <script src="../../../assets/js/jquery.min.js" defer></script>
 <script src="../../../assets/js/popper.min.js" defer></script>
 <script src="../../../assets/js/bootstrap.min.js" defer></script>
