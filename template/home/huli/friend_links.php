@@ -23,6 +23,7 @@ require_once ROOT_PATH . 'common/mail.php';
 require_once ROOT_PATH . 'common/url_helper.php';
 require_once ROOT_PATH . 'common/gallery.php';
 require_once ROOT_PATH . 'common/friend_link_lib.php';
+require_once ROOT_PATH . 'common/turnstile.php';
 
  
 function getDb()
@@ -163,6 +164,11 @@ try {
          
         if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
             throw new Exception("请求非法，请刷新页面重试");
+        }
+
+        $turnstile_reason = '';
+        if (!huli_turnstile_verify($turnstile_reason)) {
+            throw new Exception($turnstile_reason ?: '人机验证失败，请完成验证后再提交');
         }
 
         $site_name    = trim($_POST['site_name'] ?? '');
@@ -449,7 +455,7 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                                         <div class="d-flex">
                                             <div class="friend-logo-container flex-shrink-0 me-3">
                                                 <?php if (!empty($link['logo'])): ?>
-                                                    <img src="<?= htmlspecialchars($link['logo']) ?>" class="friend-logo-img" alt="<?= htmlspecialchars($link['site_name']) ?>" loading="lazy">
+                                                    <img src="<?= htmlspecialchars($link['logo']) ?>" class="friend-logo-img" alt="<?= htmlspecialchars($link['site_name']) ?>" loading="lazy" referrerpolicy="no-referrer">
                                                 <?php else: ?>
                                                     <?php
                                                     $siteType = 'mdi mdi-web';
@@ -497,8 +503,11 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                                     <?php else: ?>
                                         <p class="small text-muted mb-3"><i class="mdi mdi-account-outline me-1"></i>未登录，可直接以游客身份提交申请</p>
                                     <?php endif; ?>
-                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                                    <div class="row g-3">
+                                     <?= huli_turnstile_widget_html() ?>
+                                     <div id="turnstile-error" class="alert alert-danger small mt-2 mb-3 d-none"></div>
+                                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                                     <input type="hidden" name="cf-turnstile-response" value="">
+                                     <div class="row g-3">
                                         <div class="col-12">
                                             <label for="site_name" class="form-label">网站名称 <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="site_name" name="site_name" placeholder="请输入网站名称" maxlength="50" required>
@@ -542,8 +551,8 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                                                 <li>4. 若网站内容与本平台不符，可能会被拒绝</li>
                                             </ul>
                                         </div>
-                                    </div>
-                                    <input type="hidden" name="apply_friend_link" value="1">
+                                     </div>
+                                     <input type="hidden" name="apply_friend_link" value="1">
                                 </form>
                             </div>
                             <div class="modal-footer">
@@ -584,15 +593,37 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const friendForm = document.getElementById('friend-link-form');
     const submitBtn = document.querySelector('#applyLinkModal button[form="friend-link-form"]');
+    const turnstileErrorBox = document.getElementById('turnstile-error');
+    function restoreSubmitBtn() {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="mdi mdi-send me-2"></i>提交申请';
+    }
     if (friendForm && submitBtn) {
         friendForm.addEventListener('submit', function(e) {
+            if (turnstileErrorBox) turnstileErrorBox.classList.add('d-none');
             if (!friendForm.checkValidity()) return;
+            const needsTurnstile = typeof window.huliTurnstileEnsureToken === 'function' && document.querySelector('.huli-turnstile');
+            if (!needsTurnstile) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>提交中...';
+                setTimeout(restoreSubmitBtn, 10000);
+                return;
+            }
+            e.preventDefault();
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>提交中...';
-            setTimeout(() => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="mdi mdi-send me-2"></i>提交申请';
-            }, 10000);
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>验证中...';
+            window.huliTurnstileEnsureToken(function() {
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>提交中...';
+                setTimeout(restoreSubmitBtn, 10000);
+                friendForm.submit();
+            }, function(message) {
+                restoreSubmitBtn();
+                if (turnstileErrorBox) {
+                    turnstileErrorBox.textContent = message || '人机验证失败，请完成验证后再提交';
+                    turnstileErrorBox.classList.remove('d-none');
+                    turnstileErrorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
         });
     }
     const logoInput = document.getElementById('logo_url');

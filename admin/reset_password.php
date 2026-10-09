@@ -50,7 +50,7 @@ try {
         if (strlen($password) < 6) {
             throw new Exception('密码至少 6 位');
         }
-        if (!isset($_SESSION['admin_reset_code']) || !isset($_SESSION['admin_reset_code_expire']) || time() > $_SESSION['admin_reset_code_expire'] || strtolower($code) != strtolower($_SESSION['admin_reset_code']) || strtolower($email) != strtolower($_SESSION['admin_reset_email'])) {
+        if (!isset($_SESSION['admin_reset_code']) || !isset($_SESSION['admin_reset_code_expire']) || time() > $_SESSION['admin_reset_code_expire'] || !hash_equals(strtolower($_SESSION['admin_reset_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['admin_reset_email']), strtolower($email))) {
             throw new Exception('邮箱验证码不正确或已过期');
         }
         $stmt = $pdo->prepare("SELECT id, status FROM huli_admins WHERE email = ?");

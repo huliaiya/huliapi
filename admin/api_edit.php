@@ -11,6 +11,7 @@ if (file_exists('../config.php')) {
 } else {
     die("出现错误！配置文件丢失。");
 }
+require_once __DIR__ . '/../common/mcp/mcp_lib.php';
 $admin_id = $_SESSION['admin_id'];
 $feedback_msg = '';
 $feedback_type = '';
@@ -173,8 +174,20 @@ try {
         $relativePath = calculateRelativePath($currentDir, $projectRoot . '/common/security');
         $auth_bootstrap = "<?php require_once __DIR__ . '/{$relativePath}/api_auth.php';\n\n";
         $file_content = '';
+        $forbidden_api_calls = ['shell_exec', 'system', 'passthru', 'exec', 'popen', 'proc_open', 'pcntl_fork', 'posix_kill'];
         if ($type === 'local') {
             $user_code = $_POST['local_code'];
+            foreach ($forbidden_api_calls as $fn) {
+                if (preg_match('/\b' . $fn . '\s*\(/i', $user_code)) {
+                    throw new Exception('接口代码不能调用 ' . $fn . ' 等系统命令类函数');
+                }
+            }
+            if (preg_match('/eval\s*\(|assert\s*\(|create_function\s*\(|call_user_func(_array)?\s*\(/i', $user_code)) {
+                throw new Exception('接口代码不能包含动态执行函数');
+            }
+            if (preg_match('/file_put_contents|file_get_contents|fopen|readfile|include|require/i', $user_code)) {
+                throw new Exception('接口代码不能包含文件读写或文件包含函数');
+            }
             $existingAuthCode = false;
             if (file_exists($full_path)) {
                 $existingContent = file_get_contents($full_path);
@@ -202,6 +215,9 @@ try {
             }
             if (empty($remote_url)) {
                 throw new Exception('远程接口地址不能为空。');
+            }
+            if (!huli_mcp_safe_outbound_url($remote_url)) {
+                throw new Exception('远程接口地址不能指向内网或本地地址。');
             }
             $proxy_script = "@error_reporting(0);\n\$remote_url = '" . addslashes($remote_url) . "';\n\$method = '" . $method . "';\n\$params = array_merge(\$_GET, \$_POST);\n\$ch = curl_init();\n";
             $proxy_script .= "if (\$method === 'GET' && !empty(\$params)) { \$remote_url .= (strpos(\$remote_url, '?') === false ? '?' : '&') . http_build_query(\$params); }\n";

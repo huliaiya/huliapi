@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失。"); }
 require_once __DIR__ . '/../common/push.php';
 require_once __DIR__ . '/../common/turnstile.php';
+require_once __DIR__ . '/../common/mcp/mcp_lib.php';
 
 $music_setting_keys = [
     'music_enabled', 'music_github_token', 'music_repo', 'music_branch', 'music_directory',
@@ -135,6 +136,9 @@ try {
             foreach (['music_playlist_url', 'music_cdn_base'] as $music_url_key) {
                 if ($music_input[$music_url_key] !== '' && filter_var($music_input[$music_url_key], FILTER_VALIDATE_URL) === false) {
                     throw new InvalidArgumentException(($music_url_key === 'music_playlist_url' ? '播放列表 URL' : 'CDN 基础地址') . '格式无效。');
+                }
+                if ($music_input[$music_url_key] !== '' && !huli_mcp_safe_outbound_url($music_input[$music_url_key])) {
+                    throw new InvalidArgumentException(($music_url_key === 'music_playlist_url' ? '播放列表 URL' : 'CDN 基础地址') . '不能指向内网或本地地址。');
                 }
             }
             if (!in_array($music_input['music_play_mode'], ['random', 'sequential'], true)) {

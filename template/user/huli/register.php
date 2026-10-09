@@ -62,7 +62,7 @@ try {
             throw new Exception('两次输入的密码不一致');
         }
         if ($mail_reg_enabled) {
-            if (empty($code) || !isset($_SESSION['reg_code']) || !isset($_SESSION['reg_code_expire']) || time() > $_SESSION['reg_code_expire'] || strtolower($code) != strtolower($_SESSION['reg_code']) || strtolower($email) != strtolower($_SESSION['reg_email'])) {
+            if (empty($code) || !isset($_SESSION['reg_code']) || !isset($_SESSION['reg_code_expire']) || time() > $_SESSION['reg_code_expire'] || !hash_equals(strtolower($_SESSION['reg_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['reg_email']), strtolower($email))) {
                 throw new Exception('邮箱验证码不正确或已过期');
             }
         }

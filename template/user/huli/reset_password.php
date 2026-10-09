@@ -45,7 +45,7 @@ try {
         if ($password !== $confirm_password) {
             throw new Exception('两次输入的密码不一致');
         }
-        if (!isset($_SESSION['reset_code']) || !isset($_SESSION['reset_code_expire']) || time() > $_SESSION['reset_code_expire'] || strtolower($code) != strtolower($_SESSION['reset_code']) || strtolower($email) != strtolower($_SESSION['reset_email'])) {
+        if (!isset($_SESSION['reset_code']) || !isset($_SESSION['reset_code_expire']) || time() > $_SESSION['reset_code_expire'] || !hash_equals(strtolower($_SESSION['reset_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['reset_email']), strtolower($email))) {
             throw new Exception('邮箱验证码不正确或已过期');
         }
         $stmt = $pdo->prepare("SELECT id FROM huli_users WHERE email = ?");
