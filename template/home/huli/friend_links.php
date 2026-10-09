@@ -362,12 +362,8 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
 .loading-skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; }
 @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 </style>
-<link rel="stylesheet" href="../../../assets/css/materialdesignicons.min.css" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="../../../assets/css/bootstrap.min.css" media="print" onload="this.media='all'">
-<noscript>
-    <link rel="stylesheet" href="../../../assets/css/materialdesignicons.min.css">
-    <link rel="stylesheet" href="../../../assets/css/bootstrap.min.css">
-</noscript>
+<link rel="stylesheet" href="../../../assets/css/materialdesignicons.min.css">
+<link rel="stylesheet" href="../../../assets/css/bootstrap.min.css">
 </head>
 <body>
 <div class="huli-bg"></div>
