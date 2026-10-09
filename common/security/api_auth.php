@@ -52,29 +52,21 @@ function sendDailyPointsNotification($pdo, $settings, $email, $points) {
 }
 
 function api_error_exit($code, $message) {
-    global $response_processed, $valid_apikey_provided;
+    global $response_processed;
     $response_processed = true;
     ob_end_clean();
     http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');
-    $response = ['code' => $code, 'msg' => $message];
-    if (!$valid_apikey_provided) {
-        $response['api_source'] = 'huliapi:' . ($_SERVER['HTTP_HOST'] ?? '');
-    }
-    echo json_encode($response, JSON_UNESCAPED_UNICODE);
+    echo json_encode(['code' => $code, 'msg' => $message], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 $valid_apikey_provided = false;
 $response_processed = false;
-register_shutdown_function(function() use (&$valid_apikey_provided, &$response_processed) {
+register_shutdown_function(function() use (&$response_processed) {
     if ($response_processed) return;
     $content = ob_get_clean();
     if ($content === false || $content === '') return;
-    if ($valid_apikey_provided) {
-        echo $content;
-        return;
-    }
     $content_type = null;
     foreach (headers_list() as $header) {
         if (stripos($header, 'Content-Type:') === 0) {
@@ -87,21 +79,7 @@ register_shutdown_function(function() use (&$valid_apikey_provided, &$response_p
         $content_type = ($first_char === '{' || $first_char === '[') ? 'application/json' : 'text/plain';
     }
     if (strpos($content_type, 'application/json') !== false) {
-        $data = json_decode($content, true);
-        if (json_last_error() === JSON_ERROR_NONE) {
-            if (isset($data[0]) && array_keys($data) === range(0, count($data)-1)) {
-                $new_data = ['data' => $data, 'api_source' => 'huliapi:' . ($_SERVER['HTTP_HOST'] ?? '')];
-            } else {
-                $data['api_source'] = 'huliapi:' . ($_SERVER['HTTP_HOST'] ?? '');
-                $new_data = $data;
-            }
-            $new_content = json_encode($new_data, JSON_UNESCAPED_UNICODE);
-            header('Content-Type: application/json; charset=utf-8');
-            header_remove('Content-Length');
-            echo $new_content;
-        } else {
-            echo $content . "\nTips：huliapi技术支持";
-        }
+        echo $content;
     } else {
         echo $content . "\nTips：huliapi技术支持";
     }
