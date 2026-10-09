@@ -130,6 +130,22 @@ $broken_links  = 0;
 $pdo           = getDb();
 huli_ensure_friend_link_columns($pdo);
 
+$settings = [];
+try {
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
+    while ($row = $stmt_settings->fetch(PDO::FETCH_ASSOC)) {
+        $settings[$row['setting_key']] = $row['setting_value'];
+    }
+} catch (PDOException $e) {
+    error_log("读取站点设置错误: " . $e->getMessage());
+}
+$admin_email      = $settings['admin_email'] ?? '326284281@qq.com';
+$site_name_config = $settings['site_name'] ?? 'huliapi';
+$admin_url        = $settings['admin_url'] ?? '#';
+$current_year     = date('Y');
+$site_url_config  = huli_current_origin('/');
+$logo_url_config  = huli_current_origin('/assets/images/logo-sidebar.png');
+
 try {
      
     $sql = "SELECT * FROM huli_friend_links WHERE status='approved' AND is_hidden=0 ORDER BY sort_order DESC, created_at DESC";
@@ -189,21 +205,6 @@ try {
         ");
         $stmt_apply->execute([$site_name, $url, $description, $logo_url, $user_id, $email]);
 
-         
-        $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
-        $settings = [];
-        while ($row = $stmt_settings->fetch(PDO::FETCH_ASSOC)) {
-            $settings[$row['setting_key']] = $row['setting_value'];
-        }
-
-         
-        $admin_email    = $settings['admin_email'] ?? '326284281@qq.com';
-        $site_name_config = $settings['site_name'] ?? 'huliapi';
-        $admin_url      = $settings['admin_url'] ?? '#';
-        $current_year   = date('Y');
-        $logo_url_config = huli_current_origin('/assets/images/logo-sidebar.png');
-
-         
         $mailSiteName  = htmlspecialchars($site_name, ENT_QUOTES);
         $mailUrl       = htmlspecialchars($url, ENT_QUOTES);
         $mailDesc      = htmlspecialchars($description, ENT_QUOTES);
@@ -255,7 +256,11 @@ try {
 </html>';
 
          
-        send_mail($admin_email, $subject, $body, $pdo);
+        try {
+            send_mail($admin_email, $subject, $body, $pdo);
+        } catch (Exception $mailError) {
+            error_log("友链申请通知邮件发送失败: " . $mailError->getMessage());
+        }
         $apply_msg  = "友链申请已提交，我们将在1-3个工作日内审核，请耐心等待";
         $apply_type = "success";
 
@@ -278,7 +283,7 @@ $csrf_token = createCsrfToken();
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="yinq">
-<title>友情链接 - huliapi</title>
+<title>友情链接 - <?= htmlspecialchars($site_name_config, ENT_QUOTES, 'UTF-8') ?></title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -311,9 +316,9 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
 .form-control:focus { border-color: #4096ff !important; box-shadow: 0 0 0 3px rgba(64, 150, 255, 0.12) !important; background: rgba(255, 255, 255, .9) !important; outline: none !important; }
 .alert { border-radius: 0.5rem !important; border: none !important; padding: 1rem 1.25rem !important; margin-bottom: 1.5rem !important; }
 .badge { border-radius: 0.3rem !important; padding: 0.25rem 0.5rem !important; font-size: 0.75rem !important; }
-.modal-content { border-radius: 1rem !important; border: 1px solid rgba(180, 220, 245, .55) !important; background: linear-gradient(140deg, rgba(255, 255, 255, .8) 0%, rgba(224, 240, 253, .68) 100%) !important; backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%); box-shadow: 10px 30px 40px rgba(0,0,0,0.12); }
+.modal-content { border-radius: 1rem !important; border: 1px solid rgba(180, 220, 245, .55) !important; background: linear-gradient(140deg, rgba(255, 255, 255, .8) 0%, rgba(224, 240, 253, .68) 100%) !important; backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%); box-shadow: 10px 30px 40px rgba(0,0,0,0.12); max-height: calc(100vh - 2rem); overflow-y: auto; }
 .modal-header { border-bottom: 1px solid rgba(180, 220, 245, .42) !important; padding: 1rem 1.5rem !important; }
-.modal-footer { border-top: 1px solid rgba(180, 220, 245, .42) !important; padding: 1rem 1.5rem !important; }
+.modal-footer { border-top: 1px solid rgba(180, 220, 245, .42) !important; padding: 1rem 1.5rem !important; position: sticky; bottom: 0; z-index: 5; background: linear-gradient(135deg, rgba(255, 255, 255, .92), rgba(224, 240, 253, .88)); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 .friend-card { transition: all 0.3s ease; border-radius: 0.85rem; box-shadow: 0 8px 22px rgba(64, 120, 180, 0.10); overflow: hidden; position: relative; border: 1px solid rgba(180, 220, 245, .5); margin-bottom: 1rem; background: linear-gradient(140deg, rgba(255, 255, 255, .6) 0%, rgba(220, 238, 252, .44) 100%); backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%); height: 100%; }
 .friend-card:hover { box-shadow: 0 14px 30px rgba(64, 120, 180, 0.18); border-color: rgba(93, 159, 232, .55); }
 .friend-card .card-body { padding: 1rem !important; }
@@ -342,9 +347,6 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .fade-in { animation: fadeIn 0.4s ease forwards; }
 .friend-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
-.login-tip { display: inline-flex; align-items: center; gap: 0.5rem; color: #ff4d4f; font-size: 0.9rem; }
-.login-tip span { color: #ff4d4f; }
-.unlogin-hint { color: #6c757d; font-size: 0.95rem; }
 @media (max-width: 768px) {
     .stats-container { margin: 1rem; }
     .stats-card { height: 80px; padding: 0.8rem 1rem; }
@@ -354,9 +356,6 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
     .card-header.d-flex {
         flex-wrap: wrap;
         gap: 10px;
-    }
-    .card-header .login-tip {
-        font-size: 0.85rem;
     }
 }
 .loading-skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; }
@@ -400,7 +399,7 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                     </div>
                     <div class="card-body p-4">
                         <?php if ($apply_msg): ?>
-                            <div class="alert alert-<?= htmlspecialchars($apply_type) ?> alert-dismissible fade show mb-4">
+                            <div id="page-alert" class="alert alert-<?= htmlspecialchars($apply_type) ?> alert-dismissible fade show mb-4">
                                 <?= htmlspecialchars($apply_msg) ?>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
@@ -470,7 +469,11 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                             </div>
                             <div class="modal-body p-4">
                                 <form id="friend-link-form" method="post" class="needs-validation" novalidate>
-                                    
+                                    <?php if ($is_logged_in): ?>
+                                        <p class="small text-muted mb-3"><i class="mdi mdi-account-check-outline me-1"></i>已识别登录账号 <strong><?= htmlspecialchars($_SESSION['user_username'], ENT_QUOTES, 'UTF-8') ?></strong>，联系邮箱已自动填充</p>
+                                    <?php else: ?>
+                                        <p class="small text-muted mb-3"><i class="mdi mdi-account-outline me-1"></i>未登录，可直接以游客身份提交申请</p>
+                                    <?php endif; ?>
                                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
                                     <div class="row g-3">
                                         <div class="col-12">
@@ -504,10 +507,10 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                                             <label class="form-label d-block fw-medium">申请须知</label>
                                             <div class="alert alert-info py-2 px-3 small mb-2">
                                                 <strong>申请前请先添加本站友链，信息如下：</strong><br>
-                                                网站名：huliapi<br>
-                                                介绍：huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口<br>
-                                                LOGO：<a href="https://api.ipojie.com/favicon.ico" target="_blank">https://api.ipojie.com/favicon.ico</a><br>
-                                                链接：<a href="https://api.ipojie.com" target="_blank">https://api.ipojie.com</a>
+                                                网站名：<?= htmlspecialchars($site_name_config, ENT_QUOTES, 'UTF-8') ?><br>
+                                                介绍：<?= htmlspecialchars($site_name_config, ENT_QUOTES, 'UTF-8') ?>致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口<br>
+                                                LOGO：<a href="<?= htmlspecialchars($logo_url_config, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener"><?= htmlspecialchars($logo_url_config, ENT_QUOTES, 'UTF-8') ?></a><br>
+                                                链接：<a href="<?= htmlspecialchars($site_url_config, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener"><?= htmlspecialchars($site_url_config, ENT_QUOTES, 'UTF-8') ?></a>
                                             </div>
                                             <ul class="text-muted small mb-0">
                                                 <li>1. 提交后将在1-3个工作日内完成审核</li>
@@ -537,20 +540,6 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
 <script src="../../../assets/js/popper.min.js" defer></script>
 <script src="../../../assets/js/bootstrap.min.js" defer></script>
 <script>
-setTimeout(() => {
-    const scripts = [
-        '../../../assets/js/perfect-scrollbar.min.js',
-        '../../../assets/js/bootstrap-multitabs/multitabs.min.js',
-        '../../../assets/js/jquery.cookie.min.js',
-        '../../../assets/js/index.min.js'
-    ];
-    scripts.forEach(src => {
-        const script = document.createElement('script');
-        script.src = src;
-        script.defer = true;
-        document.body.appendChild(script);
-    });
-}, 1000);
 document.addEventListener('DOMContentLoaded', function() {
     (function() {
         'use strict';
@@ -566,12 +555,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }, false);
         });
     })();
-    const alertEl = document.querySelector('.alert');
-    if (alertEl) {
+    const pageAlert = document.getElementById('page-alert');
+    if (pageAlert) {
         setTimeout(() => {
-            const bsAlert = new bootstrap.Alert(alertEl);
+            const bsAlert = new bootstrap.Alert(pageAlert);
             bsAlert.close();
         }, 5000);
+        pageAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    const friendForm = document.getElementById('friend-link-form');
+    const submitBtn = document.querySelector('#applyLinkModal button[form="friend-link-form"]');
+    if (friendForm && submitBtn) {
+        friendForm.addEventListener('submit', function(e) {
+            if (!friendForm.checkValidity()) return;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>提交中...';
+            setTimeout(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="mdi mdi-send me-2"></i>提交申请';
+            }, 10000);
+        });
     }
     const logoInput = document.getElementById('logo_url');
     if (logoInput) {
