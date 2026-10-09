@@ -145,6 +145,7 @@ $admin_url        = $settings['admin_url'] ?? '#';
 $current_year     = date('Y');
 $site_url_config  = huli_current_origin('/');
 $logo_url_config  = huli_current_origin('/assets/images/logo-sidebar.png');
+$notice_logo_url  = huli_current_origin('/favicon.ico');
 
 try {
      
@@ -531,7 +532,7 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                                                 <strong>申请前请先添加本站友链，信息如下：</strong><br>
                                                 网站名：<?= htmlspecialchars($site_name_config, ENT_QUOTES, 'UTF-8') ?><br>
                                                 介绍：<?= htmlspecialchars($site_name_config, ENT_QUOTES, 'UTF-8') ?>致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口<br>
-                                                LOGO：<a href="<?= htmlspecialchars($logo_url_config, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener"><?= htmlspecialchars($logo_url_config, ENT_QUOTES, 'UTF-8') ?></a><br>
+                                                LOGO：<a href="<?= htmlspecialchars($notice_logo_url, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener"><?= htmlspecialchars($notice_logo_url, ENT_QUOTES, 'UTF-8') ?></a><br>
                                                 链接：<a href="<?= htmlspecialchars($site_url_config, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener"><?= htmlspecialchars($site_url_config, ENT_QUOTES, 'UTF-8') ?></a>
                                             </div>
                                             <ul class="text-muted small mb-0">
