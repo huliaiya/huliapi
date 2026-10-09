@@ -467,9 +467,10 @@ function getStatusBadge($status) {
                   <div class="flex-shrink-0">
                     <div class="h-12 w-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                       <?php if (!empty($link['logo'])): ?>
-                        <img src="<?= htmlspecialchars($link['logo']) ?>"
-                             alt="<?= htmlspecialchars($link['site_name']) ?>"
-                             class="h-full w-full object-cover"
+<img src="<?= htmlspecialchars($link['logo']) ?>"
+                              alt="<?= htmlspecialchars($link['site_name']) ?>"
+                              referrerpolicy="no-referrer"
+                              class="h-full w-full object-cover"
                              onError="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSIjRjBGMEYwIi8+CjxwYXRoIGQ9Ik04IDNDNi4zNDM3NSAzIDUgNC4zNDM3NSA1IDZDNSA3LjY1NjI1IDYuMzQzNzUgOSA4IDlDOS42NTYyNSA5IDExIDcuNjU2MjUgMTEgNkMxMSA0LjM0Mzc1IDkuNjU2MjUgMyA4IDNaTTMgMTNIMTRWOUg4LjVMMTAgNy41SDUuNUw3IDlIN0wzIDEzWiIgZmlsbD0iIzlFOUY5RSIvPgo8L3N2Zz4='">
                       <?php else: ?>
                         <svg class="h-8 w-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
