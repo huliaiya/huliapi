@@ -44,7 +44,8 @@ class EpayCore
 		}
 		if(empty($_REQUEST)) return false;
 		$sign = $this->getSign($_REQUEST);
-		if($sign === $_REQUEST['sign']){
+		$received = isset($_REQUEST['sign']) ? (string)$_REQUEST['sign'] : '';
+		if($received !== '' && hash_equals($sign, $received)){
 			return true;
 		}else{
 			return false;
@@ -53,7 +54,8 @@ class EpayCore
 	public function verifyReturn(){
 		if(empty($_GET)) return false;
 		$sign = $this->getSign($_GET);
-		if($sign === $_GET['sign']){
+		$received = isset($_GET['sign']) ? (string)$_GET['sign'] : '';
+		if($received !== '' && hash_equals($sign, $received)){
 			return true;
 		}else{
 			return false;

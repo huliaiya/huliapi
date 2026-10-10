@@ -11,6 +11,7 @@ require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
 require_once ROOT_PATH . 'common/url_helper.php';
 require_once ROOT_PATH . 'common/gallery.php';
+require_once ROOT_PATH . 'common/settings_helper.php';
 $template = TemplateManager::getActiveUserTemplate();
 $template_base_url = "/template/user/{$template}/";
 $is_logged_in = isset($_SESSION['user_id']);
@@ -41,14 +42,11 @@ try {
     if (!$api) { header('Location: index.php'); exit; }
     $params = json_decode($api['parameters'], true);
     if (!is_array($params)) $params = [];
-    $stmt_settings = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_name'");
-    $db_site_name = $stmt_settings->fetchColumn();
-    if($db_site_name) $site_name = $db_site_name;
     $music_keys = ['music_enabled', 'music_github_token', 'yn_github_token', 'music_repo', 'music_branch', 'music_directory', 'music_playlist_url', 'music_cdn_base', 'music_play_mode', 'music_autoplay', 'music_default_volume', 'music_show_doc'];
-    $music_placeholders = implode(',', array_fill(0, count($music_keys), '?'));
-    $stmt_music = $pdo->prepare("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ($music_placeholders)");
-    $stmt_music->execute($music_keys);
-    $music_settings = $stmt_music->fetchAll(PDO::FETCH_KEY_PAIR);
+    $all_settings = huli_site_settings($pdo);
+    $db_site_name = isset($all_settings['site_name']) && $all_settings['site_name'] !== '' ? $all_settings['site_name'] : '';
+    if($db_site_name) $site_name = $db_site_name;
+    $music_settings = array_intersect_key($all_settings, array_flip($music_keys));
     if (empty($music_settings['music_github_token']) && !empty($music_settings['yn_github_token'])) {
         $music_settings['music_github_token'] = $music_settings['yn_github_token'];
     }

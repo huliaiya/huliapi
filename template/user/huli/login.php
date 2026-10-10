@@ -59,9 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $login_ok = false;
                 if (password_verify($password, $user['password'])) {
                     $login_ok = true;
-                } elseif ($password === $user['password']) {
-                    $pdo->prepare("UPDATE huli_users SET password = ? WHERE id = ?")->execute([password_hash($password, PASSWORD_DEFAULT), $user['id']]);
-                    $login_ok = true;
                 }
                 if ($login_ok) {
                 if ($user['status'] === 'active') {

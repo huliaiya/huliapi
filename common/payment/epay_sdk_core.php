@@ -48,10 +48,13 @@ class EpayNotify {
     function verifyNotify(){
         if(empty($_GET)) {
             return false;
-        } else {
-            $isSign = $this->getSignVeryfy($_GET, $_GET["sign"]);
-            return $isSign;
         }
+        $sign = isset($_GET["sign"]) ? (string)$_GET["sign"] : '';
+        if ($sign === '') {
+            return false;
+        }
+        $isSign = $this->getSignVeryfy($_GET, $sign);
+        return $isSign;
     }
     function getSignVeryfy($para_temp, $sign) {
         $para_filter = [];
@@ -69,7 +72,7 @@ class EpayNotify {
         }
         $prestr = substr($prestr, 0, -1);
         $mysign = md5($prestr . $this->epay_config['key']);
-        if ($mysign == $sign) {
+        if (hash_equals($mysign, (string)$sign)) {
             return true;
         } else {
             return false;
