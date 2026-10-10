@@ -14,6 +14,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/avatar.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
+require_once ROOT_PATH . 'common/settings_helper.php';
 $template = TemplateManager::getActiveUserTemplate();
 $template_base_url = "/template/user/{$template}/";
 $feedback_msg = '';
@@ -153,8 +154,7 @@ try {
         WHERE is_active = 1
         ORDER BY price ASC
     ")->fetchAll(PDO::FETCH_ASSOC);
-    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
-    $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
+    $settings = huli_site_settings($pdo);
     $site_name = $settings['site_name'] ?? 'huliapi';
 } catch (PDOException $e) {
     $feedback_msg = '无法加载您的数据，请稍后重试。';

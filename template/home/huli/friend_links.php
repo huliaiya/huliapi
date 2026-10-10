@@ -75,7 +75,8 @@ function createCsrfToken()
  
 function verifyCsrfToken($token)
 {
-    return !empty($token) && $token === $_SESSION['csrf_token'];
+    $session_token = $_SESSION['csrf_token'] ?? '';
+    return $session_token !== '' && $token !== '' && hash_equals($session_token, (string)$token);
 }
 
  

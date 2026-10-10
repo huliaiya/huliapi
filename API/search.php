@@ -29,8 +29,8 @@ try {
     $total = (int)$stmt_count->fetchColumn();
 
     $stmt = $pdo->prepare("SELECT id, category_id, name, description, endpoint, method, type, parameters, request_example, response_format, total_calls, visibility, is_billable, price_per_call, points_per_call
-                           FROM huli_apis WHERE " . $where_sql . " ORDER BY total_calls DESC, id ASC LIMIT " . $offset . ", " . $per_page);
-    $stmt->execute($params);
+                            FROM huli_apis WHERE " . $where_sql . " ORDER BY total_calls DESC, id ASC LIMIT ? OFFSET ?");
+    $stmt->execute(array_merge($params, [$per_page, $offset]));
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $items = [];
