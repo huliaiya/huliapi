@@ -141,7 +141,16 @@ try {
 } catch (PDOException $e) {
     error_log("读取站点设置错误: " . $e->getMessage());
 }
-$admin_email      = $settings['admin_email'] ?? '326284281@qq.com';
+$admin_email      = trim((string)($settings['admin_notify_email'] ?? ($settings['admin_email'] ?? '')));
+$admin_email_fallback = '';
+try {
+    $stmt_admin_email = $pdo->query("SELECT email FROM huli_admins WHERE email IS NOT NULL AND email <> '' ORDER BY id ASC LIMIT 1");
+    $admin_email_fallback = trim((string)$stmt_admin_email->fetchColumn());
+} catch (Exception $e) {
+}
+if ($admin_email === '') {
+    $admin_email = $admin_email_fallback;
+}
 $site_name_config = $settings['site_name'] ?? 'huliapi';
 $admin_url        = $settings['admin_url'] ?? '#';
 $current_year     = date('Y');
@@ -231,11 +240,11 @@ try {
 </head>
 <body style="margin: 0; padding: 15px; background-color: #f0f3f8; font-family: \'PingFang SC\', \'Microsoft YaHei\', sans-serif;">
 <div style="max-width: 600px; margin: 0 auto; width: 100%; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(32,102,255,0.08);">
-    <div style="padding: 30px 20px; text-align: center; background: linear-gradient(135deg, #2066ff 0%, #1955d4 100%); border-radius: 16px 16px 0 0;">
+    <div style="padding: 30px 20px; text-align: center; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 16px 16px 0 0;">
         <img style="max-height: 45px; width: auto; max-width: 100%;" src="' . $logo_url_config . '" alt="' . $site_name_config . '" />
     </div>
     <div style="padding: 30px 20px;">
-        <h1 style="color: #2066ff; font-size: 24px; margin: 0 0 25px; text-align: center; font-weight: bold;">友链申请通知</h1>
+        <h1 style="color: #1d4ed8; font-size: 24px; margin: 0 0 25px; text-align: center; font-weight: bold;">友链申请通知</h1>
         <p style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0; font-weight: 600;">尊敬的管理员：</p>
         <p style="color: #333333; font-size: 15px; line-height: 1.8; margin: 10px 0; font-weight: 600;">新的友链申请已提交，详情如下：</p>
         <div style="background: linear-gradient(to right, #f8f9ff, #f0f5ff); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(32,102,255,0.1);">
@@ -248,11 +257,11 @@ try {
             <p style="color: #666666; font-size: 14px; line-height: 1.8; margin: 8px 0;"><span style="display: inline-block; width: 100px;">申请时间：</span> ' . $mailTime . '</p>
         </div>
         <div style="background-color: #f8f9fa; border-radius: 8px; padding: 15px; margin: 20px 0;">
-            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0; font-weight: 600;"><span style="color: #2066ff;">●</span> 请登录管理后台审核此友链申请</p>
-            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 8px 0 0; font-weight: 600;"><span style="color: #2066ff;">●</span> 审核通过后将在前端展示</p>
+            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0; font-weight: 600;"><span style="color: #60a5fa;">●</span> 请登录管理后台审核此友链申请</p>
+            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 8px 0 0; font-weight: 600;"><span style="color: #60a5fa;">●</span> 审核通过后将在前端展示</p>
         </div>
         <div style="text-align: center; margin: 30px 0;">
-            <a href="' . $admin_url . '" target="_blank" style="display: inline-block; padding: 12px 35px; background-color: #2066ff; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 500;">立即登录后台处理</a>
+            <a href="' . $admin_url . '" target="_blank" style="display: inline-block; padding: 12px 35px; background-color: #eff6ff; color: #1d4ed8; text-decoration: none; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 15px; font-weight: 500;">立即登录后台处理</a>
         </div>
         <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 20px 0 0; font-weight: 600;">如有任何问题，请联系系统管理员。</p>
     </div>
@@ -265,7 +274,11 @@ try {
 
          
         try {
-            send_mail($admin_email, $subject, $body, $pdo);
+            if ($admin_email !== '' && filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
+                send_mail($admin_email, $subject, $body, $pdo);
+            } else {
+                error_log('友链申请通知邮件未发送：后台未配置有效管理员通知邮箱，且未找到可用管理员邮箱。');
+            }
         } catch (Exception $mailError) {
             error_log("友链申请通知邮件发送失败: " . $mailError->getMessage());
         }
