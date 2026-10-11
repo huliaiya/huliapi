@@ -104,7 +104,7 @@ try {
             <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 8px 0 0; font-weight: 600;"><span style="color: #60a5fa;">●</span> 用户反馈有助于我们改进服务</p>
         </div>
         <div style="text-align: center; margin: 30px 0;">
-            <a style="display: inline-block; padding: 12px 35px; background-color: #eff6ff; color: #1d4ed8; text-decoration: none; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 15px; font-weight: 500;" href="' . ($settings['admin_url'] ?? '#') . '" target="_blank" rel="noopener">立即登录后台处理</a>
+            <a style="display: inline-block; padding: 12px 35px; background-color: #eff6ff; color: #1d4ed8; text-decoration: none; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 15px; font-weight: 500;" href="' . (!empty($settings['admin_url']) ? $settings['admin_url'] : 'http' . (isset($_SERVER['HTTPS']) ? 's' : '') . '://' . $_SERVER['HTTP_HOST'] . '/admin/') . '" target="_blank" rel="noopener">立即登录后台处理</a>
         </div>
         <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 20px 0 0; font-weight: 600;">如有任何问题，请联系系统管理员。</p>
     </div>

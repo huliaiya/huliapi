@@ -152,7 +152,8 @@ if ($admin_email === '') {
     $admin_email = $admin_email_fallback;
 }
 $site_name_config = $settings['site_name'] ?? 'huliapi';
-$admin_url        = $settings['admin_url'] ?? '#';
+$admin_url_raw    = trim((string)($settings['admin_url'] ?? ''));
+$admin_url        = $admin_url_raw !== '' ? $admin_url_raw : rtrim(huli_current_origin('/'), '/') . '/admin/';
 $current_year     = date('Y');
 $site_url_config  = huli_current_origin('/');
 $logo_url_config  = huli_current_origin('/assets/images/logo-sidebar.png');
@@ -621,6 +622,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>提交中...';
                 setTimeout(restoreSubmitBtn, 10000);
+                return;
+            }
+            if (typeof window.huliGetTurnstileResponse !== 'function' || !window.huliGetTurnstileResponse()) {
+                e.preventDefault();
+                if (turnstileErrorBox) {
+                    turnstileErrorBox.textContent = '请先完成上方人机验证，再提交申请';
+                    turnstileErrorBox.classList.remove('d-none');
+                    turnstileErrorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
                 return;
             }
             e.preventDefault();
