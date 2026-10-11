@@ -49,7 +49,11 @@ try {
         $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
         $admin_email_stmt = $pdo->query("SELECT email FROM huli_admins ORDER BY id ASC LIMIT 1");
         $admin_email = $admin_email_stmt->fetchColumn();
-        if ($admin_email && !empty($settings['mail_smtp_host']) && !empty($settings['mail_smtp_user']) && !empty($settings['mail_smtp_pass'])) {
+        $notify_email = trim((string)($settings['admin_notify_email'] ?? ''));
+        if ($notify_email !== '') {
+            $admin_email = $notify_email;
+        }
+        if ($admin_email && filter_var($admin_email, FILTER_VALIDATE_EMAIL) && !empty($settings['mail_smtp_host']) && !empty($settings['mail_smtp_user']) && !empty($settings['mail_smtp_pass'])) {
             if (file_exists('../../common/PHPMailer/src/Exception.php')) {
                 require '../../common/PHPMailer/src/Exception.php';
                 require '../../common/PHPMailer/src/PHPMailer.php';
@@ -81,11 +85,11 @@ try {
 </head>
 <body style="margin: 0; padding: 15px; background-color: #f0f3f8; font-family: \'PingFang SC\', \'Microsoft YaHei\', sans-serif;">
 <div style="max-width: 600px; margin: 0 auto; width: 100%; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(32,102,255,0.08);">
-    <div style="padding: 30px 20px; text-align: center; background: linear-gradient(135deg, #2066ff 0%, #1955d4 100%); border-radius: 16px 16px 0 0;">
+    <div style="padding: 30px 20px; text-align: center; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 16px 16px 0 0;">
         <img style="max-height: 45px; width: auto; max-width: 100%;" src="' . $logo_url . '" alt="' . $site_name . '" />
     </div>
     <div style="padding: 30px 20px;">
-        <h1 style="color: #2066ff; font-size: 24px; margin: 0 0 25px; text-align: center; font-weight: bold;">用户反馈通知</h1>
+        <h1 style="color: #1d4ed8; font-size: 24px; margin: 0 0 25px; text-align: center; font-weight: bold;">用户反馈通知</h1>
         <p style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0; font-weight: 600;">尊敬的管理员：</p>
         <p style="color: #333333; font-size: 15px; line-height: 1.8; margin: 10px 0; font-weight: 600;">系统收到一条新的用户反馈，请及时处理：</p>
         <div style="background: linear-gradient(to right, #f8f9ff, #f0f5ff); border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(32,102,255,0.1);">
@@ -96,11 +100,11 @@ try {
             <div style="background-color: #ffffff; border-radius: 8px; padding: 15px; margin-top: 8px; border: 1px solid #eef0f5;">' . nl2br(htmlspecialchars($content)) . '</div>
         </div>
         <div style="background-color: #f8f9fa; border-radius: 8px; padding: 15px; margin: 20px 0;">
-            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0; font-weight: 600;"><span style="color: #2066ff;">●</span> 请及时登录后台查看并回复用户</p>
-            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 8px 0 0; font-weight: 600;"><span style="color: #2066ff;">●</span> 用户反馈有助于我们改进服务</p>
+            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0; font-weight: 600;"><span style="color: #60a5fa;">●</span> 请及时登录后台查看并回复用户</p>
+            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 8px 0 0; font-weight: 600;"><span style="color: #60a5fa;">●</span> 用户反馈有助于我们改进服务</p>
         </div>
         <div style="text-align: center; margin: 30px 0;">
-            <a style="display: inline-block; padding: 12px 35px; background-color: #2066ff; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 500;" href="' . ($settings['admin_url'] ?? '#') . '" target="_blank" rel="noopener">立即登录后台处理</a>
+            <a style="display: inline-block; padding: 12px 35px; background-color: #eff6ff; color: #1d4ed8; text-decoration: none; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 15px; font-weight: 500;" href="' . ($settings['admin_url'] ?? '#') . '" target="_blank" rel="noopener">立即登录后台处理</a>
         </div>
         <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 20px 0 0; font-weight: 600;">如有任何问题，请联系系统管理员。</p>
     </div>

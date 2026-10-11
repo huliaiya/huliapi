@@ -71,14 +71,14 @@ $settings_keys = [
     'site_name', 'site_description', 'copyright_info', 'allow_registration', 'allow_temp_key',
     'temp_key_duration', 'temp_key_limit',
     'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_secure', 'mail_smtp_user', 'mail_smtp_pass',
-    'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'turnstile_site_key', 'turnstile_secret_key', 'qps_mode', 'redis_host', 'redis_port', 'redis_username', 'redis_password', 'redis_database', 'enable_free_qps_limit', 'free_qps_seconds', 'free_qps_limit', 'enable_member_qps_limit', 'member_qps_seconds', 'member_qps_limit', 'warn_points_threshold', 'warn_balance_threshold', 'enable_warn_notification', 'enable_daily_points', 'daily_free_points', 'enable_daily_points_notification',     'icp_record_number', 'police_record_number', 'favicon_url', 'yn_github_token',
+    'admin_notify_email', 'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'turnstile_site_key', 'turnstile_secret_key', 'qps_mode', 'redis_host', 'redis_port', 'redis_username', 'redis_password', 'redis_database', 'enable_free_qps_limit', 'free_qps_seconds', 'free_qps_limit', 'enable_member_qps_limit', 'member_qps_seconds', 'member_qps_limit', 'warn_points_threshold', 'warn_balance_threshold', 'enable_warn_notification', 'enable_daily_points', 'daily_free_points', 'enable_daily_points_notification',     'icp_record_number', 'police_record_number', 'favicon_url', 'yn_github_token',
     'update_github_token', 'update_schedule_enabled', 'update_schedule_time'
 ];
 $defaults = [
     'site_name' => 'huliapi', 'site_description' => 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口', 'copyright_info' => 'Copyright © 2025-2026 huliapi 版权所有',
     'allow_registration' => 1, 'allow_temp_key' => 1, 'temp_key_duration' => 24, 'temp_key_limit' => 100,
     'mail_smtp_host' => '', 'mail_smtp_port' => '465', 'mail_smtp_secure' => 'ssl', 'mail_smtp_user' => '', 'mail_smtp_pass' => '',
-    'mail_reg_enabled' => 0, 'mail_forgot_enabled' => 0, 'turnstile_enabled' => 0,
+    'admin_notify_email' => '', 'mail_reg_enabled' => 0, 'mail_forgot_enabled' => 0, 'turnstile_enabled' => 0,
     'turnstile_site_key' => '3x00000000000000000000FF', 'turnstile_secret_key' => '1x0000000000000000000000000000000AA',
     'qps_mode' => 'database', 'redis_host' => '127.0.0.1', 'redis_port' => 6379, 'redis_username' => '', 'redis_password' => '', 'redis_database' => 0,
     'enable_free_qps_limit' => 1, 'free_qps_seconds' => 1, 'free_qps_limit' => 10, 'enable_member_qps_limit' => 1, 'member_qps_seconds' => 1, 'member_qps_limit' => 20,
@@ -415,9 +415,14 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   <small class="form-text text-muted">留空则使用默认随机生成的备案号</small>
                 </div>
                 <div class="mb-3">
-                  <label for="favicon_url" class="form-label">网站图标 (Favicon)</label>
-                  <input class="form-control" type="url" id="favicon_url" name="favicon_url" value="<?php echo htmlspecialchars($settings['favicon_url'] ?? ''); ?>" placeholder="https://example.com/favicon.ico">
-                  <small class="form-text text-muted">留空则使用浏览器默认图标</small>
+                    <label for="favicon_url" class="form-label">网站图标 (Favicon)</label>
+                    <input class="form-control" type="url" id="favicon_url" name="favicon_url" value="<?php echo htmlspecialchars($settings['favicon_url'] ?? ''); ?>" placeholder="https://example.com/favicon.ico">
+                    <small class="form-text text-muted">留空则使用浏览器默认图标</small>
+                </div>
+                <div class="mb-3">
+                    <label for="admin_notify_email" class="form-label">管理员通知邮箱</label>
+                    <input class="form-control" type="email" id="admin_notify_email" name="admin_notify_email" value="<?php echo htmlspecialchars($settings['admin_notify_email'] ?? ''); ?>" placeholder="you@example.com">
+                    <small class="form-text text-muted">友链申请、用户反馈等通知会优先发送到该邮箱；留空则使用管理员账号邮箱</small>
                 </div>
                 <div>
                   <button type="submit" class="btn btn-primary me-1">保存设置</button>
