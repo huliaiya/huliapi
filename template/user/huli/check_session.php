@@ -7,11 +7,11 @@ $response = ['logged_in' => false];
 if (isset($_SESSION['user_id'])) {
     try {
         $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
-        $stmt = $pdo->prepare("SELECT id FROM huli_users WHERE id = ? AND status = 1");
+        $stmt = $pdo->prepare("SELECT id FROM huli_users WHERE id = ? AND status = 'active'");
         $stmt->execute([$_SESSION['user_id']]);
         $response['logged_in'] = (bool)$stmt->fetch();
     } catch (PDOException $e) {
-        $response['logged_in'] = true;
+        $response['logged_in'] = false;
     }
 }
 header('Content-Type: application/json');

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../session_boot.php';
+require_once __DIR__ . '/../client_ip.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 header('Content-Type: application/json; charset=utf-8');
@@ -39,23 +40,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
      
-    $ip_keys = ['HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_CLIENT_IP', 'REMOTE_ADDR'];
-    $client_ip = '0.0.0.0';
-    foreach ($ip_keys as $key) {
-        if (!empty($_SERVER[$key])) {
-            $ip_list = explode(',', $_SERVER[$key]);
-            foreach ($ip_list as $ip) {
-                $ip = trim($ip);
-                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                    $client_ip = $ip;
-                    break 2;
-                }
-            }
-        }
-    }
-    if ($client_ip === '0.0.0.0') {
-        $client_ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    }
+    $client_ip = huli_client_ip();
 
      
     static $_vc_schema_done = false;
@@ -114,7 +99,7 @@ try {
     if (empty($settings['mail_smtp_host']) || empty($settings['mail_smtp_user']) || empty($settings['mail_smtp_pass'])) {
         json_response(false, '系统邮件服务未配置，请联系管理员。');
     }
-    $code = str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
+    $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $mail = new PHPMailer(true);
     $mail->isSMTP();
     $mail->Timeout = 15;

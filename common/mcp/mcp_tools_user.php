@@ -130,6 +130,9 @@ huli_mcp_user_register('call_api', '以当前账号身份调用一个本地 API�
     }
     $base = huli_mcp_public_url('');
     $url = rtrim($base, '/') . '/' . ltrim($filePath, '/');
+    if (!huli_mcp_safe_outbound_url($url)) {
+        throw new RuntimeException('目标地址不合法');
+    }
 
     $ch = curl_init();
     $curlOpts = [

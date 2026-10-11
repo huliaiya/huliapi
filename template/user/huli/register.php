@@ -37,6 +37,9 @@ try {
     $registration_allowed = isset($settings['allow_registration']) ? (bool)$settings['allow_registration'] : true;
     $mail_reg_enabled = isset($settings['mail_reg_enabled']) ? (bool)$settings['mail_reg_enabled'] : false;
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!$registration_allowed) {
+            throw new Exception('注册功能已关闭');
+        }
         $username = trim($_POST['username'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $password = trim($_POST['password'] ?? '');
