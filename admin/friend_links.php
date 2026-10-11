@@ -175,7 +175,7 @@ try {
     $countStmt->execute($params);
     $totalRecords = $countStmt->fetchColumn();
     $totalPages = max(1, ceil($totalRecords / $limit));
-    $stmt = $pdo->prepare("SELECT id, site_name, url, logo, user_id, email, sort_order, created_at, status, is_hidden, review_note FROM huli_friend_links {$whereStr} ORDER BY sort_order DESC, created_at DESC LIMIT ?, ?");
+    $stmt = $pdo->prepare("SELECT id, site_name, url, logo, user_id, email, sort_order, created_at, status, is_hidden, review_note FROM huli_friend_links {$whereStr} ORDER BY CASE WHEN status='approved' THEN 0 ELSE 1 END, sort_order DESC, created_at DESC LIMIT ?, ?");
     foreach ($params as $key => $value) {
         $stmt->bindValue($key + 1, $value);
     }
