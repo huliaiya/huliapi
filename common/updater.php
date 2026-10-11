@@ -184,6 +184,49 @@ function huli_updater_download_urls($url) {
     return array_values(array_unique($urls));
 }
 
+function huli_updater_fetch_pinned_commit_sha($repo, $branch, $pinned) {
+    if (!function_exists('huli_github_api') || !function_exists('huli_http_get')) {
+        require_once __DIR__ . '/github_update.php';
+    }
+    $sha = '';
+    if (function_exists('huli_github_api')) {
+        $data = huli_github_api('/repos/' . $repo . '/commits/' . rawurlencode($branch));
+        if (is_array($data) && !empty($data['sha'])) {
+            $sha = $data['sha'];
+        }
+    }
+    if ($sha === '' && function_exists('huli_http_get')) {
+        $body = huli_http_get('https://github.com/' . $repo . '/commits/' . rawurlencode($branch) . '.atom');
+        if ($body && preg_match('#Commit/([0-9a-f]{7,40})#i', $body, $m)) {
+            $sha = $m[1];
+        }
+    }
+    if ($sha === '') {
+        return ['ok' => false, 'sha' => '', 'error' => '无法获取远端提交，出于安全考虑已阻止更新。'];
+    }
+    if ($pinned !== '' && substr($sha, 0, 7) !== substr($pinned, 0, 7)) {
+        return ['ok' => false, 'sha' => $sha, 'error' => '远端提交已变化，本次更新被拒绝以确保下载内容与检测时一致。'];
+    }
+    return ['ok' => true, 'sha' => $sha, 'error' => ''];
+}
+
+function huli_updater_verify_download($info, $zip, $token) {
+    $digest = hash_file('sha256', $zip);
+    $repo = $info['repo'] ?? (defined('SENLIN_CLIENT_REPO') ? SENLIN_CLIENT_REPO : 'huliaiya/huliapi');
+    $branch = $info['update_branch'] ?? (defined('SENLIN_CLIENT_UPDATE_BRANCH') ? SENLIN_CLIENT_UPDATE_BRANCH : 'main');
+    $pinned = isset($info['commit_sha']) ? (string)$info['commit_sha'] : '';
+    $check = huli_updater_fetch_pinned_commit_sha($repo, $branch, $pinned);
+    if (!$check['ok']) {
+        huli_updater_detail_log($token, '更新包校验失败: ' . $check['error']);
+        throw new Exception($check['error']);
+    }
+    huli_updater_detail_log($token, '远端提交校验通过: ' . $check['sha']);
+    huli_updater_detail_log($token, '更新包 SHA-256: ' . $digest);
+    $info['commit_sha'] = $check['sha'];
+    $info['download_sha256'] = $digest;
+    return $info;
+}
+
 function huli_updater_download_once($url, $dest, $progress = null) {
     $fp = @fopen($dest, 'w+b');
     if (!$fp) { throw new Exception('无法创建临时文件，请检查临时目录权限。'); }
@@ -399,6 +442,9 @@ function huli_updater_run(array $info, $token) {
             ]);
         });
         huli_updater_detail_log($token, '下载完成.');
+        huli_updater_write_status($token, ['stage' => 'verify', 'percent' => 50, 'message' => '正在校验更新包完整性...']);
+        huli_updater_detail_log($token, '校验更新包与远端提交...');
+        $info = huli_updater_verify_download($info, $zip, $token);
         huli_updater_write_status($token, ['stage' => 'extract', 'percent' => 55, 'message' => '正在解压更新文件...']);
         huli_updater_detail_log($token, '解压更新文件...');
         huli_updater_unzip($zip, $extract);

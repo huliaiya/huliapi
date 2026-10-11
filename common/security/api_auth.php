@@ -36,7 +36,7 @@ function checkApiRateLimit($pdo, $settings, $scope, $identifier, $limit, $window
         return $count > $limit;
     } catch (Throwable $e) {
         error_log('huliapi 限速计数异常: ' . $e->getMessage());
-        return false;
+        return true;
     }
 }
 

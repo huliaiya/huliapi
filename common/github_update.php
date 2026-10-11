@@ -67,6 +67,7 @@ function huli_fetch_latest_release_api($repo) {
         'name' => $data['name'] ?? '',
         'body' => $data['body'] ?? '',
         'published_at' => $data['published_at'] ?? '',
+        'commit_sha' => $data['target_commit_sha'] ?? ($data['commit_sha'] ?? ''),
         'repo' => $repo,
     ];
 }
@@ -89,6 +90,7 @@ function huli_fetch_latest_release_redirect($repo) {
             'name' => '',
             'body' => '',
             'published_at' => '',
+            'commit_sha' => '',
             'repo' => $repo,
         ];
     }
@@ -105,6 +107,7 @@ function huli_fetch_branch_commit_api($repo, $branch) {
         'name' => $commit['message'] ?? '',
         'body' => '',
         'published_at' => $commit['author']['date'] ?? '',
+        'commit_sha' => $data['sha'],
         'repo' => $repo,
     ];
 }
@@ -125,6 +128,7 @@ function huli_fetch_branch_commit_atom($repo, $branch) {
         'name' => $title ?? '',
         'body' => '',
         'published_at' => $updated ?? '',
+        'commit_sha' => $sha,
         'repo' => $repo,
     ];
 }

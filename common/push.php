@@ -1,5 +1,61 @@
 <?php
 if (!defined('HULI_PUSH_LIB')) { define('HULI_PUSH_LIB', 1); }
+if (file_exists(__DIR__ . '/mcp/mcp_lib.php')) {
+    require_once __DIR__ . '/mcp/mcp_lib.php';
+} else {
+    if (!function_exists('huli_mcp_safe_outbound_url')) {
+        function huli_mcp_safe_outbound_url($url) {
+            $parts = @parse_url((string)$url);
+            if (!$parts || empty($parts['scheme']) || empty($parts['host'])) {
+                return false;
+            }
+            $scheme = strtolower($parts['scheme']);
+            if ($scheme !== 'http' && $scheme !== 'https') {
+                return false;
+            }
+            $host = strtolower($parts['host']);
+            $port = isset($parts['port']) ? (int)$parts['port'] : ($scheme === 'https' ? 443 : 80);
+            $selfHosts = [];
+            foreach (['HTTP_HOST', 'SERVER_NAME', 'SERVER_ADDR'] as $k) {
+                if (!empty($_SERVER[$k])) {
+                    $selfHosts[] = strtolower(preg_replace('/:\d+$/', '', (string)$_SERVER[$k]));
+                }
+            }
+            $selfPort = isset($_SERVER['SERVER_PORT']) ? (int)$_SERVER['SERVER_PORT'] : ($scheme === 'https' ? 443 : 80);
+            if (in_array($host, $selfHosts, true)) {
+                return $port === $selfPort;
+            }
+            if (filter_var($host, FILTER_VALIDATE_IP)) {
+                return (bool)filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+            }
+            $ips = [];
+            if (function_exists('dns_get_record')) {
+                foreach ([DNS_A, DNS_AAAA] as $type) {
+                    $recs = @dns_get_record($host, $type);
+                    if (is_array($recs)) {
+                        foreach ($recs as $r) {
+                            if (!empty($r['ip'])) { $ips[] = $r['ip']; }
+                            if (!empty($r['ipv6'])) { $ips[] = $r['ipv6']; }
+                        }
+                    }
+                }
+            }
+            if (!$ips) {
+                $ip = @gethostbyname($host);
+                if ($ip && $ip !== $host) { $ips[] = $ip; }
+            }
+            if (!$ips) {
+                return false;
+            }
+            foreach ($ips as $ip) {
+                if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+}
 
  
  
@@ -173,6 +229,9 @@ function huli_push_bark($cfg, $title, $content, $fields = null) {
 function huli_push_webhook($cfg, $title, $content, $fields = null) {
     $url = $cfg['url'] ?? '';
     if (!$url) { return ['ok' => false, 'err' => 'url 未配置']; }
+    if (!huli_mcp_safe_outbound_url($url)) {
+        return ['ok' => false, 'err' => 'webhook 地址不合法'];
+    }
     $method = strtoupper($cfg['method'] ?? 'POST');
     $headers = [];
     if (!empty($cfg['headers'])) {
