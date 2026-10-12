@@ -43,10 +43,15 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_qq'])) {
         $new_qq = trim($_POST['qq'] ?? '');
-        $stmt_qq = $pdo->prepare("UPDATE huli_users SET qq = ? WHERE id = ?");
-        $stmt_qq->execute([$new_qq, $user_id]);
-        $_SESSION['feedback_msg'] = 'QQ号已更新，头像已刷新。';
-        $_SESSION['feedback_type'] = 'success';
+        if ($new_qq !== '' && !preg_match('/^\d{5,12}$/', $new_qq)) {
+            $_SESSION['feedback_msg'] = '请输入有效的QQ号（5-12位数字）。';
+            $_SESSION['feedback_type'] = 'error';
+        } else {
+            $stmt_qq = $pdo->prepare("UPDATE huli_users SET qq = ? WHERE id = ?");
+            $stmt_qq->execute([$new_qq, $user_id]);
+            $_SESSION['feedback_msg'] = 'QQ号已更新，头像已刷新。';
+            $_SESSION['feedback_type'] = 'success';
+        }
         header('Location: index.php');
         exit;
     }

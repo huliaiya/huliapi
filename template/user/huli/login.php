@@ -31,13 +31,84 @@ try {
 } catch(Exception $e) {
     $mail_forgot_enabled = false;
 }
+$qq_callback = '';
+if (isset($_GET['qq'])) {
+    $qq_callback = preg_replace('/[^0-9]/', '', (string)$_GET['qq']);
+    if ($qq_callback !== '') {
+        try {
+            $pdo_qq = new PDO(
+                "mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET,
+                DB_USER,
+                DB_PASS
+            );
+            $pdo_qq->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $stmt_qq = $pdo_qq->prepare("SELECT id, username, email, status FROM huli_users WHERE qq = ? LIMIT 1");
+            $stmt_qq->execute([$qq_callback]);
+            $user_qq = $stmt_qq->fetch(PDO::FETCH_ASSOC);
+            if ($user_qq && $user_qq['status'] === 'active') {
+                session_regenerate_id(true);
+                $_SESSION['user_id'] = $user_qq['id'];
+                $_SESSION['user_username'] = $user_qq['username'];
+                $_SESSION['user_email'] = $user_qq['email'];
+                try { huli_record_login($pdo_qq, 'user', (int)$user_qq['id'], $user_qq['username'], 'success', ['email' => $user_qq['email'], 'notify' => true, 'method' => 'qq']); } catch (Throwable $e) {}
+                header('Location: index.php');
+                exit;
+            }
+            if ($user_qq) {
+                $error_msg = '该 QQ 号对应的账户已被禁用或待审核，无法登录。';
+            } else {
+                $error_msg = '该 QQ 号尚未绑定用户，请先到个人中心填写 QQ 号。';
+            }
+        } catch (PDOException $e) {
+            $error_msg = 'QQ 登录服务暂时不可用。';
+        }
+    } else {
+        $error_msg = 'QQ 号格式不正确。';
+    }
+    header('Location: login.php' . (isset($_GET['tpl']) ? '?tpl=' . urlencode((string)$_GET['tpl']) : ''));
+    exit;
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username']);
-    $password = $_POST['password'];
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $qq_login = trim($_POST['login_qq'] ?? '');
     if (!huli_turnstile_verify($turnstile_reason)) {
         $error_msg = $turnstile_reason ?: '人机验证失败，请完成验证后重试';
+    } elseif ($qq_login !== '') {
+        if (!preg_match('/^\d{5,12}$/', $qq_login)) {
+            $error_msg = 'QQ号格式不正确，请输入5-12位数字。';
+        } else {
+            try {
+                $pdo_qq = new PDO(
+                    "mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET,
+                    DB_USER,
+                    DB_PASS
+                );
+                $pdo_qq->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                $stmt_qq = $pdo_qq->prepare("SELECT id, username, email, status FROM huli_users WHERE qq = ? LIMIT 1");
+                $stmt_qq->execute([$qq_login]);
+                $user_qq = $stmt_qq->fetch(PDO::FETCH_ASSOC);
+                if ($user_qq) {
+                    if ($user_qq['status'] === 'active') {
+                        session_regenerate_id(true);
+                        $_SESSION['user_id'] = $user_qq['id'];
+                        $_SESSION['user_username'] = $user_qq['username'];
+                        $_SESSION['user_email'] = $user_qq['email'];
+                        try { huli_record_login($pdo_qq, 'user', (int)$user_qq['id'], $user_qq['username'], 'success', ['email' => $user_qq['email'], 'notify' => true, 'method' => 'qq']); } catch (Throwable $e) {}
+                        header('Location: index.php');
+                        exit;
+                    } else {
+                        $error_msg = '该QQ号对应的账户已被禁用或待审核。';
+                    }
+                } else {
+                    $error_msg = '该QQ号尚未绑定用户，请先到个人中心填写QQ号。';
+                }
+            } catch (PDOException $e) {
+                $error_msg = 'QQ登录服务暂时不可用，请稍后重试。';
+            }
+        }
     } elseif (empty($username) || empty($password)) {
-        $error_msg = '用户名或密码不能为空。';
+        $error_msg = '请输入用户名和密码，或填写已绑定的QQ号。';
     } else {
         try {
             $pdo = new PDO(
@@ -48,10 +119,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $stmt = $pdo->prepare(
                 "SELECT id, username, email, password, status
-                 FROM huli_users
-                 WHERE email = ? OR username = ?
-                 ORDER BY (email = ?) DESC
-                 LIMIT 1"
+                  FROM huli_users
+                  WHERE email = ? OR username = ?
+                  ORDER BY (email = ?) DESC
+                  LIMIT 1"
             );
             $stmt->execute([$username, $username, $username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -212,11 +283,16 @@ body {
   <form method="POST" action="login.php" class="signin-form">
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-account" aria-hidden="true"></span>
-      <input type="text" id="username" name="username" class="form-control" placeholder="用户名 / 邮箱" required>
+      <input type="text" id="username" name="username" class="form-control" placeholder="用户名 / 邮箱">
     </div>
     <div class="mb-2 has-feedback">
       <span class="mdi mdi-lock" aria-hidden="true"></span>
-      <input type="password" id="password" name="password" class="form-control" placeholder="密码" required>
+      <input type="password" id="password" name="password" class="form-control" placeholder="密码">
+    </div>
+    <div class="mb-3 has-feedback">
+      <span class="mdi mdi-account-voice" aria-hidden="true"></span>
+      <input type="text" id="login_qq" name="login_qq" class="form-control" placeholder="或输入已绑定的QQ号登录" pattern="[0-9]{5,12}" title="请输入5-12位QQ号">
+      <small class="form-text text-muted d-block mt-1">QQ号登录不需要密码，请先在用户中心绑定QQ号</small>
     </div>
     <?php if ($mail_forgot_enabled): ?>
     <div class="text-right mb-3">

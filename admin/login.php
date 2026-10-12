@@ -20,14 +20,85 @@ require_once __DIR__ . '/../common/admin_remember.php';
 try { $fp = new PDO("mysql:host=".DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS); $settings['site_name'] = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='site_name'")->fetchColumn() ?: 'huliapi'; $favicon_url = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; $mail_forgot_enabled = ((int)$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='mail_admin_forgot_enabled'")->fetchColumn() === 1); } catch(Exception $e) {}
 $error_msg = '';
 $turnstile_reason = '';
+$admin_qq_input = '';
+    if (isset($_GET['qq'])) {
+        $admin_qq_input = preg_replace('/[^0-9]/', '', (string)$_GET['qq']);
+        if ($admin_qq_input !== '') {
+            if (!preg_match('/^\d{5,12}$/', $admin_qq_input)) {
+                $error_msg = 'QQ号格式不正确，请输入5-12位数字';
+            } else {
+                try {
+                    $pdo_qq = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+                    $pdo_qq->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                    $stmt_qq = $pdo_qq->prepare("SELECT id, username, email, nickname, status FROM huli_admins WHERE qq = ? AND TRIM(qq) <> '' LIMIT 1");
+                    $stmt_qq->execute([$admin_qq_input]);
+                    $admin_qq = $stmt_qq->fetch(PDO::FETCH_ASSOC);
+                    if ($admin_qq && (int)$admin_qq['status'] === 1) {
+                        session_regenerate_id(true);
+                        $_SESSION['admin_id'] = $admin_qq['id'];
+                        $_SESSION['admin_username'] = defined('ADMIN_NICKNAME') ? ADMIN_NICKNAME : ($admin_qq['nickname'] ?: $admin_qq['username']);
+                        $pdo_qq->prepare("UPDATE huli_admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?")->execute([$admin_qq['id']]);
+                        try { huli_record_login($pdo_qq, 'admin', (int)$admin_qq['id'], $_SESSION['admin_username'], 'success', ['email' => $admin_qq['email'], 'notify' => true, 'method' => 'qq']); } catch (Throwable $e) {}
+                        huli_admin_remember_revoke($pdo_qq);
+                        header('Location: index.php');
+                        exit;
+                    }
+                    $error_msg = $admin_qq ? '该QQ号对应的管理员账户已被禁用' : '该QQ号尚未绑定管理员，请先到后台资料页填写QQ号';
+                    try { huli_record_login($pdo_qq, 'admin', 0, $admin_qq_input, 'failed', ['method' => 'qq']); } catch (Throwable $e) {}
+                    header('Location: login.php');
+                    exit;
+                } catch (PDOException $e) {
+                    $error_msg = 'QQ登录服务暂时不可用，请稍后重试';
+                    header('Location: login.php');
+                    exit;
+                }
+            }
+        } else {
+            $error_msg = 'QQ号格式不正确';
+            header('Location: login.php');
+            exit;
+        }
+    }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username']);
-    $password = $_POST['password'];
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $admin_qq_input = trim($_POST['login_qq'] ?? '');
     if (!huli_turnstile_verify($turnstile_reason)) {
         $error_msg = $turnstile_reason ?: '人机验证失败，请完成 Cloudflare 验证后重试';
     }
+    if (!$error_msg && $admin_qq_input !== '') {
+        if (!preg_match('/^\d{5,12}$/', $admin_qq_input)) {
+            $error_msg = 'QQ号格式不正确，请输入5-12位数字';
+        } else {
+            try {
+                $pdo_qq = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
+                $pdo_qq->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                $stmt_qq = $pdo_qq->prepare("SELECT id, username, email, nickname, status FROM huli_admins WHERE qq = ? AND TRIM(qq) <> '' LIMIT 1");
+                $stmt_qq->execute([$admin_qq_input]);
+                $admin_qq = $stmt_qq->fetch(PDO::FETCH_ASSOC);
+                if ($admin_qq && (int)$admin_qq['status'] === 1) {
+                    session_regenerate_id(true);
+                    $_SESSION['admin_id'] = $admin_qq['id'];
+                    $_SESSION['admin_username'] = defined('ADMIN_NICKNAME') ? ADMIN_NICKNAME : ($admin_qq['nickname'] ?: $admin_qq['username']);
+                    $pdo_qq->prepare("UPDATE huli_admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?")->execute([$admin_qq['id']]);
+                    try { huli_record_login($pdo_qq, 'admin', (int)$admin_qq['id'], $_SESSION['admin_username'], 'success', ['email' => $admin_qq['email'], 'notify' => true, 'method' => 'qq']); } catch (Throwable $e) {}
+                    if (!empty($_POST['remember'])) {
+                        huli_admin_remember_issue((int)$admin_qq['id'], $pdo_qq);
+                    } else {
+                        huli_admin_remember_revoke($pdo_qq);
+                    }
+                    header('Location: index.php');
+                    exit;
+                }
+                $error_msg = $admin_qq ? '该QQ号对应的管理员账户已被禁用' : '该QQ号尚未绑定管理员，请先到后台资料页填写QQ号';
+                try { huli_record_login($pdo_qq, 'admin', 0, $admin_qq_input, 'failed', ['method' => 'qq']); } catch (Throwable $e) {}
+            } catch (PDOException $e) {
+                $error_msg = 'QQ登录服务暂时不可用，请稍后重试';
+            }
+        }
+    }
     if (!$error_msg && (empty($username) || empty($password))) {
-        $error_msg = '账号或密码不能为空';
+        $error_msg = '请输入账号和密码，或填写已绑定的QQ号';
     }
     if (!$error_msg) {
         try {
@@ -177,11 +248,15 @@ body {
     <?php endif; ?>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-account" aria-hidden="true"></span>
-      <input type="text" class="form-control" id="username" name="username" placeholder="管理员账号 / 邮箱" required>
+      <input type="text" class="form-control" id="username" name="username" placeholder="管理员账号 / 邮箱">
     </div>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-lock" aria-hidden="true"></span>
-      <input type="password" class="form-control" id="password" name="password" placeholder="密码" required>
+      <input type="password" class="form-control" id="password" name="password" placeholder="密码">
+    </div>
+    <div class="mb-3 has-feedback">
+      <span class="mdi mdi-account-voice" aria-hidden="true"></span>
+      <input type="text" class="form-control" id="login_qq" name="login_qq" placeholder="或输入已绑定的管理员QQ号" pattern="[0-9]{5,12}" title="请输入5-12位QQ号">
     </div>
     <?php echo huli_turnstile_widget_html(); ?>
     <div class="mb-3">
