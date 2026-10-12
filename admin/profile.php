@@ -39,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($type === 'qq') {
         $new_qq = trim($_POST['qq'] ?? '');
-        if ($new_qq !== '' && !preg_match('/^\d{5,11}$/', $new_qq)) {
-            $feedback_msg = '请输入有效的QQ号（5-11位数字）。'; $feedback_type = 'error';
+        if ($new_qq !== '' && !preg_match('/^\d{5,12}$/', $new_qq)) {
+            $feedback_msg = '请输入有效的QQ号（5-12位数字）。'; $feedback_type = 'error';
         } else {
             try {
                 $update_stmt = $pdo->prepare("UPDATE huli_admins SET qq = ? WHERE id = ?");
