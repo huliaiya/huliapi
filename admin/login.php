@@ -243,9 +243,13 @@ body {
     <p class="text-muted mb-0">管理控制台 · 请登录以继续</p>
   </div>
   <form method="POST" action="login.php" class="signin-form needs-validation" novalidate>
-    <?php if (!empty($error_msg)): ?>
-        <div class="alert alert-danger error-message mb-3"><?php echo htmlspecialchars($error_msg); ?></div>
-    <?php endif; ?>
+  <?php if (!empty($error_msg)): ?>
+      <div class="alert alert-danger error-message mb-3"><?php echo htmlspecialchars($error_msg); ?></div>
+  <?php endif; ?>
+  <div class="text-center mb-3">
+    <a href="qr_login.php?scope=admin&qq=10001" class="btn btn-outline-primary btn-sm me-2">QQ 扫码模拟登录</a>
+    <a href="login.php?qq=10001" class="btn btn-outline-secondary btn-sm">带 QQ 号直接跳转</a>
+  </div>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-account" aria-hidden="true"></span>
       <input type="text" class="form-control" id="username" name="username" placeholder="管理员账号 / 邮箱">
