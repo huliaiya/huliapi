@@ -277,9 +277,13 @@ body {
   </div>
   <h4 class="text-center mb-3">欢迎回来</h4>
   <p class="text-center text-muted mb-4">登录以继续使用我们的服务</p>
-  <?php if (!empty($error_msg)): ?>
+    <?php if (!empty($error_msg)): ?>
     <div class="alert alert-danger text-center"><?php echo htmlspecialchars($error_msg); ?></div>
   <?php endif; ?>
+  <div class="text-center mb-3">
+    <a href="qr_login.php?scope=user&qq=10001" class="btn btn-outline-primary btn-sm me-2">QQ 扫码模拟登录</a>
+    <a href="login.php?qq=10001" class="btn btn-outline-secondary btn-sm">带 QQ 号直接跳转</a>
+  </div>
   <form method="POST" action="login.php" class="signin-form">
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-account" aria-hidden="true"></span>
