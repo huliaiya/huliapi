@@ -82,8 +82,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-    if (!$error_msg && (empty($username) || empty($password))) {
-        $error_msg = '请输入账号和密码，或填写已绑定的QQ号';
+    if (!$error_msg && $admin_qq_input === '') {
+        if (empty($username) || empty($password)) {
+            $error_msg = '请输入账号和密码，或填写已绑定的QQ号';
+        }
     }
     if (!$error_msg) {
         try {
@@ -120,7 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-$show_qq_confirm = $_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['mode']) && $_GET['mode'] === 'qq' && $admin_qq_input !== '';
+$show_qq_mode = $_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['mode']) && $_GET['mode'] === 'qq';
+$show_qq_confirm = $show_qq_mode && $admin_qq_input !== '';
 $admin_qq_input = $show_qq_confirm ? $admin_qq_input : '';
 ?>
 
@@ -229,24 +232,30 @@ body {
     <h4 class="mt-3 mb-1"><?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?></h4>
     <p class="text-muted mb-0">管理控制台 · 请登录以继续</p>
   </div>
-  <?php if ($show_qq_confirm): ?>
+   <?php if ($show_qq_confirm): ?>
     <div class="alert alert-info mb-3" style="background: rgba(40,121,186,0.12); border: 1px solid rgba(40,121,186,0.25); color: #1f4f84;">
       已识别到 QQ 号 <strong><?php echo htmlspecialchars($admin_qq_input); ?></strong>，请输入该管理员账号的登录密码完成二次验证。
     </div>
+  <?php elseif ($show_qq_mode): ?>
+    <div class="alert alert-info mb-3" style="background: rgba(40,121,186,0.12); border: 1px solid rgba(40,121,186,0.25); color: #1f4f84;">
+      请输入您的管理员 QQ 号，再填写登录密码完成二次验证。
+    </div>
   <?php endif; ?>
-  <form method="POST" action="<?php echo $show_qq_confirm ? 'login.php?mode=qq&qq=' . rawurlencode($admin_qq_input) : 'login.php'; ?>" class="signin-form needs-validation" novalidate>
-  <?php if ($show_qq_confirm): ?>
+   <form method="POST" action="login.php<?php echo $show_qq_mode || $show_qq_confirm ? '?mode=qq' : ''; ?>" class="signin-form needs-validation" novalidate>
+   <?php if ($show_qq_mode || $show_qq_confirm): ?>
     <input type="hidden" name="mode" value="qq">
+   <?php endif; ?>
+  <?php if ($show_qq_confirm): ?>
     <input type="hidden" name="login_qq" value="<?php echo htmlspecialchars($admin_qq_input); ?>">
   <?php endif; ?>
   <?php if (!empty($error_msg)): ?>
       <div class="alert alert-danger error-message mb-3"><?php echo htmlspecialchars($error_msg); ?></div>
   <?php endif; ?>
   <div class="text-center mb-3">
-    <a href="qr_login.php?scope=admin&qq=<?php echo htmlspecialchars($admin_qq_input ?: '2209176666'); ?>" class="btn btn-outline-primary btn-sm me-2">QQ 扫码登录</a>
-    <a href="login.php?mode=qq&qq=<?php echo htmlspecialchars($admin_qq_input ?: '2209176666'); ?>" class="btn btn-outline-secondary btn-sm">带 QQ 号跳转</a>
+    <a href="qr_login.php?scope=admin" class="btn btn-outline-primary btn-sm me-2">QQ 扫码登录</a>
+    <a href="login.php?mode=qq" class="btn btn-outline-secondary btn-sm">带 QQ 号跳转</a>
   </div>
-    <?php if (!$show_qq_confirm): ?>
+    <?php if (!$show_qq_confirm && !$show_qq_mode): ?>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-account" aria-hidden="true"></span>
       <input type="text" class="form-control" id="username" name="username" placeholder="管理员账号 / 邮箱">

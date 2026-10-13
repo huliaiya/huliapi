@@ -41,6 +41,7 @@ if (isset($_GET['qq'])) {
     }
 }
 $pre_qq = $qq_callback !== '' && preg_match('/^\d{5,12}$/', $qq_callback) ? $qq_callback : '';
+$show_qq_mode = $_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['mode']) && $_GET['mode'] === 'qq';
 $show_qq_confirm = $pre_qq !== '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
@@ -257,17 +258,24 @@ body {
     <div class="alert alert-danger text-center"><?php echo htmlspecialchars($error_msg); ?></div>
   <?php endif; ?>
   <div class="text-center mb-3">
-    <a href="qr_login.php?scope=user&qq=<?php echo htmlspecialchars($pre_qq ?: '2209176666'); ?>" class="btn btn-outline-primary btn-sm me-2">QQ 扫码登录</a>
-    <a href="login.php?mode=qq&qq=<?php echo htmlspecialchars($pre_qq ?: '2209176666'); ?>" class="btn btn-outline-secondary btn-sm">带 QQ 号跳转</a>
+    <a href="qr_login.php?scope=user" class="btn btn-outline-primary btn-sm me-2">QQ 扫码登录</a>
+    <a href="login.php?mode=qq" class="btn btn-outline-secondary btn-sm">带 QQ 号跳转</a>
   </div>
-  <form method="POST" action="login.php" class="signin-form">
+  <form method="POST" action="login.php<?php echo $show_qq_mode || $show_qq_confirm ? '?mode=qq' : ''; ?>" class="signin-form">
+    <?php if ($show_qq_mode || $show_qq_confirm): ?>
+    <input type="hidden" name="mode" value="qq">
+    <?php endif; ?>
     <?php if ($show_qq_confirm): ?>
-      <input type="hidden" name="mode" value="qq">
       <input type="hidden" name="login_qq" value="<?php echo htmlspecialchars($pre_qq); ?>">
       <div class="alert alert-info mb-3" style="background: rgba(40,121,186,0.12); border: 1px solid rgba(40,121,186,0.25); color: #1f4f84;">
         已识别到 QQ 号 <strong><?php echo htmlspecialchars($pre_qq); ?></strong>，请输入该用户账号的登录密码完成二次验证。
       </div>
-    <?php else: ?>
+    <?php elseif ($show_qq_mode): ?>
+      <div class="alert alert-info mb-3" style="background: rgba(40,121,186,0.12); border: 1px solid rgba(40,121,186,0.25); color: #1f4f84;">
+        请输入您的 QQ 号，再填写登录密码完成二次验证。
+      </div>
+    <?php endif; ?>
+    <?php if (!$show_qq_confirm && !$show_qq_mode): ?>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-account" aria-hidden="true"></span>
       <input type="text" id="username" name="username" class="form-control" placeholder="用户名 / 邮箱">
@@ -280,7 +288,7 @@ body {
     <?php if (!$show_qq_confirm): ?>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-account-voice" aria-hidden="true"></span>
-      <input type="text" id="login_qq" name="login_qq" class="form-control" placeholder="或输入已绑定的QQ号登录" pattern="[0-9]{5,12}" title="请输入5-12位QQ号">
+      <input type="text" id="login_qq" name="login_qq" class="form-control" placeholder="<?php echo $show_qq_confirm ? '' : '输入已绑定的QQ号（扫码或手动）'; ?>" pattern="[0-9]{5,12}" title="请输入5-12位QQ号">
       <small class="form-text text-muted d-block mt-1">QQ号登录需再输入账号密码，完成人机验证后才可登录</small>
     </div>
     <?php endif; ?>
