@@ -15,6 +15,7 @@ require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/turnstile.php';
 require_once ROOT_PATH . 'common/gallery.php';
 require_once ROOT_PATH . 'common/login_helper.php';
+require_once ROOT_PATH . 'common/qq_scan_session.php';
 $favicon_url = ''; try{$fp=new PDO("mysql:host=".DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS);$favicon_url=$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:'';}catch(Exception $e){}
 $error_msg = '';
 $turnstile_reason = '';
@@ -38,6 +39,9 @@ if (isset($_GET['qq'])) {
         $error_msg = 'QQ号格式不正确，请输入5-12位数字。';
     } elseif ($qq_callback === '') {
         $error_msg = 'QQ号格式不正确。';
+    } elseif (!huli_qq_is_authorized($qq_callback)) {
+        $qq_callback = '';
+        $error_msg = 'QQ 号未通过扫码授权，请使用 QQ 扫码登录。';
     }
 }
 $pre_qq = $qq_callback !== '' && preg_match('/^\d{5,12}$/', $qq_callback) ? $qq_callback : '';
@@ -52,6 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($qq_login !== '') {
         if (!preg_match('/^\d{5,12}$/', $qq_login)) {
             $error_msg = 'QQ号格式不正确，请输入5-12位数字。';
+        } elseif (!huli_qq_is_authorized($qq_login)) {
+            $error_msg = 'QQ 号未通过扫码授权，请使用 QQ 扫码登录。';
         } elseif ($password === '') {
             $error_msg = '请输入该用户账号的登录密码，完成二次验证后登录。';
         } else {
@@ -85,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif (empty($username) || empty($password)) {
-        $error_msg = '请输入用户名和密码，或填写已绑定的QQ号。';
+        $error_msg = '请输入用户名和密码，或使用 QQ 扫码登录。';
     } else {
         try {
             $pdo = new PDO(
@@ -259,7 +265,7 @@ body {
   <?php endif; ?>
   <div class="text-center mb-3">
     <a href="qr_login.php?scope=user" class="btn btn-outline-primary btn-sm me-2">QQ 扫码登录</a>
-    <a href="login.php?mode=qq" class="btn btn-outline-secondary btn-sm">带 QQ 号跳转</a>
+    <a href="login.php?mode=qq" class="btn btn-outline-secondary btn-sm">转跳 QQ 登录</a>
   </div>
   <form method="POST" action="login.php<?php echo $show_qq_mode || $show_qq_confirm ? '?mode=qq' : ''; ?>" class="signin-form">
     <?php if ($show_qq_mode || $show_qq_confirm): ?>
@@ -272,7 +278,7 @@ body {
       </div>
     <?php elseif ($show_qq_mode): ?>
       <div class="alert alert-info mb-3" style="background: rgba(40,121,186,0.12); border: 1px solid rgba(40,121,186,0.25); color: #1f4f84;">
-        请输入您的 QQ 号，再填写登录密码完成二次验证。
+        请先通过 <a href="qr_login.php?scope=user">QQ 扫码登录</a> 获取 QQ 号后再完成二次验证。
       </div>
     <?php endif; ?>
     <?php if (!$show_qq_confirm && !$show_qq_mode): ?>
@@ -285,13 +291,6 @@ body {
       <span class="mdi mdi-lock" aria-hidden="true"></span>
       <input type="password" id="password" name="password" class="form-control" placeholder="<?php echo $show_qq_confirm ? '该用户账号的登录密码' : '密码'; ?>">
     </div>
-    <?php if (!$show_qq_confirm): ?>
-    <div class="mb-3 has-feedback">
-      <span class="mdi mdi-account-voice" aria-hidden="true"></span>
-      <input type="text" id="login_qq" name="login_qq" class="form-control" placeholder="<?php echo $show_qq_confirm ? '' : '输入已绑定的QQ号（扫码或手动）'; ?>" pattern="[0-9]{5,12}" title="请输入5-12位QQ号">
-      <small class="form-text text-muted d-block mt-1">QQ号登录需再输入账号密码，完成人机验证后才可登录</small>
-    </div>
-    <?php endif; ?>
     <?php if ($mail_forgot_enabled): ?>
     <div class="text-right mb-3">
       <a href="forgot_password.php" class="form-link">忘记密码？</a>

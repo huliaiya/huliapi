@@ -15,6 +15,7 @@ require_once __DIR__ . '/../common/turnstile.php';
 require_once __DIR__ . '/../common/login_helper.php';
 require_once __DIR__ . '/../common/gallery.php';
 require_once __DIR__ . '/../common/admin_remember.php';
+require_once __DIR__ . '/../common/qq_scan_session.php';
     $settings = ['site_name' => 'huliapi'];
     $favicon_url = '';
 try { $fp = new PDO("mysql:host=".DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS); $settings['site_name'] = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='site_name'")->fetchColumn() ?: 'huliapi'; $favicon_url = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; $mail_forgot_enabled = ((int)$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='mail_admin_forgot_enabled'")->fetchColumn() === 1); } catch(Exception $e) {}
@@ -28,6 +29,10 @@ if (isset($_GET['qq'])) {
     if ($admin_qq_input !== '') {
         if (!preg_match('/^\d{5,12}$/', $admin_qq_input)) {
             $error_msg = 'QQ号格式不正确，请输入5-12位数字';
+        } elseif (!huli_qq_is_authorized($admin_qq_input)) {
+            $error_msg = 'QQ 号未通过扫码授权，请使用 QQ 扫码登录';
+            $admin_qq_input = '';
+            $qq_redirect_to = 'login.php';
         } else {
             $admin_qq_pending = $admin_qq_input;
             $qq_redirect_to = 'login.php?mode=qq&qq=' . $admin_qq_input;
@@ -47,6 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$error_msg && $admin_qq_input !== '') {
         if (!preg_match('/^\d{5,12}$/', $admin_qq_input)) {
             $error_msg = 'QQ号格式不正确，请输入5-12位数字';
+        } elseif (!huli_qq_is_authorized($admin_qq_input)) {
+            $error_msg = 'QQ 号未通过扫码授权，请使用 QQ 扫码登录';
         } else {
             try {
                 $pdo_qq = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
@@ -84,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!$error_msg && $admin_qq_input === '') {
         if (empty($username) || empty($password)) {
-            $error_msg = '请输入账号和密码，或填写已绑定的QQ号';
+            $error_msg = '请输入账号和密码，或使用 QQ 扫码登录';
         }
     }
     if (!$error_msg) {
@@ -238,7 +245,7 @@ body {
     </div>
   <?php elseif ($show_qq_mode): ?>
     <div class="alert alert-info mb-3" style="background: rgba(40,121,186,0.12); border: 1px solid rgba(40,121,186,0.25); color: #1f4f84;">
-      请输入您的管理员 QQ 号，再填写登录密码完成二次验证。
+      请先通过 <a href="qr_login.php?scope=admin">QQ 扫码登录</a> 获取 QQ 号后再完成二次验证。
     </div>
   <?php endif; ?>
    <form method="POST" action="login.php<?php echo $show_qq_mode || $show_qq_confirm ? '?mode=qq' : ''; ?>" class="signin-form needs-validation" novalidate>
@@ -253,23 +260,21 @@ body {
   <?php endif; ?>
   <div class="text-center mb-3">
     <a href="qr_login.php?scope=admin" class="btn btn-outline-primary btn-sm me-2">QQ 扫码登录</a>
-    <a href="login.php?mode=qq" class="btn btn-outline-secondary btn-sm">带 QQ 号跳转</a>
+    <a href="login.php?mode=qq" class="btn btn-outline-secondary btn-sm">转跳 QQ 登录</a>
   </div>
-    <?php if (!$show_qq_confirm && !$show_qq_mode): ?>
+    <?php if ($show_qq_confirm): ?>
+    <div class="mb-3 has-feedback">
+      <span class="mdi mdi-lock" aria-hidden="true"></span>
+      <input type="password" class="form-control" id="password" name="password" placeholder="该管理员账号的登录密码">
+    </div>
+    <?php else: ?>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-account" aria-hidden="true"></span>
       <input type="text" class="form-control" id="username" name="username" placeholder="管理员账号 / 邮箱">
     </div>
-    <?php endif; ?>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-lock" aria-hidden="true"></span>
-      <input type="password" class="form-control" id="password" name="password" placeholder="<?php echo $show_qq_confirm ? '该管理员账号的登录密码' : '密码'; ?>">
-    </div>
-    <?php if (!$show_qq_confirm): ?>
-    <div class="mb-3 has-feedback">
-      <span class="mdi mdi-account-voice" aria-hidden="true"></span>
-      <input type="text" class="form-control" id="login_qq" name="login_qq" placeholder="或输入已绑定的管理员QQ号" pattern="[0-9]{5,12}" title="请输入5-12位QQ号">
-      <small class="form-text text-muted d-block mt-1">QQ号登录需再输入管理员密码，完成人机验证后才可登录</small>
+      <input type="password" class="form-control" id="password" name="password" placeholder="密码">
     </div>
     <?php endif; ?>
     <?php echo huli_turnstile_widget_html(true); ?>

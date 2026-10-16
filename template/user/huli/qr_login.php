@@ -32,9 +32,6 @@ $back_url = $confirm_path;
   .btn-primary { background:#1f6feb; color:#fff; }
   .btn-primary:disabled { background:#cbd5e1; cursor:not-allowed; }
   .btn-ghost { background:#eef2f7; color:#334155; }
-  .qin-input { display:flex; gap:8px; margin-top:16px; }
-  .qin-input input { flex:1; min-width:0; border:1px solid #cbd5e1; border-radius:8px; padding:9px 12px; font-size:14px; color:#1e293b; }
-  .qin-input input:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,0.2); }
   .spinner { width:16px; height:16px; border:2px solid #e2e8f0; border-top-color:#1f6feb; border-radius:50%; animation:spin .6s linear infinite; display:inline-block; }
   @keyframes spin { to { transform:rotate(360deg); } }
 </style>
@@ -50,10 +47,6 @@ $back_url = $confirm_path;
 
   <div class="status-box" id="statusBox">
     <span class="dot waiting"></span> 等待扫码…
-  </div>
-
-  <div class="qin-input">
-    <input type="text" id="qinInput" placeholder="或直接输入您的 QQ 号" maxlength="12">
   </div>
 
   <div class="btn-row">
@@ -96,7 +89,7 @@ $back_url = $confirm_path;
           return;
         }
         if (d.status === 'success') {
-          uin = d.uin || '';
+          uin = d.uin || uin || '';
           if (!uin) {
             clearInterval(pollTimer);
             setStatus('success');
@@ -105,9 +98,6 @@ $back_url = $confirm_path;
           }
           clearInterval(pollTimer);
           setStatus('success', uin);
-        } else if (d.status === 'expired') {
-          clearInterval(pollTimer);
-          setStatus('expired');
         } else if (d.status === 'scanned') {
           setStatus('scanned');
         }
@@ -125,15 +115,6 @@ $back_url = $confirm_path;
       pollTimer = setInterval(startPoll, 2000);
     })
     .catch(function(){ setStatus('expired'); });
-
-  document.getElementById('qinInput').addEventListener('keydown', function(e){
-    if (e.key === 'Enter') {
-      var qq = this.value.replace(/\D/g,'');
-      if (qq.length >= 5 && qq.length <= 12) {
-        location.href = confirmPath + '?mode=qq&qq=' + encodeURIComponent(qq);
-      }
-    }
-  });
 })();
 </script>
 </body>
