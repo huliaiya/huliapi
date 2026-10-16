@@ -10,6 +10,28 @@ function huli_qq_hash33(string $str): int {
     return $e;
 }
 
+// Mark a uin as authorized by a successful QR scan so the confirm step
+// only accepts QQ numbers that actually came back from the scan.
+function huli_qq_mark_authorized(string $uin): void {
+    if ($uin === '') {
+        return;
+    }
+    $_SESSION['huli_qq_authorized'][$uin] = time();
+    // Keep the authorized set small (last 20 entries)
+    if (count($_SESSION['huli_qq_authorized']) > 20) {
+        asort($_SESSION['huli_qq_authorized']);
+        $_SESSION['huli_qq_authorized'] = array_slice($_SESSION['huli_qq_authorized'], -20, null, true);
+    }
+}
+
+// Returns true when the QQ number was returned by a scan in the last 10 minutes.
+function huli_qq_is_authorized(string $uin): bool {
+    if ($uin === '' || !isset($_SESSION['huli_qq_authorized'][$uin])) {
+        return false;
+    }
+    return (time() - (int)$_SESSION['huli_qq_authorized'][$uin]) <= 600;
+}
+
 function huli_qq_scan_new_session() {
     $url = 'https://ssl.ptlogin2.qq.com/ptqrshow?appid=549000912&e=2&l=M&s=3&d=72&v=4&t=' . (string)(microtime(true)) . '&daid=5&pt_3rd_aid=0&u1=https://qzs.qq.com/qzone/v5/loginsucc.html?para=izone';
     $headers = [
@@ -85,10 +107,9 @@ function huli_qq_scan_poll(string $sid): array {
         return ['status' => $sess['last_status'], 'uin' => $sess['uin']];
     }
 
-    if ($sess['last_status'] === 'success') {
-        if ($sess['uin'] !== '') {
-            return ['status' => $sess['last_status'], 'uin' => $sess['uin']];
-        }
+    // If already succeeded but uin was not extracted yet, keep polling to retry
+    if ($sess['last_status'] === 'success' && $sess['uin'] === '') {
+        // fall through to poll again
     } else {
         $sess = $_SESSION['huli_qq_scan'][$sid];
     }
@@ -125,35 +146,18 @@ function huli_qq_scan_poll(string $sid): array {
         $code = (int)$m[1];
         switch ($code) {
             case 0:
-                // Success: extract check_sig URL, then GET it to grab uin cookie
-                $check_sig_url = '';
-                if (preg_match('/check_sig[^&]*ptsigx=([a-z0-9]+)/i', $resp, $cm)) {
-                    $ptsigx = $cm[1];
-                    $check_sig_url = 'https://ptlogin2.qzone.qq.com/check_sig?pttype=1&uin=&service=ptqrlogin&nodirect=0&ptsigx=' . $ptsigx
-                        . '&s_url=https://qzs.qq.com/qzone/v5/loginsucc.html?para=izone&f_url=&ptlang=2052&ptredirect=100'
-                        . '&aid=549000912&daid=5&j_later=0&low_login_hour=0&regmaster=0&pt_login_type=3&pt_aid=0&pt_aaid=16&pt_light=0&pt_3rd_aid=0';
-                }
+                // Success: the check_sig URL in the response contains uin as a query param
+                // e.g. ptuiCB('0','0','https://ptlogin2.qzone.qq.com/check_sig?pttype=1&uin=123456789&...')
                 $uin = '';
-                if ($check_sig_url !== '') {
-                    $ctx2 = stream_context_create(['http' => [
-                        'header' => implode("\n", [
-                            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                            'Cookie: ' . $cookie_header,
-                        ]),
-                        'ignore_errors' => true,
-                        'timeout' => 10,
-                    ]]);
-                    $resp2 = @file_get_contents($check_sig_url, false, $ctx2);
-                    $check_sig_headers = is_array($http_response_header ?? null) ? $http_response_header : [];
-                    $resp2 = (string)$resp2;
-                if ($resp2 !== '' && $resp2 !== false && preg_match('/\buin=(\d+)/', $resp2, $um2)) {
-                    $uin = $um2[1];
+                // Primary: extract uin from the check_sig URL embedded in ptuiCB response
+                if (preg_match('/check_sig[^\'"]*?\buin=(\d+)/', $resp, $um1)) {
+                    $uin = $um1[1];
                 }
-                }
-                // Also try to find uin directly in poll response
+                // Fallback: look for uin in response body directly
                 if ($uin === '' && preg_match('/\buin=(\d+)/', $resp, $um2)) {
                     $uin = $um2[1];
                 }
+                // Fallback: look for uin in poll response headers
                 if ($uin === '') {
                     foreach ($poll_headers as $h) {
                         if (stripos($h, 'Set-Cookie:') === 0 && preg_match('/\buin=(\d+)/', $h, $um3)) {
@@ -162,16 +166,28 @@ function huli_qq_scan_poll(string $sid): array {
                         }
                     }
                 }
+                if ($uin !== '' && $sess['uin'] === '') {
+                    $sess['uin'] = $uin;
+                }
+                if ($sess['uin'] !== '') {
+                    huli_qq_mark_authorized($sess['uin']);
+                }
                 $sess['last_status'] = 'success';
-                $sess['uin'] = $uin;
                 $_SESSION['huli_qq_scan'][$sid] = $sess;
-                return ['status' => 'success', 'uin' => $uin];
+                if ($sess['uin'] === '') {
+                    return ['status' => 'success'];
+                }
+                return ['status' => 'success', 'uin' => $sess['uin']];
 
             case 66:
-                $sess['last_status'] = 'waiting';
+                if ($sess['last_status'] !== 'success') {
+                    $sess['last_status'] = 'waiting';
+                }
                 break;
             case 67:
-                $sess['last_status'] = 'scanned';
+                if ($sess['last_status'] !== 'success') {
+                    $sess['last_status'] = 'scanned';
+                }
                 break;
             case 65:
                 $sess['last_status'] = 'expired';
