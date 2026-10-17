@@ -15,84 +15,25 @@ require_once __DIR__ . '/../common/turnstile.php';
 require_once __DIR__ . '/../common/login_helper.php';
 require_once __DIR__ . '/../common/gallery.php';
 require_once __DIR__ . '/../common/admin_remember.php';
-require_once __DIR__ . '/../common/qq_scan_session.php';
+require_once __DIR__ . '/../common/qq_connect.php';
     $settings = ['site_name' => 'huliapi'];
     $favicon_url = '';
 try { $fp = new PDO("mysql:host=".DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS); $settings['site_name'] = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='site_name'")->fetchColumn() ?: 'huliapi'; $favicon_url = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; $mail_forgot_enabled = ((int)$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='mail_admin_forgot_enabled'")->fetchColumn() === 1); } catch(Exception $e) {}
 $error_msg = '';
 $turnstile_reason = '';
 $admin_qq_input = '';
-$admin_qq_pending = '';
-$qq_redirect_to = 'login.php';
-if (isset($_GET['qq'])) {
-    $admin_qq_input = preg_replace('/[^0-9]/', '', (string)$_GET['qq']);
-    if ($admin_qq_input !== '') {
-        if (!preg_match('/^\d{5,12}$/', $admin_qq_input)) {
-            $error_msg = 'QQ号格式不正确，请输入5-12位数字';
-        } elseif (!huli_qq_is_authorized($admin_qq_input)) {
-            $error_msg = 'QQ 号未通过扫码授权，请使用 QQ 扫码登录';
-            $admin_qq_input = '';
-            $qq_redirect_to = 'login.php';
-        } else {
-            $admin_qq_pending = $admin_qq_input;
-            $qq_redirect_to = 'login.php?mode=qq&qq=' . $admin_qq_input;
-        }
-    } else {
-        $error_msg = 'QQ号格式不正确';
-        $qq_redirect_to = 'login.php';
-    }
+if (!empty($_SESSION['qq_connect_error'])) {
+    $error_msg = (string)$_SESSION['qq_connect_error'];
+    unset($_SESSION['qq_connect_error']);
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    $admin_qq_input = trim($_POST['login_qq'] ?? '');
     if (!huli_turnstile_verify($turnstile_reason)) {
         $error_msg = $turnstile_reason ?: '人机验证失败，请完成 Cloudflare 验证后重试';
     }
-    if (!$error_msg && $admin_qq_input !== '') {
-        if (!preg_match('/^\d{5,12}$/', $admin_qq_input)) {
-            $error_msg = 'QQ号格式不正确，请输入5-12位数字';
-        } elseif (!huli_qq_is_authorized($admin_qq_input)) {
-            $error_msg = 'QQ 号未通过扫码授权，请使用 QQ 扫码登录';
-        } else {
-            try {
-                $pdo_qq = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
-                $pdo_qq->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                $stmt_qq = $pdo_qq->prepare("SELECT id, username, email, password, nickname, status FROM huli_admins WHERE qq = ? AND TRIM(qq) <> '' LIMIT 1");
-                $stmt_qq->execute([$admin_qq_input]);
-                $admin_qq = $stmt_qq->fetch(PDO::FETCH_ASSOC);
-                if (!$admin_qq) {
-                    $error_msg = '该QQ号尚未绑定管理员，请先到后台资料页填写QQ号';
-                    try { huli_record_login($pdo_qq, 'admin', 0, $admin_qq_input, 'failed', ['method' => 'qq']); } catch (Throwable $e) {}
-                } elseif ((int)$admin_qq['status'] !== 1) {
-                    $error_msg = '该QQ号对应的管理员账户已被禁用';
-                    try { huli_record_login($pdo_qq, 'admin', 0, $admin_qq_input, 'failed', ['method' => 'qq']); } catch (Throwable $e) {}
-                } elseif ($password === '' || !password_verify($password, $admin_qq['password'])) {
-                    $error_msg = 'QQ号对应的管理员密码不正确';
-                    try { huli_record_login($pdo_qq, 'admin', (int)$admin_qq['id'], $admin_qq_input, 'failed', ['method' => 'qq']); } catch (Throwable $e) {}
-                } else {
-                    session_regenerate_id(true);
-                    $_SESSION['admin_id'] = $admin_qq['id'];
-                    $_SESSION['admin_username'] = defined('ADMIN_NICKNAME') ? ADMIN_NICKNAME : ($admin_qq['nickname'] ?: $admin_qq['username']);
-                    $pdo_qq->prepare("UPDATE huli_admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?")->execute([$admin_qq['id']]);
-                    try { huli_record_login($pdo_qq, 'admin', (int)$admin_qq['id'], $_SESSION['admin_username'], 'success', ['email' => $admin_qq['email'], 'notify' => true, 'method' => 'qq']); } catch (Throwable $e) {}
-                    if (!empty($_POST['remember'])) {
-                        huli_admin_remember_issue((int)$admin_qq['id'], $pdo_qq);
-                    } else {
-                        huli_admin_remember_revoke($pdo_qq);
-                    }
-                    header('Location: index.php');
-                    exit;
-                }
-            } catch (PDOException $e) {
-                $error_msg = 'QQ登录服务暂时不可用，请稍后重试';
-            }
-        }
-    }
-    if (!$error_msg && $admin_qq_input === '') {
-        if (empty($username) || empty($password)) {
-            $error_msg = '请输入账号和密码，或使用 QQ 扫码登录';
-        }
+    if (!$error_msg && (empty($username) || empty($password))) {
+        $error_msg = '请输入账号和密码';
     }
     if (!$error_msg) {
         try {
@@ -129,9 +70,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-$show_qq_mode = $_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['mode']) && $_GET['mode'] === 'qq';
-$show_qq_confirm = $show_qq_mode && $admin_qq_input !== '';
-$admin_qq_input = $show_qq_confirm ? $admin_qq_input : '';
 ?>
 
 <!DOCTYPE html>
@@ -239,35 +177,16 @@ body {
     <h4 class="mt-3 mb-1"><?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?></h4>
     <p class="text-muted mb-0">管理控制台 · 请登录以继续</p>
   </div>
-   <?php if ($show_qq_confirm): ?>
-    <div class="alert alert-info mb-3" style="background: rgba(40,121,186,0.12); border: 1px solid rgba(40,121,186,0.25); color: #1f4f84;">
-      已识别到 QQ 号 <strong><?php echo htmlspecialchars($admin_qq_input); ?></strong>，请输入该管理员账号的登录密码完成二次验证。
-    </div>
-  <?php elseif ($show_qq_mode): ?>
-    <div class="alert alert-info mb-3" style="background: rgba(40,121,186,0.12); border: 1px solid rgba(40,121,186,0.25); color: #1f4f84;">
-      请先通过 <a href="qr_login.php?scope=admin">QQ 扫码登录</a> 获取 QQ 号后再完成二次验证。
-    </div>
-  <?php endif; ?>
-   <form method="POST" action="login.php<?php echo $show_qq_mode || $show_qq_confirm ? '?mode=qq' : ''; ?>" class="signin-form needs-validation" novalidate>
-   <?php if ($show_qq_mode || $show_qq_confirm): ?>
-    <input type="hidden" name="mode" value="qq">
-   <?php endif; ?>
-  <?php if ($show_qq_confirm): ?>
-    <input type="hidden" name="login_qq" value="<?php echo htmlspecialchars($admin_qq_input); ?>">
-  <?php endif; ?>
   <?php if (!empty($error_msg)): ?>
       <div class="alert alert-danger error-message mb-3"><?php echo htmlspecialchars($error_msg); ?></div>
   <?php endif; ?>
-  <div class="text-center mb-3">
-    <a href="qr_login.php?scope=admin" class="btn btn-outline-primary btn-sm me-2">QQ 扫码登录</a>
-    <a href="login.php?mode=qq" class="btn btn-outline-secondary btn-sm">转跳 QQ 登录</a>
+  <?php if (qq_connect_enabled()): ?>
+  <div class="mb-3 d-grid">
+    <a href="<?php echo htmlspecialchars(qq_connect_auth_url('admin')); ?>" class="btn btn-outline-primary">使用 QQ 互联登录</a>
   </div>
-    <?php if ($show_qq_confirm): ?>
-    <div class="mb-3 has-feedback">
-      <span class="mdi mdi-lock" aria-hidden="true"></span>
-      <input type="password" class="form-control" id="password" name="password" placeholder="该管理员账号的登录密码">
-    </div>
-    <?php else: ?>
+  <div class="text-center text-muted mb-3 small">或使用账号密码登录</div>
+  <?php endif; ?>
+  <form method="POST" action="login.php" class="signin-form needs-validation" novalidate>
     <div class="mb-3 has-feedback">
       <span class="mdi mdi-account" aria-hidden="true"></span>
       <input type="text" class="form-control" id="username" name="username" placeholder="管理员账号 / 邮箱">
@@ -276,7 +195,6 @@ body {
       <span class="mdi mdi-lock" aria-hidden="true"></span>
       <input type="password" class="form-control" id="password" name="password" placeholder="密码">
     </div>
-    <?php endif; ?>
     <?php echo huli_turnstile_widget_html(true); ?>
     <div class="mb-3">
       <div class="form-check">
@@ -285,7 +203,7 @@ body {
       </div>
     </div>
     <div class="mb-3 d-grid">
-      <button class="btn btn-primary" type="submit"><?php echo $show_qq_confirm ? '验证并登录' : '安全登录'; ?></button>
+      <button class="btn btn-primary" type="submit">安全登录</button>
     </div>
   </form>
   <?php if (!empty($mail_forgot_enabled)): ?>

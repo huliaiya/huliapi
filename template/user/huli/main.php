@@ -15,6 +15,7 @@ require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/avatar.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
 require_once ROOT_PATH . 'common/settings_helper.php';
+require_once ROOT_PATH . 'common/qq_connect.php';
 $template = TemplateManager::getActiveUserTemplate();
 $template_base_url = "/template/user/{$template}/";
 $feedback_msg = '';
@@ -394,6 +395,13 @@ try {
                                                 </div>
                                                 <button type="submit" class="btn btn-primary btn-sm">保存</button>
                                             </form>
+                                            <?php if (qq_connect_enabled()): ?>
+                                            <div class="border-top pt-3 mb-3">
+                                                <label class="form-label d-block">QQ 互联登录绑定</label>
+                                                <p class="text-muted small mb-2">绑定后可直接使用 QQ 快捷登录，无需输入账号密码。</p>
+                                                <a href="<?php echo htmlspecialchars(qq_connect_auth_url('user', 'bind')); ?>" class="btn btn-outline-primary btn-sm">绑定 QQ 互联</a>
+                                            </div>
+                                            <?php endif; ?>
                                             <form>
                                                 <div class="mb-3">
                                                     <label class="form-label">用户名</label>

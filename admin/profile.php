@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失。"); }
 require_once __DIR__ . '/../common/avatar.php';
 require_once __DIR__ . '/../common/push.php';
+require_once __DIR__ . '/../common/qq_connect.php';
 $username = htmlspecialchars($_SESSION['admin_username']); $admin_id = $_SESSION['admin_id'];
 $admin_qq = '';
 try {
@@ -146,6 +147,16 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
             </div>
             <button type="submit" class="btn btn-primary">保存</button>
           </form>
+          <?php if (qq_connect_enabled()): ?>
+          <div class="mb-4">
+            <label class="form-label d-block">QQ 互联登录绑定</label>
+            <p class="text-muted small mb-2">绑定后可直接使用 QQ 快捷登录后台，免输账号密码。</p>
+            <?php if (!empty($_SESSION['qq_connect_notice'])): ?>
+              <div class="alert alert-success py-2 small"><?php echo htmlspecialchars($_SESSION['qq_connect_notice']); unset($_SESSION['qq_connect_notice']); ?></div>
+            <?php endif; ?>
+            <a href="<?php echo htmlspecialchars(qq_connect_auth_url('admin', 'bind')); ?>" class="btn btn-outline-primary btn-sm">绑定 QQ 互联</a>
+          </div>
+          <?php endif; ?>
           <hr class="my-4">
           <header class="card-header mb-3" style="background:transparent;padding:0;border:none;"><div class="card-title">账号信息</div></header>
           <p class="text-muted small mb-3">管理管理员登录用户名与密码</p>

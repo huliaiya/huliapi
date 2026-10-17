@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin_id'])) { header('Location: login.php'); exit; }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失。"); }
 require_once __DIR__ . '/../common/push.php';
 require_once __DIR__ . '/../common/turnstile.php';
+require_once __DIR__ . '/../common/url_helper.php';
 require_once __DIR__ . '/../common/mcp/mcp_lib.php';
 
 $music_setting_keys = [
@@ -72,7 +73,8 @@ $settings_keys = [
     'temp_key_duration', 'temp_key_limit',
     'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_secure', 'mail_smtp_user', 'mail_smtp_pass',
     'admin_notify_email', 'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'turnstile_site_key', 'turnstile_secret_key', 'qps_mode', 'redis_host', 'redis_port', 'redis_username', 'redis_password', 'redis_database', 'enable_free_qps_limit', 'free_qps_seconds', 'free_qps_limit', 'enable_member_qps_limit', 'member_qps_seconds', 'member_qps_limit', 'warn_points_threshold', 'warn_balance_threshold', 'enable_warn_notification', 'enable_daily_points', 'daily_free_points', 'enable_daily_points_notification',     'icp_record_number', 'police_record_number', 'favicon_url', 'yn_github_token',
-    'update_github_token', 'update_schedule_enabled', 'update_schedule_time'
+    'update_github_token', 'update_schedule_enabled', 'update_schedule_time',
+    'qqconnect_enabled', 'qqconnect_appid', 'qqconnect_appkey', 'site_url'
 ];
 $defaults = [
     'site_name' => 'huliapi', 'site_description' => 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口', 'copyright_info' => 'Copyright © 2025-2026 huliapi 版权所有',
@@ -84,7 +86,8 @@ $defaults = [
     'enable_free_qps_limit' => 1, 'free_qps_seconds' => 1, 'free_qps_limit' => 10, 'enable_member_qps_limit' => 1, 'member_qps_seconds' => 1, 'member_qps_limit' => 20,
     'warn_points_threshold' => 5, 'warn_balance_threshold' => 0.01, 'enable_warn_notification' => 1, 'enable_daily_points' => 0, 'daily_free_points' => 100, 'enable_daily_points_notification' => 1,
     'icp_record_number' => '', 'police_record_number' => '', 'favicon_url' => '', 'yn_github_token' => '',
-    'update_github_token' => '', 'update_schedule_enabled' => 0, 'update_schedule_time' => '08:00'
+    'update_github_token' => '', 'update_schedule_enabled' => 0, 'update_schedule_time' => '08:00',
+    'qqconnect_enabled' => 0, 'qqconnect_appid' => '', 'qqconnect_appkey' => '', 'site_url' => ''
 ];
 if (empty($defaults['icp_record_number'])) {
     $icp_provinces = ['京','津','沪','渝','冀','豫','云','辽','黑','湘','皖','鲁','新','苏','浙','赣','鄂','甘','晋','蒙','陕','吉','闽','贵','粤','青','藏','川','宁','琼'];
@@ -103,7 +106,7 @@ if (empty($defaults['police_record_number'])) {
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $init_sql = "INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('turnstile_enabled', '0'), ('turnstile_site_key', '3x00000000000000000000FF'), ('turnstile_secret_key', '1x0000000000000000000000000000000AA'), ('qps_mode', 'database'), ('redis_host', '127.0.0.1'), ('redis_port', '6379'), ('redis_password', ''), ('redis_database', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100'), ('enable_daily_points_notification', '1'), ('icp_record_number', ''), ('police_record_number', ''), ('favicon_url', ''), ('yn_github_token', ''), ('update_github_token', ''), ('update_schedule_enabled', '0'), ('update_schedule_time', '08:00');";
+    $init_sql = "INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('turnstile_enabled', '0'), ('turnstile_site_key', '3x00000000000000000000FF'), ('turnstile_secret_key', '1x0000000000000000000000000000000AA'), ('qps_mode', 'database'), ('redis_host', '127.0.0.1'), ('redis_port', '6379'), ('redis_password', ''), ('redis_database', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100'), ('enable_daily_points_notification', '1'), ('icp_record_number', ''), ('police_record_number', ''), ('favicon_url', ''), ('yn_github_token', ''), ('update_github_token', ''), ('update_schedule_enabled', '0'), ('update_schedule_time', '08:00'), ('qqconnect_enabled', '0'), ('qqconnect_appid', ''), ('qqconnect_appkey', ''), ('site_url', '');";
     $pdo->exec($init_sql);
     $stmt_music_default = $pdo->prepare("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES (?, ?)");
     foreach ($music_defaults as $music_key => $music_value) {
@@ -233,7 +236,7 @@ try {
         } else {
         $pdo->beginTransaction();
         $stmt = $pdo->prepare("INSERT INTO huli_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
-        $bool_keys = ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'enable_free_qps_limit', 'enable_member_qps_limit', 'enable_warn_notification', 'enable_daily_points', 'enable_daily_points_notification', 'update_schedule_enabled'];
+        $bool_keys = ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'enable_free_qps_limit', 'enable_member_qps_limit', 'enable_warn_notification', 'enable_daily_points', 'enable_daily_points_notification', 'update_schedule_enabled', 'qqconnect_enabled'];
          
          
         $posted_checkbox_keys = (isset($_POST['checkbox_keys']) && is_array($_POST['checkbox_keys'])) ? $_POST['checkbox_keys'] : [];
@@ -377,6 +380,9 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             </li>
             <li class="nav-item">
               <button class="nav-link" id="basic-turnstile" data-bs-toggle="tab" data-bs-target="#turnstile-pane" type="button">人机验证</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="basic-qqconnect" data-bs-toggle="tab" data-bs-target="#qqconnect-pane" type="button">QQ 互联</button>
             </li>
             <li class="nav-item">
               <button class="nav-link" id="basic-music" data-bs-toggle="tab" data-bs-target="#music" type="button">音乐设置</button>
@@ -707,6 +713,39 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 </div>
                 <div class="mb-3" id="ts-e2e-result"></div>
                 <?php echo huli_turnstile_assets_html(); ?>
+              </div>
+              <div class="tab-pane fade" id="qqconnect-pane" aria-labelledby="basic-qqconnect">
+                <form method="POST" action="settings.php#qqconnect-pane" class="edit-form">
+                  <?php if ($feedback_msg): ?>
+                  <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
+                    <?php echo htmlspecialchars($feedback_msg); ?>
+                  </div>
+                  <?php endif; ?>
+                  <input type="hidden" name="checkbox_keys[]" value="qqconnect_enabled">
+                  <div class="mb-3 form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="qqconnect_enabled" name="qqconnect_enabled" value="1" <?php echo !empty($settings['qqconnect_enabled']) ? 'checked' : ''; ?>>
+                    <label class="form-check-label" for="qqconnect_enabled">启用 QQ 互联登录</label>
+                  </div>
+                  <div class="mb-3">
+                    <label for="qqconnect_appid" class="form-label">AppID</label>
+                    <input class="form-control" type="text" id="qqconnect_appid" name="qqconnect_appid" value="<?php echo htmlspecialchars($settings['qqconnect_appid'] ?? ''); ?>" placeholder="在 QQ 互联管理中心获取">
+                  </div>
+                  <div class="mb-3">
+                    <label for="site_url" class="form-label">站点对外地址（可选）</label>
+                    <input class="form-control" type="url" id="site_url" name="site_url" value="<?php echo htmlspecialchars($settings['site_url'] ?? ''); ?>" placeholder="例如：https://example.com">
+                    <small class="text-muted">用于生成 QQ 回调地址；留空则按当前访问域名自动推断。</small>
+                  </div>
+                  <div class="mb-3">
+                    <label for="qqconnect_appkey" class="form-label">AppKey</label>
+                    <input class="form-control" type="password" id="qqconnect_appkey" name="qqconnect_appkey" value="<?php echo htmlspecialchars($settings['qqconnect_appkey'] ?? ''); ?>" placeholder="在 QQ 互联管理中心获取">
+                  </div>
+                  <div class="alert alert-secondary mb-3 small">
+                    回调地址需在 QQ 互联管理中心配置：<br>
+                    用户端：<code><?php echo htmlspecialchars(huli_current_origin('/template/user/huli/qq_callback.php')); ?></code><br>
+                    管理端：<code><?php echo htmlspecialchars(huli_current_origin('/admin/qq_callback.php')); ?></code>
+                  </div>
+                  <button type="submit" class="btn btn-primary">保存 QQ 互联设置</button>
+                </form>
               </div>
               <div class="tab-pane fade" id="music" aria-labelledby="basic-music">
                 <form method="post" action="settings.php#music">
