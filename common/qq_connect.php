@@ -33,7 +33,42 @@ function qq_connect_setting(string $key, string $default = ''): string {
     return isset($cache[$key]) && $cache[$key] !== '' ? (string)$cache[$key] : $default;
 }
 
+function qq_connect_ensure_schema(): void {
+    static $done = false;
+    if ($done) { return; }
+    $done = true;
+    if (!defined('DB_HOST') && file_exists(dirname(__DIR__) . '/config.php')) {
+        require_once dirname(__DIR__) . '/config.php';
+    }
+    if (!defined('DB_HOST')) { return; }
+    try {
+        $pdo = new PDO(
+            'mysql:host=' . DB_HOST . ';port=' . (defined('DB_PORT') ? DB_PORT : 3306)
+            . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET,
+            DB_USER,
+            DB_PASS,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+        foreach (['huli_admins', 'huli_users'] as $table) {
+            $exists = $pdo->prepare(
+                "SELECT COUNT(*) FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'qq_openid'"
+            );
+            $exists->execute([$table]);
+            if ((int)$exists->fetchColumn() === 0) {
+                $pdo->exec(
+                    "ALTER TABLE `$table` ADD COLUMN `qq_openid` varchar(64) NOT NULL DEFAULT '' COMMENT 'QQ互联openid' AFTER `qq`"
+                );
+            }
+        }
+    } catch (Throwable $e) {
+        // Schema migration failure should not break page rendering; the callback
+        // will surface a friendly error if the column is still missing.
+    }
+}
+
 function qq_connect_enabled(): bool {
+    qq_connect_ensure_schema();
     return qq_connect_setting('qqconnect_enabled') === '1'
         && qq_connect_setting('qqconnect_appid') !== ''
         && qq_connect_setting('qqconnect_appkey') !== '';
