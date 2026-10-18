@@ -7,6 +7,7 @@ require_once __DIR__ . '/session_boot.php';
 require_once __DIR__ . '/url_helper.php';
 require_once __DIR__ . '/login_helper.php';
 require_once __DIR__ . '/gh_connect.php';
+require_once __DIR__ . '/turnstile.php';
 
 $root = dirname(__DIR__);
 if (!file_exists($root . '/config.php')) {
@@ -50,6 +51,14 @@ if ($action === 'bind') {
     $signed_in = $scope === 'admin' ? !empty($_SESSION['admin_id']) : !empty($_SESSION['user_id']);
     if (!$signed_in) {
         $fail('请先登录再进行 GitHub 绑定。');
+    }
+    // Binding escalates an account to GitHub sign-in, so it needs the same
+    // human check that guards the password login form.
+    $ts_reason = '';
+    if (!huli_turnstile_verify_token(trim((string)($_POST['cf-turnstile-response'] ?? '')), $ts_reason)) {
+        $_SESSION['gh_bind_error'] = $ts_reason !== '' ? $ts_reason : '人机验证未通过，请完成验证后重试。';
+        header('Location: ' . $profile_path);
+        exit;
     }
 }
 

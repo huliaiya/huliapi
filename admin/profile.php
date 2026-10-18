@@ -7,6 +7,7 @@ if (file_exists('../config.php')) { require_once '../config.php'; } else { die("
 require_once __DIR__ . '/../common/avatar.php';
 require_once __DIR__ . '/../common/push.php';
 require_once __DIR__ . '/../common/gh_connect.php';
+require_once __DIR__ . '/../common/turnstile.php';
 $username = htmlspecialchars($_SESSION['admin_username']); $admin_id = $_SESSION['admin_id'];
 $admin_qq = '';
 try {
@@ -154,7 +155,13 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
             <?php if (!empty($_SESSION['gh_connect_notice'])): ?>
               <div class="alert alert-success py-2 small"><?php echo htmlspecialchars($_SESSION['gh_connect_notice']); unset($_SESSION['gh_connect_notice']); ?></div>
             <?php endif; ?>
-            <a href="<?php echo htmlspecialchars(gh_connect_auth_url('admin', 'bind')); ?>" class="btn btn-outline-dark btn-sm">绑定 GitHub</a>
+            <form method="POST" action="<?php echo htmlspecialchars(gh_connect_auth_url('admin', 'bind')); ?>" class="gh-bind-form">
+              <?php echo huli_turnstile_widget_html(); ?>
+              <button type="submit" class="btn btn-outline-dark btn-sm">绑定 GitHub</button>
+            </form>
+            <?php if (!empty($_SESSION['gh_bind_error'])): ?>
+              <div class="alert alert-danger py-2 small mt-2"><?php echo htmlspecialchars($_SESSION['gh_bind_error']); unset($_SESSION['gh_bind_error']); ?></div>
+            <?php endif; ?>
           </div>
           <?php endif; ?>
           <hr class="my-4">
