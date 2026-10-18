@@ -14,7 +14,7 @@ if (!file_exists($root . '/config.php')) {
 }
 require_once $root . '/config.php';
 
-$scope = isset($_GET['scope']) && $_GET['scope'] === 'admin' ? 'admin' : 'user';
+$scope = gh_connect_take_scope();
 $login_path = $scope === 'admin' ? '/admin/login.php' : '/template/user/huli/login.php';
 $profile_path = $scope === 'admin' ? '/admin/profile.php' : '/user/index.php';
 
