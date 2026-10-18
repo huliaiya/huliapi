@@ -296,7 +296,9 @@ function huli_turnstile_assets_html()
         return '';
     }
     $script_printed = true;
-    return '<script>' . huli_turnstile_runtime_js() . '</script>'
+    return '<style>.huli-turnstile-nudge{animation:huliTurnstileNudge .6s ease 2;outline:2px solid #dc3545;outline-offset:4px;border-radius:6px;}'
+        . '@keyframes huliTurnstileNudge{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}</style>'
+        . '<script>' . huli_turnstile_runtime_js() . '</script>'
         . '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=huliOnTurnstileLoad" async defer></script>';
 }
 
@@ -310,7 +312,7 @@ function huli_turnstile_widget_html($force = false)
     $widget_index++;
     $widget_id = 'huli-turnstile-' . $widget_index;
     $site_key = huli_turnstile_keys()['site_key'];
-    $html = '<div id="' . $widget_id . '" class="huli-turnstile mb-3"></div>';
+    $html = '<div class="huli-turnstile-box mb-3"><div id="' . $widget_id . '" class="huli-turnstile"></div></div>';
     $html .= huli_turnstile_assets_html();
     $html .= '<script>window.huliRenderTurnstile(' . json_encode($widget_id) . ',' . json_encode($site_key) . ');</script>';
     return $html;
@@ -482,6 +484,19 @@ T.pending[widgetId]=siteKey;
 window.huliTryRenderTurnstiles();
 if(!sdkReady()){ensureSdkLoaded();}
 };
+function flashTurnstileWidget(){
+if(!sdkReady()){return;}
+for(var id in T.widgets){
+if(!Object.prototype.hasOwnProperty.call(T.widgets,id)){continue;}
+var el=document.getElementById(id);
+if(!el){continue;}
+var box=el.closest(".huli-turnstile-box")||el.parentNode;
+if(!box){continue;}
+box.classList.remove("huli-turnstile-nudge");
+void box.offsetWidth;
+box.classList.add("huli-turnstile-nudge");
+}
+}
 window.huliTurnstileEnsureToken=function(onReady,onFail){
 if(!document.querySelector(".huli-turnstile")){onReady("");return;}
 var token=window.huliGetTurnstileResponse();
@@ -500,6 +515,13 @@ try{
 if(window.turnstile.isExpired&&window.turnstile.isExpired(T.widgets[id])){window.turnstile.reset(T.widgets[id]);}
 }catch(e){}
 }
+flashTurnstileWidget();
+}
+// The widget only produces a token after the visitor ticks the checkbox.
+// Tell them that right away instead of spinning silently.
+if(renderedWidget){
+onFail("请先勾选下方「请验证您是真人」完成人机验证，再点击登录");
+return;
 }
 var waited=0;
 var timer=setInterval(function(){
@@ -510,7 +532,7 @@ if(T.fatal){clearInterval(timer);onFail(T.lastError||"人机验证不可用，�
 if(T.sdkFailed){clearInterval(timer);onFail("人机验证组件加载失败，请检查网络后刷新页面重试");return;}
 if(waited>=waitLimit){
 clearInterval(timer);
-onFail(T.lastError||"人机验证尚未完成，请先通过人机验证后再继续");
+onFail(T.lastError||"请先勾选「请验证您是真人」完成人机验证后再继续");
 }
 },200);
 };
