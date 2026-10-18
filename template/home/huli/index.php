@@ -373,7 +373,7 @@ body {
   </a>
 </li>
 <li class="nav-item">
-  <a class="multitabs" href="https://t.me/huliaiya">
+  <a class="multitabs" href="https://qm.qq.com/q/leUf8yiBQA" target="_blank" rel="noopener">
     <i class="mdi mdi-chart-bar"></i>
     <span>加入官方群</span>
   </a>
