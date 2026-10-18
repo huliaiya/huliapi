@@ -203,6 +203,27 @@ body {
     backdrop-filter: blur(25px) saturate(200%) !important;
     -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
+    overflow: hidden;
+}
+@media (min-width: 1025px) {
+    .lyear-layout-sidebar {
+        contain: paint;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar > * {
+        width: var(--sidebar-width);
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:not(:hover) > .sidebar-header a {
+        padding-left: 0;
+        padding-right: 0;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:not(:hover) > .sidebar-header a img {
+        width: 34px;
+        height: 34px;
+        max-width: none;
+        object-fit: cover;
+        object-position: left center;
+        margin: 0;
+    }
 }
 .lyear-layout-header {
     background: rgba(255, 255, 255, 0.4) !important;
