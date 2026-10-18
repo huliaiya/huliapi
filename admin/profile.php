@@ -7,6 +7,7 @@ if (file_exists('../config.php')) { require_once '../config.php'; } else { die("
 require_once __DIR__ . '/../common/avatar.php';
 require_once __DIR__ . '/../common/push.php';
 require_once __DIR__ . '/../common/qq_connect.php';
+require_once __DIR__ . '/../common/gh_connect.php';
 $username = htmlspecialchars($_SESSION['admin_username']); $admin_id = $_SESSION['admin_id'];
 $admin_qq = '';
 try {
@@ -147,14 +148,22 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
             </div>
             <button type="submit" class="btn btn-primary">保存</button>
           </form>
-          <?php if (qq_connect_enabled()): ?>
+          <?php if (qq_connect_enabled() || gh_connect_enabled()): ?>
           <div class="mb-4">
-            <label class="form-label d-block">QQ 互联登录绑定</label>
-            <p class="text-muted small mb-2">绑定后可直接使用 QQ 快捷登录后台，免输账号密码。</p>
+            <label class="form-label d-block">第三方账号绑定</label>
+            <p class="text-muted small mb-2">绑定后可直接使用第三方账号快捷登录后台，免输账号密码。</p>
             <?php if (!empty($_SESSION['qq_connect_notice'])): ?>
               <div class="alert alert-success py-2 small"><?php echo htmlspecialchars($_SESSION['qq_connect_notice']); unset($_SESSION['qq_connect_notice']); ?></div>
             <?php endif; ?>
-            <a href="<?php echo htmlspecialchars(qq_connect_auth_url('admin', 'bind')); ?>" class="btn btn-outline-primary btn-sm">绑定 QQ 互联</a>
+            <?php if (!empty($_SESSION['gh_connect_notice'])): ?>
+              <div class="alert alert-success py-2 small"><?php echo htmlspecialchars($_SESSION['gh_connect_notice']); unset($_SESSION['gh_connect_notice']); ?></div>
+            <?php endif; ?>
+            <?php if (qq_connect_enabled()): ?>
+            <a href="<?php echo htmlspecialchars(qq_connect_auth_url('admin', 'bind')); ?>" class="btn btn-outline-primary btn-sm me-2">绑定 QQ 互联</a>
+            <?php endif; ?>
+            <?php if (gh_connect_enabled()): ?>
+            <a href="<?php echo htmlspecialchars(gh_connect_auth_url('admin', 'bind')); ?>" class="btn btn-outline-dark btn-sm">绑定 GitHub</a>
+            <?php endif; ?>
           </div>
           <?php endif; ?>
           <hr class="my-4">

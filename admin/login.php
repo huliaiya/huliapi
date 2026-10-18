@@ -16,6 +16,7 @@ require_once __DIR__ . '/../common/login_helper.php';
 require_once __DIR__ . '/../common/gallery.php';
 require_once __DIR__ . '/../common/admin_remember.php';
 require_once __DIR__ . '/../common/qq_connect.php';
+require_once __DIR__ . '/../common/gh_connect.php';
     $settings = ['site_name' => 'huliapi'];
     $favicon_url = '';
 try { $fp = new PDO("mysql:host=".DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS); $settings['site_name'] = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='site_name'")->fetchColumn() ?: 'huliapi'; $favicon_url = $fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:''; $mail_forgot_enabled = ((int)$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='mail_admin_forgot_enabled'")->fetchColumn() === 1); } catch(Exception $e) {}
@@ -25,6 +26,10 @@ $admin_qq_input = '';
 if (!empty($_SESSION['qq_connect_error'])) {
     $error_msg = (string)$_SESSION['qq_connect_error'];
     unset($_SESSION['qq_connect_error']);
+}
+if (!empty($_SESSION['gh_connect_error'])) {
+    $error_msg = (string)$_SESSION['gh_connect_error'];
+    unset($_SESSION['gh_connect_error']);
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
@@ -180,9 +185,14 @@ body {
   <?php if (!empty($error_msg)): ?>
       <div class="alert alert-danger error-message mb-3"><?php echo htmlspecialchars($error_msg); ?></div>
   <?php endif; ?>
-  <?php if (qq_connect_enabled()): ?>
-  <div class="mb-3 d-grid">
+  <?php if (qq_connect_enabled() || gh_connect_enabled()): ?>
+  <div class="mb-3 d-grid gap-2">
+    <?php if (qq_connect_enabled()): ?>
     <a href="<?php echo htmlspecialchars(qq_connect_auth_url('admin')); ?>" class="btn btn-outline-primary">使用 QQ 互联登录</a>
+    <?php endif; ?>
+    <?php if (gh_connect_enabled()): ?>
+    <a href="<?php echo htmlspecialchars(gh_connect_auth_url('admin')); ?>" class="btn btn-outline-dark">使用 GitHub 登录</a>
+    <?php endif; ?>
   </div>
   <div class="text-center text-muted mb-3 small">或使用账号密码登录</div>
   <?php endif; ?>

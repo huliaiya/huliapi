@@ -16,6 +16,7 @@ require_once ROOT_PATH . 'common/avatar.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
 require_once ROOT_PATH . 'common/settings_helper.php';
 require_once ROOT_PATH . 'common/qq_connect.php';
+require_once ROOT_PATH . 'common/gh_connect.php';
 $template = TemplateManager::getActiveUserTemplate();
 $template_base_url = "/template/user/{$template}/";
 $feedback_msg = '';
@@ -395,11 +396,19 @@ try {
                                                 </div>
                                                 <button type="submit" class="btn btn-primary btn-sm">保存</button>
                                             </form>
-                                            <?php if (qq_connect_enabled()): ?>
+                                            <?php if (qq_connect_enabled() || gh_connect_enabled()): ?>
                                             <div class="border-top pt-3 mb-3">
-                                                <label class="form-label d-block">QQ 互联登录绑定</label>
-                                                <p class="text-muted small mb-2">绑定后可直接使用 QQ 快捷登录，无需输入账号密码。</p>
-                                                <a href="<?php echo htmlspecialchars(qq_connect_auth_url('user', 'bind')); ?>" class="btn btn-outline-primary btn-sm">绑定 QQ 互联</a>
+                                                <label class="form-label d-block">第三方账号绑定</label>
+                                                <p class="text-muted small mb-2">绑定后可直接使用第三方账号快捷登录，无需输入账号密码。</p>
+                                                <?php if (qq_connect_enabled()): ?>
+                                                <a href="<?php echo htmlspecialchars(qq_connect_auth_url('user', 'bind')); ?>" class="btn btn-outline-primary btn-sm me-2">绑定 QQ 互联</a>
+                                                <?php endif; ?>
+                                                <?php if (gh_connect_enabled()): ?>
+                                                <a href="<?php echo htmlspecialchars(gh_connect_auth_url('user', 'bind')); ?>" class="btn btn-outline-dark btn-sm">绑定 GitHub</a>
+                                                <?php endif; ?>
+                                                <?php if (!empty($_SESSION['gh_connect_notice'])): ?>
+                                                <div class="alert alert-success py-2 small mt-2"><?php echo htmlspecialchars($_SESSION['gh_connect_notice']); unset($_SESSION['gh_connect_notice']); ?></div>
+                                                <?php endif; ?>
                                             </div>
                                             <?php endif; ?>
                                             <form>
