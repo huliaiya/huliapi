@@ -11,6 +11,7 @@ define('ROOT_PATH', $rootPath . '/');
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/avatar.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
+require_once ROOT_PATH . 'common/gh_connect.php';
 $favicon_url = ''; try{$fp=new PDO("mysql:host=".DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS);$favicon_url=$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:'';}catch(Exception $e){}
 
 function checkUserLoginStatus() {
@@ -243,6 +244,13 @@ if ($currentTemplate !== $activeTemplate) {
       </nav>
     </header>
     <main class="lyear-layout-content">
+      <?php $login_notice = gh_connect_enabled() ? gh_connect_take_flash('user') : null; ?>
+      <?php if ($login_notice): ?>
+      <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
+        <i class="mdi mdi-information-outline me-1"></i><?php echo htmlspecialchars($login_notice['text']); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      <?php endif; ?>
       <div id="iframe-content"></div>
     </main>
   </div>

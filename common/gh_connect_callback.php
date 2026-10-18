@@ -127,7 +127,7 @@ try {
     $_SESSION['user_email'] = $row['email'];
     gh_connect_flash('user', 'github');
     try { huli_record_login($pdo, 'user', (int)$row['id'], $row['username'], 'success', ['email' => $row['email'], 'notify' => true, 'method' => 'github']); } catch (Throwable $e) {}
-    header('Location: /index.php');
+    header('Location: /template/user/huli/index.php');
     exit;
 } catch (PDOException $e) {
     error_log('[gh_callback] ' . $e->getMessage());
