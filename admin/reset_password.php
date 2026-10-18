@@ -13,6 +13,7 @@ if (isset($_SESSION['admin_id'])) {
 }
 if (file_exists('../config.php')) { require_once '../config.php'; } else { die("出现错误！配置文件丢失，请先完成安装。"); }
 require_once __DIR__ . '/../common/turnstile.php';
+require_once __DIR__ . '/../common/verification_code.php';
 $mail_forgot_enabled = false;
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
@@ -50,7 +51,8 @@ try {
         if (strlen($password) < 6) {
             throw new Exception('密码至少 6 位');
         }
-        if (!isset($_SESSION['admin_reset_code']) || !isset($_SESSION['admin_reset_code_expire']) || time() > $_SESSION['admin_reset_code_expire'] || !hash_equals(strtolower($_SESSION['admin_reset_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['admin_reset_email']), strtolower($email))) {
+        $db_code_ok = function_exists('huli_verification_code_check') ? huli_verification_code_check('admin_reset', $email, $code) : false;
+        if (!$db_code_ok && (!isset($_SESSION['admin_reset_code']) || !isset($_SESSION['admin_reset_code_expire']) || time() > $_SESSION['admin_reset_code_expire'] || !hash_equals(strtolower($_SESSION['admin_reset_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['admin_reset_email']), strtolower($email)))) {
             throw new Exception('邮箱验证码不正确或已过期');
         }
         $stmt = $pdo->prepare("SELECT id, status FROM huli_admins WHERE email = ?");

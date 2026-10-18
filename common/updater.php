@@ -92,6 +92,7 @@ function huli_updater_write_status($token, array $patch) {
  */
 function huli_updater_persist_status_db($token, array $data) {
     try {
+        huli_updater_ensure_tables();
         $pdo = huli_updater_make_pdo();
         if (!$pdo) { return; }
         $json = json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -104,12 +105,65 @@ function huli_updater_persist_status_db($token, array $data) {
 }
 
 /**
+ * 从数据库读取更新任务状态。
+ */
+function huli_updater_read_status_db($token) {
+    try {
+        $pdo = huli_updater_make_pdo();
+        if (!$pdo) { return null; }
+        $stmt = $pdo->prepare("SELECT payload FROM huli_updater_jobs WHERE token = ? LIMIT 1");
+        $stmt->execute([$token]);
+        $payload = $stmt->fetchColumn();
+        if ($payload === false || $payload === null || $payload === '') { return null; }
+        $data = json_decode((string)$payload, true);
+        return is_array($data) ? $data : null;
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+/**
+ * 确保在线更新所需的落库表存在（新装站点与升级站点均可用）。
+ */
+function huli_updater_ensure_tables() {
+    static $done = false;
+    if ($done) { return; }
+    $done = true;
+    try {
+        $pdo = huli_updater_make_pdo();
+        if (!$pdo) { return; }
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_updater_jobs` (
+            `token` varchar(40) NOT NULL,
+            `payload` mediumtext NOT NULL,
+            `updated_at` int(10) unsigned NOT NULL,
+            PRIMARY KEY (`token`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_update_history` (
+            `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+            `token` varchar(40) NOT NULL DEFAULT '',
+            `new_version` varchar(32) NOT NULL DEFAULT '',
+            `old_version` varchar(32) NOT NULL DEFAULT '',
+            `result` enum('success','failed') NOT NULL DEFAULT 'success',
+            `detail` varchar(2000) NOT NULL DEFAULT '',
+            `ip_address` varchar(45) NOT NULL DEFAULT '',
+            `created_at` datetime NOT NULL,
+            PRIMARY KEY (`id`),
+            KEY `idx_created` (`created_at`),
+            KEY `idx_token` (`token`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    } catch (Throwable $e) {
+        error_log('[updater] 建表失败: ' . $e->getMessage());
+    }
+}
+
+/**
  * 更新完成时把结果写入 huli_update_history 便于后台审计（失败静默）。
  */
 function huli_updater_record_history_db($token, array $data) {
     $status = (string)($data['status'] ?? '');
     if (!in_array($status, ['success', 'failed', 'finished', 'error'], true)) { return; }
     try {
+        huli_updater_ensure_tables();
         $pdo = huli_updater_make_pdo();
         if (!$pdo) { return; }
         $stmt = $pdo->prepare("INSERT INTO huli_update_history (token, new_version, old_version, result, detail, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
@@ -128,7 +182,12 @@ function huli_updater_record_history_db($token, array $data) {
 function huli_updater_read_status($token) {
     $token = huli_updater_safe_token($token);
     if ($token === '') { return null; }
-    $status = huli_updater_read_json(huli_updater_status_file($token));
+    // Database first (authoritative); fall back to the status file only when the
+    // row is missing so workers on older deployments keep reporting.
+    $status = huli_updater_read_status_db($token);
+    if (!is_array($status)) {
+        $status = huli_updater_read_json(huli_updater_status_file($token));
+    }
     if (!is_array($status)) { return null; }
     $age = !empty($status['updated_at']) ? (time() - (int)$status['updated_at']) : 0;
     $queued_stuck = (isset($status['stage']) && $status['stage'] === 'queued' && $age > 90);

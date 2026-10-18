@@ -293,6 +293,10 @@ if ($type === 'register') {
     $_SESSION['friend_link_email'] = $email;
 }
     $_SESSION['last_sent_time'] = time();
+    // Verification codes are authoritative in the database so a lost or new
+    // session cannot invalidate a code the user already received.
+    if (file_exists(__DIR__ . '/../verification_code.php')) { require_once __DIR__ . '/../verification_code.php'; }
+    if (function_exists('huli_verification_code_store')) { huli_verification_code_store($type, $email, $code, 300); }
     $mail->send();
 
      

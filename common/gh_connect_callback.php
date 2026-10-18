@@ -15,14 +15,21 @@ if (!file_exists($root . '/config.php')) {
 }
 require_once $root . '/config.php';
 
-$scope = gh_connect_take_scope();
-$login_path = $scope === 'admin' ? '/admin/login.php' : '/template/user/huli/login.php';
-$profile_path = $scope === 'admin' ? '/admin/profile.php' : '/template/user/huli/main.php';
+$state_row = null;
+$scope = 'user';
+$action = 'login';
+$pending_account_id = 0;
+
+$code  = trim((string)($_GET['code'] ?? ''));
+$state = trim((string)($_GET['state'] ?? ''));
+
+$login_path = '/template/user/huli/login.php';
+$profile_path = '/template/user/huli/main.php';
 
 $GLOBALS['gh_scope'] = $scope;
 $GLOBALS['gh_bind_mode'] = false;
 
-$fail = function ($msg) use ($login_path, $profile_path) {
+$fail = function ($msg) use (&$login_path, &$profile_path) {
     $_SESSION['gh_connect_error'] = $msg;
     $target = !empty($GLOBALS['gh_bind_mode']) ? $profile_path : $login_path;
     header('Location: ' . $target);
@@ -36,20 +43,31 @@ if (!empty($_GET['error'])) {
     $fail('GitHub 授权被取消或失败：' . (string)($_GET['error_description'] ?? $_GET['error']));
 }
 
-$code  = trim((string)($_GET['code'] ?? ''));
-$state = trim((string)($_GET['state'] ?? ''));
 if ($code === '' || $state === '') {
     $fail('GitHub 授权回调参数缺失。');
 }
-if (!gh_connect_check_state($state)) {
+$state_row = gh_connect_consume_state($state);
+if (!is_array($state_row)) {
     $fail('GitHub 授权状态校验失败，请重新操作。');
 }
-
-$action = gh_connect_take_action();
+$scope = $state_row['scope'];
+$action = $state_row['action'];
+$pending_account_id = (int)$state_row['account_id'];
+$login_path = $scope === 'admin' ? '/admin/login.php' : '/template/user/huli/login.php';
+$profile_path = $scope === 'admin' ? '/admin/profile.php' : '/template/user/huli/main.php';
+$GLOBALS['gh_scope'] = $scope;
 $GLOBALS['gh_bind_mode'] = ($action === 'bind');
+
 if ($action === 'bind') {
-    $signed_in = $scope === 'admin' ? !empty($_SESSION['admin_id']) : !empty($_SESSION['user_id']);
-    if (!$signed_in) {
+    // The callback may arrive in a brand-new session (GitHub round trip), so the
+    // account being bound is the one recorded with the state row.
+    if (!empty($_SESSION['admin_id']) || !empty($_SESSION['user_id'])) {
+        $current_id = (int)($scope === 'admin' ? ($_SESSION['admin_id'] ?? 0) : ($_SESSION['user_id'] ?? 0));
+        if ($current_id > 0) {
+            $pending_account_id = $current_id;
+        }
+    }
+    if ($pending_account_id <= 0) {
         $fail('请先登录再进行 GitHub 绑定。');
     }
     // Binding escalates an account to GitHub sign-in, so it needs the same
@@ -83,7 +101,7 @@ try {
     $table = $scope === 'admin' ? 'huli_admins' : 'huli_users';
 
     if ($action === 'bind') {
-        $account_id = (int)($scope === 'admin' ? $_SESSION['admin_id'] : $_SESSION['user_id']);
+        $account_id = $pending_account_id > 0 ? $pending_account_id : (int)($scope === 'admin' ? $_SESSION['admin_id'] : $_SESSION['user_id']);
         $dup = $pdo->prepare("SELECT id FROM $table WHERE gh_id = ? AND id <> ? LIMIT 1");
         $dup->execute([$gh_id, $account_id]);
         if ($dup->fetch()) {

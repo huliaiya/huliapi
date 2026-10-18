@@ -539,6 +539,30 @@ CREATE TABLE `huli_mcp_logs` (
   KEY `idx_tool` (`tool_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MCP 请求日志';
 
+DROP TABLE IF EXISTS `huli_verification_codes`;
+CREATE TABLE `huli_verification_codes` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `code_type` varchar(32) NOT NULL DEFAULT '' COMMENT 'register/reset/admin_reset/friend_link/feedback',
+  `email` varchar(255) NOT NULL DEFAULT '',
+  `code_hash` char(64) NOT NULL DEFAULT '',
+  `expires_at` int(10) unsigned NOT NULL DEFAULT 0,
+  `created_at` int(10) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_email_type` (`email`,`code_type`),
+  KEY `idx_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='邮箱验证码（重要数据落库）';
+
+DROP TABLE IF EXISTS `huli_oauth_states`;
+CREATE TABLE `huli_oauth_states` (
+  `state` char(64) NOT NULL COMMENT 'OAuth state',
+  `scope` varchar(16) NOT NULL DEFAULT 'user' COMMENT 'user/admin',
+  `action` varchar(16) NOT NULL DEFAULT 'login' COMMENT 'login/bind',
+  `account_id` int(11) NOT NULL DEFAULT 0 COMMENT '绑定目标账号 ID',
+  `created_at` int(10) unsigned NOT NULL COMMENT '创建时间戳',
+  PRIMARY KEY (`state`),
+  KEY `idx_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='第三方登录 state（重要数据落库）';
+
 DROP TABLE IF EXISTS `huli_update_jobs`;
 CREATE TABLE `huli_update_jobs` (
   `token` varchar(40) NOT NULL COMMENT '任务令牌',

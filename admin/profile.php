@@ -155,7 +155,7 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
             <?php if (!empty($_SESSION['gh_connect_notice'])): ?>
               <div class="alert alert-success py-2 small"><?php echo htmlspecialchars($_SESSION['gh_connect_notice']); unset($_SESSION['gh_connect_notice']); ?></div>
             <?php endif; ?>
-            <form method="POST" action="<?php echo htmlspecialchars(gh_connect_auth_url('admin', 'bind')); ?>" class="gh-bind-form">
+            <form method="POST" action="<?php echo htmlspecialchars(gh_connect_auth_url('admin', 'bind', (int)$_SESSION['admin_id'])); ?>" class="gh-bind-form">
               <?php echo huli_turnstile_widget_html(); ?>
               <button type="submit" class="btn btn-outline-dark btn-sm">绑定 GitHub</button>
             </form>
