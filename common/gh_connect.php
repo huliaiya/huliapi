@@ -63,11 +63,11 @@ function gh_connect_base_url(): string {
     return 'https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
 }
 
-function gh_connect_redirect_uri(string $scope): string {
-    $path = $scope === 'admin'
-        ? '/admin/gh_callback.php'
-        : '/template/user/huli/gh_callback.php';
-    return gh_connect_base_url() . $path;
+// Single callback entry shared by user and admin.
+// GitHub OAuth Apps allow only one callback URL, so both scopes must use
+// the same path; the originating scope is carried in the session instead.
+function gh_connect_redirect_uri(string $scope = ''): string {
+    return gh_connect_base_url() . '/admin/gh_callback.php';
 }
 
 function gh_connect_random_state(): string {
@@ -96,8 +96,15 @@ function gh_connect_take_action(): string {
     return $action === 'bind' ? 'bind' : 'login';
 }
 
+function gh_connect_take_scope(): string {
+    $scope = $_SESSION['gh_connect_scope'] ?? 'user';
+    unset($_SESSION['gh_connect_scope']);
+    return $scope === 'admin' ? 'admin' : 'user';
+}
+
 function gh_connect_auth_url(string $scope, string $action = 'login'): string {
     $state = gh_connect_random_state();
+    $_SESSION['gh_connect_scope'] = $scope === 'admin' ? 'admin' : 'user';
     if ($action === 'bind') {
         $_SESSION['gh_connect_action'] = 'bind';
     } else {
@@ -105,7 +112,7 @@ function gh_connect_auth_url(string $scope, string $action = 'login'): string {
     }
     return 'https://github.com/login/oauth/authorize'
         . '?client_id=' . rawurlencode(gh_connect_setting('ghconnect_client_id'))
-        . '&redirect_uri=' . rawurlencode(gh_connect_redirect_uri($scope))
+        . '&redirect_uri=' . rawurlencode(gh_connect_redirect_uri())
         . '&state=' . rawurlencode($state)
         . '&scope=' . rawurlencode('read:user user:email')
         . '&allow_signup=true';
@@ -141,12 +148,12 @@ function gh_connect_http_request(string $method, string $url, array $headers = [
     return ['ok' => $code >= 200 && $code < 300, 'error' => '', 'body' => (string)$resp, 'code' => $code];
 }
 
-function gh_connect_access_token(string $code, string $scope): array {
+function gh_connect_access_token(string $code, string $scope = ''): array {
     $r = gh_connect_http_request('POST', 'https://github.com/login/oauth/access_token', [], [
         'client_id' => gh_connect_setting('ghconnect_client_id'),
         'client_secret' => gh_connect_setting('ghconnect_client_secret'),
         'code' => $code,
-        'redirect_uri' => gh_connect_redirect_uri($scope),
+        'redirect_uri' => gh_connect_redirect_uri(),
     ]);
     if (!$r['ok']) {
         return ['ok' => false, 'error' => '换取 access_token 失败：' . ($r['error'] !== '' ? $r['error'] : ('HTTP ' . $r['code']))];

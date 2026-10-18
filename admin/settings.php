@@ -738,8 +738,8 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   </div>
                   <div class="alert alert-secondary mb-3 small">
                     在 GitHub → Settings → Developer settings → OAuth Apps 新建应用，Authorization callback URL 填：<br>
-                    用户端：<code><?php echo htmlspecialchars(huli_current_origin('/template/user/huli/gh_callback.php')); ?></code><br>
-                    管理端：<code><?php echo htmlspecialchars(huli_current_origin('/admin/gh_callback.php')); ?></code>
+                    <code><?php echo htmlspecialchars(huli_current_origin('/admin/gh_callback.php')); ?></code><br>
+                    前台与后台共用这一个回调地址，无需创建两个应用。
                   </div>
                   <button type="submit" class="btn btn-primary">保存 GitHub 设置</button>
                 </form>
