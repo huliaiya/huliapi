@@ -16,7 +16,7 @@ require_once $root . '/config.php';
 
 $scope = gh_connect_take_scope();
 $login_path = $scope === 'admin' ? '/admin/login.php' : '/template/user/huli/login.php';
-$profile_path = $scope === 'admin' ? '/admin/profile.php' : '/user/index.php';
+$profile_path = $scope === 'admin' ? '/admin/profile.php' : '/template/user/huli/main.php';
 
 $GLOBALS['gh_scope'] = $scope;
 $GLOBALS['gh_bind_mode'] = false;
@@ -102,6 +102,7 @@ try {
         session_regenerate_id(true);
         $_SESSION['admin_id'] = $row['id'];
         $_SESSION['admin_username'] = defined('ADMIN_NICKNAME') ? ADMIN_NICKNAME : ($row['nickname'] ?: $row['username']);
+        gh_connect_flash('admin', 'github');
         $pdo->prepare("UPDATE huli_admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?")->execute([$row['id']]);
         try { huli_record_login($pdo, 'admin', (int)$row['id'], $_SESSION['admin_username'], 'success', ['email' => $row['email'], 'notify' => true, 'method' => 'github']); } catch (Throwable $e) {}
         header('Location: /admin/index.php');
@@ -115,6 +116,7 @@ try {
     $_SESSION['user_id'] = $row['id'];
     $_SESSION['user_username'] = $row['username'];
     $_SESSION['user_email'] = $row['email'];
+    gh_connect_flash('user', 'github');
     try { huli_record_login($pdo, 'user', (int)$row['id'], $row['username'], 'success', ['email' => $row['email'], 'notify' => true, 'method' => 'github']); } catch (Throwable $e) {}
     header('Location: /index.php');
     exit;

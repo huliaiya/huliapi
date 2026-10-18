@@ -405,6 +405,7 @@ function huli_push_dispatch($pdo, $event, $title, $content, $recipient = '', $fi
 }
 
 function huli_push_dispatch_user($pdo, $user_id, $event, $title, $content, $recipient = '', $fields = null) {
+    huli_ensure_user_push_defaults($pdo, $user_id);
     $set = huli_load_user_push_settings($pdo, $user_id);
     if (empty($set)) { return ['dispatched' => 0, 'results' => []]; }
     $sys_mail = huli_load_system_mail_config($pdo);

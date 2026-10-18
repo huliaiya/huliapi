@@ -74,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['user_username'] = $user['username'];
                     $_SESSION['user_email'] = $user['email'];
+                    if (function_exists('gh_connect_flash')) { gh_connect_flash('user', 'password'); }
                     try { huli_record_login($pdo, 'user', (int)$user['id'], $user['username'], 'success', ['email' => $user['email'], 'notify' => true]); } catch (Throwable $e) {}
                     try {
                         $ip_api = $pdo->prepare("SELECT id FROM huli_apis WHERE endpoint = 'ip' LIMIT 1");
