@@ -251,21 +251,24 @@ body {
 $(document).ready(function() {
     var turnstileSubmitting = false;
     $('.gh-login-link').on('click', function(e) {
+        e.preventDefault();
+        var href = this.href;
+        var $btn = $(this);
+        var label = $btn.text();
         if (typeof window.huliTurnstileEnsureToken !== 'function' || !$('.huli-turnstile').length) {
+            window.location.href = href;
             return;
         }
-        var href = this.href;
-        e.preventDefault();
-        var $btn = $(this).prop('disabled', true).text('正在验证...');
+        $btn.prop('disabled', true).text('正在验证...');
         window.huliTurnstileEnsureToken(function() {
             window.location.href = href;
         }, function(message) {
-            $btn.prop('disabled', false).text('使用 GitHub 登录');
+            $btn.prop('disabled', false).text(label);
             var $alert = $('.turnstile-alert');
             if (!$alert.length) {
                 $alert = $('<div class="alert alert-danger text-center turnstile-alert"></div>').insertBefore($btn.parent());
             }
-            $alert.text(message);
+            $alert.text(message || '请先通过人机验证后再继续');
         });
     });
     $('.signin-form').on('submit', function(e) {
