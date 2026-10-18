@@ -70,24 +70,107 @@ function gh_connect_redirect_uri(string $scope = ''): string {
     return gh_connect_base_url() . '/admin/gh_callback.php';
 }
 
-function gh_connect_random_state(): string {
+function gh_connect_pdo(): ?PDO {
+    static $pdo = null;
+    if ($pdo instanceof PDO) {
+        return $pdo;
+    }
+    try {
+        if (!defined('DB_HOST')) {
+            $config = dirname(__DIR__) . '/config.php';
+            if (file_exists($config)) {
+                require_once $config;
+            }
+        }
+        if (!defined('DB_HOST')) {
+            return null;
+        }
+        $pdo = new PDO(
+            'mysql:host=' . DB_HOST . ';port=' . (defined('DB_PORT') ? DB_PORT : 3306)
+            . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET,
+            DB_USER,
+            DB_PASS,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_oauth_states` (
+            `state` char(64) NOT NULL,
+            `scope` varchar(16) NOT NULL DEFAULT 'user',
+            `action` varchar(16) NOT NULL DEFAULT 'login',
+            `account_id` int(11) NOT NULL DEFAULT 0,
+            `created_at` int(10) unsigned NOT NULL,
+            PRIMARY KEY (`state`),
+            KEY `idx_created` (`created_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        return $pdo;
+    } catch (Throwable $e) {
+        error_log('[gh_connect] 数据库不可用: ' . $e->getMessage());
+        return null;
+    }
+}
+
+// OAuth state is authoritative in the database: the GitHub round trip leaves
+// the site and may land in a different browser session, so session-only storage
+// silently loses the pending login/bind request.
+function gh_connect_random_state(string $scope, string $action, int $account_id = 0): string {
     $state = bin2hex(random_bytes(16));
+    $pdo = gh_connect_pdo();
+    if ($pdo) {
+        try {
+            $pdo->prepare("DELETE FROM huli_oauth_states WHERE created_at < ?")->execute([time() - 900]);
+            $pdo->prepare("INSERT INTO huli_oauth_states (state, scope, action, account_id, created_at) VALUES (?, ?, ?, ?, ?)")
+                ->execute([$state, $scope === 'admin' ? 'admin' : 'user', $action === 'bind' ? 'bind' : 'login', $account_id, time()]);
+        } catch (Throwable $e) {
+            error_log('[gh_connect] 写入 state 失败: ' . $e->getMessage());
+        }
+    }
     $_SESSION['gh_connect_state'] = $state;
     $_SESSION['gh_connect_state_at'] = time();
     return $state;
 }
 
-function gh_connect_check_state(string $state): bool {
+function gh_connect_consume_state(string $state): ?array {
+    $state = trim($state);
+    if ($state === '') {
+        return null;
+    }
+    $row = null;
+    $pdo = gh_connect_pdo();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("SELECT scope, action, account_id, created_at FROM huli_oauth_states WHERE state = ? LIMIT 1");
+            $stmt->execute([$state]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            $pdo->prepare("DELETE FROM huli_oauth_states WHERE state = ?")->execute([$state]);
+        } catch (Throwable $e) {
+            $row = null;
+        }
+    }
+    if (is_array($row)) {
+        if (time() - (int)$row['created_at'] > 600) {
+            return null;
+        }
+        unset($_SESSION['gh_connect_state'], $_SESSION['gh_connect_state_at']);
+        return [
+            'scope' => $row['scope'] === 'admin' ? 'admin' : 'user',
+            'action' => $row['action'] === 'bind' ? 'bind' : 'login',
+            'account_id' => (int)$row['account_id'],
+        ];
+    }
     $saved = $_SESSION['gh_connect_state'] ?? '';
     $at = (int)($_SESSION['gh_connect_state_at'] ?? 0);
     unset($_SESSION['gh_connect_state'], $_SESSION['gh_connect_state_at']);
-    if ($saved === '' || $state === '' || !hash_equals($saved, $state)) {
-        return false;
+    if ($saved === '' || !hash_equals($saved, $state) || ($at > 0 && time() - $at > 600)) {
+        return null;
     }
-    if ($at > 0 && time() - $at > 600) {
-        return false;
-    }
-    return true;
+    return [
+        'scope' => (($_SESSION['gh_connect_scope'] ?? 'user') === 'admin') ? 'admin' : 'user',
+        'action' => (($_SESSION['gh_connect_action'] ?? 'login') === 'bind') ? 'bind' : 'login',
+        'account_id' => 0,
+    ];
+}
+
+function gh_connect_check_state(string $state): bool {
+    return gh_connect_consume_state($state) !== null;
 }
 
 function gh_connect_take_action(): string {
@@ -102,8 +185,8 @@ function gh_connect_take_scope(): string {
     return $scope === 'admin' ? 'admin' : 'user';
 }
 
-function gh_connect_auth_url(string $scope, string $action = 'login'): string {
-    $state = gh_connect_random_state();
+function gh_connect_auth_url(string $scope, string $action = 'login', int $account_id = 0): string {
+    $state = gh_connect_random_state($scope, $action, $account_id);
     $_SESSION['gh_connect_scope'] = $scope === 'admin' ? 'admin' : 'user';
     if ($action === 'bind') {
         $_SESSION['gh_connect_action'] = 'bind';

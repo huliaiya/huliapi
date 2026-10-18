@@ -22,6 +22,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/turnstile.php';
+require_once ROOT_PATH . 'common/verification_code.php';
 require_once ROOT_PATH . 'common/gallery.php';
 $error_msg = '';
 $success_msg = '';
@@ -62,7 +63,8 @@ try {
             throw new Exception('两次输入的密码不一致');
         }
         if ($mail_reg_enabled) {
-            if (empty($code) || !isset($_SESSION['reg_code']) || !isset($_SESSION['reg_code_expire']) || time() > $_SESSION['reg_code_expire'] || !hash_equals(strtolower($_SESSION['reg_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['reg_email']), strtolower($email))) {
+            $db_code_ok = function_exists('huli_verification_code_check') ? huli_verification_code_check('register', $email, $code) : false;
+            if (!$db_code_ok && (empty($code) || !isset($_SESSION['reg_code']) || !isset($_SESSION['reg_code_expire']) || time() > $_SESSION['reg_code_expire'] || !hash_equals(strtolower($_SESSION['reg_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['reg_email']), strtolower($email)))) {
                 throw new Exception('邮箱验证码不正确或已过期');
             }
         }

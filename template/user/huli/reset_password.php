@@ -22,6 +22,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/turnstile.php';
+require_once ROOT_PATH . 'common/verification_code.php';
 $email_from_get = isset($_GET['email']) ? trim($_GET['email']) : '';
 $error_msg = '';
 $success_msg = '';
@@ -45,7 +46,8 @@ try {
         if ($password !== $confirm_password) {
             throw new Exception('两次输入的密码不一致');
         }
-        if (!isset($_SESSION['reset_code']) || !isset($_SESSION['reset_code_expire']) || time() > $_SESSION['reset_code_expire'] || !hash_equals(strtolower($_SESSION['reset_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['reset_email']), strtolower($email))) {
+        $db_code_ok = function_exists('huli_verification_code_check') ? huli_verification_code_check('reset', $email, $code) : false;
+        if (!$db_code_ok && (!isset($_SESSION['reset_code']) || !isset($_SESSION['reset_code_expire']) || time() > $_SESSION['reset_code_expire'] || !hash_equals(strtolower($_SESSION['reset_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['reset_email']), strtolower($email)))) {
             throw new Exception('邮箱验证码不正确或已过期');
         }
         $stmt = $pdo->prepare("SELECT id FROM huli_users WHERE email = ?");

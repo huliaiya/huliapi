@@ -407,7 +407,7 @@ try {
                                             <div class="border-top pt-3 mb-3">
                                                 <label class="form-label d-block">GitHub 账号绑定</label>
                                                 <p class="text-muted small mb-2">绑定后可直接使用 GitHub 快捷登录，无需输入账号密码。</p>
-                                                <form method="POST" action="<?php echo htmlspecialchars(gh_connect_auth_url('user', 'bind')); ?>" class="gh-bind-form">
+                                                <form method="POST" action="<?php echo htmlspecialchars(gh_connect_auth_url('user', 'bind', (int)$_SESSION['user_id'])); ?>" class="gh-bind-form">
                                                     <?php echo huli_turnstile_widget_html(); ?>
                                                     <button type="submit" class="btn btn-outline-dark btn-sm">绑定 GitHub</button>
                                                 </form>
