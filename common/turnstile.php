@@ -487,6 +487,12 @@ if(!document.querySelector(".huli-turnstile")){onReady("");return;}
 var token=window.huliGetTurnstileResponse();
 if(token){onReady(token);return;}
 if(T.fatal){onFail(T.lastError||"人机验证组件加载失败，请刷新页面重试");return;}
+if(T.sdkFailed){onFail("人机验证组件加载失败，请检查网络后刷新页面重试");return;}
+var renderedWidget=false;
+for(var wid in T.widgets){
+if(Object.prototype.hasOwnProperty.call(T.widgets,wid)){renderedWidget=true;break;}
+}
+var waitLimit=renderedWidget?READY_TIMEOUT:READY_TIMEOUT>6000?6000:READY_TIMEOUT;
 if(sdkReady()){
 for(var id in T.widgets){
 if(!Object.prototype.hasOwnProperty.call(T.widgets,id)){continue;}
@@ -501,9 +507,10 @@ waited+=200;
 var ready=window.huliGetTurnstileResponse();
 if(ready){clearInterval(timer);onReady(ready);return;}
 if(T.fatal){clearInterval(timer);onFail(T.lastError||"人机验证不可用，请刷新页面重试");return;}
-if(waited>=READY_TIMEOUT){
+if(T.sdkFailed){clearInterval(timer);onFail("人机验证组件加载失败，请检查网络后刷新页面重试");return;}
+if(waited>=waitLimit){
 clearInterval(timer);
-onFail(T.lastError||"人机验证尚未完成，请点击验证组件完成验证后再提交");
+onFail(T.lastError||"人机验证尚未完成，请先通过人机验证后再继续");
 }
 },200);
 };
