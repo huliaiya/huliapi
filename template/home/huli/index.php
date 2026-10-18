@@ -270,6 +270,127 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+:root{
+    --huli-accent:#2f7fd0;
+    --huli-accent-soft:rgba(47,127,208,.12);
+    --huli-ink:#2c3e50;
+    --huli-ink-soft:#5b6b7c;
+    --huli-glass:rgba(255,255,255,.55);
+    --huli-glass-border:rgba(255,255,255,.45);
+    --huli-radius:14px;
+}
+
+/* 侧边栏：滚动与分区 */
+.lyear-layout-sidebar{display:flex;flex-direction:column;}
+.lyear-layout-sidebar > .sidebar-header{flex:0 0 auto;}
+.lyear-layout-sidebar > .lyear-layout-sidebar-info{
+    flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+    background:transparent;
+}
+.lyear-layout-sidebar-info > .user-info-panel{flex:0 0 auto;}
+.lyear-layout-sidebar-info > .recent-announcements{flex:0 0 auto;max-height:34vh;overflow:auto;}
+.lyear-layout-sidebar-info > .recent-announcements::-webkit-scrollbar{width:4px;}
+.lyear-layout-sidebar-info > .recent-announcements::-webkit-scrollbar-thumb{background:rgba(120,145,175,.35);border-radius:4px;}
+.lyear-layout-sidebar-info > .sidebar-main{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;}
+.lyear-layout-sidebar-info > .sidebar-main::-webkit-scrollbar{width:4px;}
+.lyear-layout-sidebar-info > .sidebar-main::-webkit-scrollbar-thumb{background:rgba(120,145,175,.35);border-radius:4px;}
+.lyear-layout-sidebar > .sidebar-footer{flex:0 0 auto;}
+
+/* 用户信息区 */
+.user-info-panel{
+    padding:18px 16px !important;
+    background:linear-gradient(160deg,rgba(41,128,185,.10),rgba(52,152,219,.02)) !important;
+}
+.user-info-panel .username{font-size:16px;letter-spacing:.2px;}
+.user-info-panel .email{word-break:break-all;line-height:1.5;}
+.user-info-panel .btn{font-size:13px;padding:7px 10px;border-radius:10px;transition:all .2s;}
+.user-info-panel .btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(47,127,208,.18);}
+
+/* 公告区 */
+.recent-announcements h6{font-size:13px;letter-spacing:.3px;color:var(--huli-ink);}
+.recent-announcements .announcement-link{
+    padding:9px 11px;border-radius:10px;border:1px solid transparent;transition:all .2s;
+}
+.recent-announcements .announcement-link:hover{
+    background:rgba(255,255,255,.6);border-color:var(--huli-glass-border);
+}
+.recent-announcements .announcement-link span:first-child{font-size:13px;line-height:1.45;}
+.recent-announcements .announcement-link span:last-child{font-size:11px;opacity:.75;}
+
+/* 导航 */
+.nav-drawer{padding:8px 8px 4px;}
+.nav-drawer li a{
+    padding:9px 12px 9px 42px !important;
+    margin-bottom:2px;
+    border-radius:10px;
+    font-size:14px;
+    border-right:0 !important;
+}
+.nav-drawer>li>a>i{left:14px;top:50%;transform:translateY(-50%);font-size:18px;}
+.nav-drawer li.active a{
+    background:linear-gradient(90deg,rgba(47,127,208,.16),rgba(47,127,208,.05)) !important;
+    color:var(--huli-accent) !important;
+    font-weight:600;
+    box-shadow:inset 3px 0 0 var(--huli-accent);
+}
+.nav-drawer li a:hover{background:rgba(255,255,255,.55) !important;}
+.nav-drawer li.active a:hover{background:linear-gradient(90deg,rgba(47,127,208,.2),rgba(47,127,208,.07)) !important;}
+
+/* 侧边栏底部 */
+.sidebar-footer{padding:14px 16px !important;height:auto !important;margin-top:0 !important;font-size:12px !important;line-height:1.7 !important;color:var(--huli-ink-soft);}
+.sidebar-footer p{margin-bottom:4px;}
+.sidebar-footer .filing-item{display:flex;align-items:center;gap:4px;}
+.sidebar-footer .police-badge{width:14px;height:14px;}
+
+/* 顶栏 */
+.lyear-layout-header .navbar{padding:0 14px;}
+.lyear-aside-toggler{
+    border-radius:10px;padding:6px 10px;transition:background .2s;
+}
+.lyear-aside-toggler:hover{background:rgba(255,255,255,.65);}
+.lyear-toggler-bar{border-radius:2px;background-color:var(--huli-ink-soft);}
+.navbar-right > li > a{
+    padding:6px 10px;border-radius:12px;transition:background .2s;
+}
+.navbar-right > li > a:hover{background:rgba(255,255,255,.6);}
+.navbar-right .avatar-md{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 2px 8px rgba(44,62,80,.15);}
+.navbar-right .dropdown-toggle > span{font-weight:600;color:var(--huli-ink);}
+.navbar-right .dropdown-menu{
+    border:1px solid rgba(226,234,244,.9);border-radius:14px;padding:6px;
+    box-shadow:0 12px 32px rgba(44,62,80,.14);
+}
+.navbar-right .dropdown-item{border-radius:9px;padding:9px 12px;font-size:14px;}
+.navbar-right .dropdown-item:hover{background:var(--huli-accent-soft);color:var(--huli-accent);}
+
+/* 收起态悬停展开时的内容对齐 */
+@media (min-width:1025px){
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:hover .nav-drawer li a{
+        padding:9px 12px 9px 42px !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:hover .nav-drawer>li>a>i{left:14px;}
+}
+
+/* 遮罩层淡入 */
+.lyear-mask-modal{backdrop-filter:blur(2px);animation:huliMaskIn .25s ease;z-index:6;}
+@keyframes huliMaskIn{from{opacity:0}to{opacity:1;}}
+
+/* 无障碍 */
+.lyear-aside-toggler:focus-visible,
+.nav-drawer li a:focus-visible,
+.navbar-right > li > a:focus-visible{outline:2px solid var(--huli-accent);outline-offset:2px;}
+
+/* 小屏 */
+@media (max-width:1024px){
+    .lyear-layout-sidebar{box-shadow:0 12px 40px rgba(24,39,75,.18) !important;}
+    .lyear-layout-sidebar-info > .recent-announcements{max-height:none;overflow:visible;}
+    .lyear-layout-sidebar-info{overflow-y:auto;}
+    .sidebar-footer{padding-bottom:20px !important;}
+}
+@media (max-width:480px){
+    .navbar-right .dropdown-toggle > span{max-width:84px;}
+    .user-info-panel{padding:14px 12px !important;}
+}
+
 @media (max-width: 768px) {
     .navbar-right .dropdown-toggle > span {
         max-width: 72px;
@@ -280,9 +401,9 @@ body {
 <body class="lyear-index">
 <div class="lyear-layout-web">
   <div class="lyear-layout-container">
-    <aside class="lyear-layout-sidebar">
+    <aside class="lyear-layout-sidebar" id="huli-sidebar">
       <div id="logo" class="sidebar-header">
-        <a href="./"><img src="../../../assets/images/logo-sidebar.png" title="huliapi" alt="huliapi" /></a>
+        <a href="<?= $homeTemplateBaseUrl ?>index.php" aria-label="<?php echo htmlspecialchars($site_name, ENT_QUOTES, 'UTF-8'); ?> 首页"><img src="../../../assets/images/logo-sidebar.png" alt="<?php echo htmlspecialchars($site_name, ENT_QUOTES, 'UTF-8'); ?>" /></a>
       </div>
       <div class="lyear-layout-sidebar-info lyear-scroll">
         <div class="user-info-panel text-center p-4 border-bottom">
@@ -315,7 +436,7 @@ body {
             <?php endif; ?>
         </div>
         <div class="recent-announcements p-3 border-bottom">
-            <h6 class="fw-bold mb-3"><i class="mdi mdi-bullhorn-outline me-2"></i>最新公告</h6>
+            <h6 class="fw-bold mb-3"><i class="mdi mdi-bullhorn-outline me-2" aria-hidden="true"></i>最新公告</h6>
             <?php if (!empty($recent_announcements)): ?>
                 <ul class="list-unstyled mb-0">
                     <?php foreach ($recent_announcements as $item):
@@ -331,7 +452,7 @@ body {
                                data-content="<?php echo htmlspecialchars($item['content'], ENT_QUOTES, 'UTF-8'); ?>"
                                data-created="<?php echo htmlspecialchars($item['created_at']); ?>">
                                 <span class="d-block fw-normal text-dark">
-                                    <i class="mdi mdi-circle-small text-primary"></i>
+                                    <i class="mdi mdi-circle-small text-primary" aria-hidden="true"></i>
                                     <?php echo htmlspecialchars($item['title'], ENT_QUOTES, 'UTF-8'); ?>
                                 </span>
                                 <span class="d-block small text-muted mt-1">发布时间:<?php echo $formatted_time; ?></span>
@@ -347,55 +468,55 @@ body {
           <ul class="nav-drawer">
             <li class="nav-item active">
               <a class="multitabs" href="<?= $homeTemplateBaseUrl ?>main1.php" id="default-page">
-                <i class="mdi mdi-home"></i>
+                <i class="mdi mdi-home" aria-hidden="true"></i>
                 <span>首页</span>
               </a>
             </li>
             <li class="nav-item">
-                <a href="/user/" target="_blank"><i class="mdi mdi-account-circle"></i>
+                <a href="/user/" target="_blank"><i class="mdi mdi-account-circle" aria-hidden="true"></i>
                 <span>用户中心</span></a>
             </li>
             <li class="nav-item">
               <a class="multitabs" href="<?= $homeTemplateBaseUrl ?>friend_links.php">
-                <i class="mdi mdi-link"></i>
+                <i class="mdi mdi-link" aria-hidden="true"></i>
                 <span>友链列表</span>
               </a>
             </li>
                         <li class="nav-item">
               <a class="multitabs" href="<?= $userTemplateBaseUrl ?>feedback.php">
-                <i class="mdi mdi-comment-question-outline"></i>
+                <i class="mdi mdi-comment-question-outline" aria-hidden="true"></i>
                 <span>问题反馈</span>
               </a>
             </li>
                         <li class="nav-item">
               <a class="multitabs" href="<?= $userTemplateBaseUrl ?>payok.php">
-                <i class="mdi mdi-credit-card-outline"></i>
+                <i class="mdi mdi-credit-card-outline" aria-hidden="true"></i>
                 <span>在线充值</span>
               </a>
             </li>
 <li class="nav-item">
   <a class="multitabs" href="<?= $homeTemplateBaseUrl ?>tongji.php">
-    <i class="mdi mdi-chart-bar"></i>
+    <i class="mdi mdi-chart-bar" aria-hidden="true"></i>
     <span>API统计</span>
   </a>
 </li>
 <?php if ($allow_temp_key && !$is_logged_in): ?>
     <li class="nav-item">
         <a class="multitabs" href="<?= $userTemplateBaseUrl ?>temp_key.php">
-            <i class="mdi mdi-key-variant"></i>
+            <i class="mdi mdi-key-variant" aria-hidden="true"></i>
             <span>申请临时密钥</span>
         </a>
     </li>
 <?php endif; ?>
 <li class="nav-item">
   <a class="multitabs" href="zanzhu.html">
-    <i class="mdi mdi-information-outline"></i>
+    <i class="mdi mdi-information-outline" aria-hidden="true"></i>
     <span>赞助我们</span>
   </a>
 </li>
 <li class="nav-item">
   <a class="multitabs" href="https://qm.qq.com/q/leUf8yiBQA" target="_blank" rel="noopener">
-    <i class="mdi mdi-chart-bar"></i>
+    <i class="mdi mdi-qqchat" aria-hidden="true"></i>
     <span>加入官方群</span>
   </a>
 </li>
@@ -427,20 +548,20 @@ body {
     <header class="lyear-layout-header">
       <nav class="navbar">
         <div class="navbar-left">
-          <div class="lyear-aside-toggler">
+          <button type="button" class="lyear-aside-toggler" aria-label="切换侧边栏" aria-expanded="true" aria-controls="huli-sidebar">
             <span class="lyear-toggler-bar"></span>
             <span class="lyear-toggler-bar"></span>
             <span class="lyear-toggler-bar"></span>
-          </div>
+          </button>
         </div>
         <ul class="navbar-right d-flex align-items-center">
           <li class="dropdown">
             <a href="javascript:void(0)" data-bs-toggle="dropdown" class="dropdown-toggle d-flex align-items-center">
               <?php if ($is_logged_in): ?>
-                <img class="avatar-md rounded-circle me-2" src="<?php echo htmlspecialchars(huli_avatar_url($_SESSION['user_qq'] ?? '')); ?>" alt="" style="width:40px;height:40px;object-fit:cover;">
+                <img class="avatar-md rounded-circle me-2" src="<?php echo htmlspecialchars(huli_avatar_url($_SESSION['user_qq'] ?? '')); ?>" alt="头像" width="40" height="40" style="width:40px;height:40px;object-fit:cover;">
                 <span style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:middle;"><?php echo htmlspecialchars($user_info['username'], ENT_QUOTES, 'UTF-8'); ?></span>
               <?php else: ?>
-                <img class="avatar-md rounded-circle me-2" src="<?php echo htmlspecialchars(huli_avatar_url('')); ?>" alt="" style="width:40px;height:40px;object-fit:cover;">
+                <img class="avatar-md rounded-circle me-2" src="<?php echo htmlspecialchars(huli_avatar_url('')); ?>" alt="头像" width="40" height="40" style="width:40px;height:40px;object-fit:cover;">
                 <span>未登录</span>
               <?php endif; ?>
             </a>
@@ -622,6 +743,70 @@ $(document).ready(function() {
 
 
 <script>
+
+(function () {
+    var body = document.body;
+    var toggler = document.querySelector('.lyear-aside-toggler');
+    var KEY = 'huli_sidebar_collapsed';
+    var mq = window.matchMedia('(min-width: 1025px)');
+
+    function syncAria() {
+        if (!toggler) return;
+        toggler.setAttribute('aria-expanded', body.classList.contains('lyear-layout-sidebar-close') ? 'false' : 'true');
+    }
+
+    try {
+        if (mq.matches && localStorage.getItem(KEY) === '1') {
+            body.classList.add('lyear-layout-sidebar-close');
+        }
+    } catch (e) {}
+
+    function persist() {
+        try { localStorage.setItem(KEY, body.classList.contains('lyear-layout-sidebar-close') ? '1' : '0'); } catch (e) {}
+        syncAria();
+    }
+
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('.lyear-aside-toggler') || e.target.closest('.lyear-mask-modal')) {
+            setTimeout(persist, 0);
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && body.classList.contains('lyear-layout-sidebar-close') === false && window.innerWidth <= 1024) {
+            var sidebar = document.querySelector('.lyear-layout-sidebar');
+            var mask = document.querySelector('.lyear-mask-modal');
+            if (sidebar && sidebar.classList.contains('lyear-aside-open')) {
+                sidebar.classList.remove('lyear-aside-open');
+                body.classList.add('lyear-layout-sidebar-close');
+                if (mask) mask.remove();
+                syncAria();
+            }
+        }
+    });
+
+    var lastWide = mq.matches;
+    mq.addEventListener('change', function (ev) {
+        if (ev.matches !== lastWide) {
+            lastWide = ev.matches;
+            var mask = document.querySelector('.lyear-mask-modal');
+            if (mask) mask.remove();
+            var sidebar = document.querySelector('.lyear-layout-sidebar');
+            if (sidebar) sidebar.classList.remove('lyear-aside-open');
+            if (ev.matches) {
+                try {
+                    if (localStorage.getItem(KEY) === '1') body.classList.add('lyear-layout-sidebar-close');
+                    else body.classList.remove('lyear-layout-sidebar-close');
+                } catch (e) {}
+            } else {
+                body.classList.remove('lyear-layout-sidebar-close');
+            }
+            syncAria();
+        }
+    });
+
+    syncAria();
+})();
 
 (function () {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
