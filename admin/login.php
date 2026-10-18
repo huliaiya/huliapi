@@ -15,7 +15,6 @@ require_once __DIR__ . '/../common/turnstile.php';
 require_once __DIR__ . '/../common/login_helper.php';
 require_once __DIR__ . '/../common/gallery.php';
 require_once __DIR__ . '/../common/admin_remember.php';
-require_once __DIR__ . '/../common/qq_connect.php';
 require_once __DIR__ . '/../common/gh_connect.php';
     $settings = ['site_name' => 'huliapi'];
     $favicon_url = '';
@@ -23,10 +22,6 @@ try { $fp = new PDO("mysql:host=".DB_HOST . ";port=" . (defined('DB_PORT') ? DB_
 $error_msg = '';
 $turnstile_reason = '';
 $admin_qq_input = '';
-if (!empty($_SESSION['qq_connect_error'])) {
-    $error_msg = (string)$_SESSION['qq_connect_error'];
-    unset($_SESSION['qq_connect_error']);
-}
 if (!empty($_SESSION['gh_connect_error'])) {
     $error_msg = (string)$_SESSION['gh_connect_error'];
     unset($_SESSION['gh_connect_error']);
@@ -185,14 +180,9 @@ body {
   <?php if (!empty($error_msg)): ?>
       <div class="alert alert-danger error-message mb-3"><?php echo htmlspecialchars($error_msg); ?></div>
   <?php endif; ?>
-  <?php if (qq_connect_enabled() || gh_connect_enabled()): ?>
+  <?php if (gh_connect_enabled()): ?>
   <div class="mb-3 d-grid gap-2">
-    <?php if (qq_connect_enabled()): ?>
-    <a href="<?php echo htmlspecialchars(qq_connect_auth_url('admin')); ?>" class="btn btn-outline-primary">使用 QQ 互联登录</a>
-    <?php endif; ?>
-    <?php if (gh_connect_enabled()): ?>
     <a href="<?php echo htmlspecialchars(gh_connect_auth_url('admin')); ?>" class="btn btn-outline-dark">使用 GitHub 登录</a>
-    <?php endif; ?>
   </div>
   <div class="text-center text-muted mb-3 small">或使用账号密码登录</div>
   <?php endif; ?>
