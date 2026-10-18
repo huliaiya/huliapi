@@ -183,7 +183,7 @@ body {
   <?php endif; ?>
   <?php if (gh_connect_enabled()): ?>
   <div class="mb-3 d-grid gap-2">
-    <a href="<?php echo htmlspecialchars(gh_connect_auth_url('admin')); ?>" class="btn btn-outline-dark">使用 GitHub 登录</a>
+    <a href="<?php echo htmlspecialchars(gh_connect_auth_url('admin')); ?>" class="btn btn-outline-dark gh-login-link">使用 GitHub 登录</a>
   </div>
   <div class="text-center text-muted mb-3 small">或使用账号密码登录</div>
   <?php endif; ?>
@@ -218,6 +218,24 @@ body {
 <script type="text/javascript">
 $(document).ready(function() {
     var turnstileSubmitting = false;
+    $('.gh-login-link').on('click', function(e) {
+        if (typeof window.huliTurnstileEnsureToken !== 'function' || !$('.huli-turnstile').length) {
+            return;
+        }
+        var href = this.href;
+        e.preventDefault();
+        var $btn = $(this).prop('disabled', true).text('正在验证...');
+        window.huliTurnstileEnsureToken(function() {
+            window.location.href = href;
+        }, function(message) {
+            $btn.prop('disabled', false).text('使用 GitHub 登录');
+            var $alert = $('.error-message');
+            if (!$alert.length) {
+                $alert = $('<div class="alert alert-danger error-message mb-3"></div>').insertBefore($btn.parent());
+            }
+            $alert.text(message);
+        });
+    });
     $('.signin-form').on('submit', function(e) {
         if (this.checkValidity() === false) {
             e.preventDefault();

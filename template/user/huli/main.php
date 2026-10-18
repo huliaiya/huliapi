@@ -16,6 +16,7 @@ require_once ROOT_PATH . 'common/avatar.php';
 require_once ROOT_PATH . 'common/TemplateManager.php';
 require_once ROOT_PATH . 'common/settings_helper.php';
 require_once ROOT_PATH . 'common/gh_connect.php';
+require_once ROOT_PATH . 'common/turnstile.php';
 $template = TemplateManager::getActiveUserTemplate();
 $template_base_url = "/template/user/{$template}/";
 $feedback_msg = '';
@@ -406,7 +407,13 @@ try {
                                             <div class="border-top pt-3 mb-3">
                                                 <label class="form-label d-block">GitHub 账号绑定</label>
                                                 <p class="text-muted small mb-2">绑定后可直接使用 GitHub 快捷登录，无需输入账号密码。</p>
-                                                <a href="<?php echo htmlspecialchars(gh_connect_auth_url('user', 'bind')); ?>" class="btn btn-outline-dark btn-sm">绑定 GitHub</a>
+                                                <form method="POST" action="<?php echo htmlspecialchars(gh_connect_auth_url('user', 'bind')); ?>" class="gh-bind-form">
+                                                    <?php echo huli_turnstile_widget_html(); ?>
+                                                    <button type="submit" class="btn btn-outline-dark btn-sm">绑定 GitHub</button>
+                                                </form>
+                                                <?php if (!empty($_SESSION['gh_bind_error'])): ?>
+                                                <div class="alert alert-danger py-2 small mt-2"><?php echo htmlspecialchars($_SESSION['gh_bind_error']); unset($_SESSION['gh_bind_error']); ?></div>
+                                                <?php endif; ?>
                                                 <?php if (!empty($_SESSION['gh_connect_notice'])): ?>
                                                 <div class="alert alert-success py-2 small mt-2"><?php echo htmlspecialchars($_SESSION['gh_connect_notice']); unset($_SESSION['gh_connect_notice']); ?></div>
                                                 <?php endif; ?>
