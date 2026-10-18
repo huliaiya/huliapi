@@ -354,6 +354,13 @@ try {
                     <div class="card-title">用户中心</div>
                 </header>
                 <div class="card-body">
+                    <?php $login_notice = gh_connect_enabled() ? gh_connect_take_flash('user') : null; ?>
+                    <?php if ($login_notice): ?>
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <i class="mdi mdi-information-outline me-1"></i><?php echo htmlspecialchars($login_notice['text']); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <?php endif; ?>
                     <?php if ($feedback_msg): ?>
                     <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> alert-dismissible fade show" role="alert">
                         <?php echo $feedback_msg; ?>

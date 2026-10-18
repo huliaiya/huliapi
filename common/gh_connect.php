@@ -207,3 +207,26 @@ function gh_connect_primary_email(string $access_token): string {
     }
     return '';
 }
+
+// One-shot banner shown right after a password or GitHub login, so the user
+// learns which credential was used to sign in.
+function gh_connect_flash(string $scope, string $method): void {
+    $_SESSION['huli_login_notice'] = ['method' => $method, 'at' => time()];
+}
+
+function gh_connect_take_flash(string $scope): ?array {
+    $notice = $_SESSION['huli_login_notice'] ?? null;
+    unset($_SESSION['huli_login_notice']);
+    if (!is_array($notice) || empty($notice['method'])) {
+        return null;
+    }
+    if (time() - (int)($notice['at'] ?? 0) > 120) {
+        return null;
+    }
+    $method = $notice['method'] === 'github' ? 'github' : 'password';
+    $who = $scope === 'admin' ? '后台' : '前台';
+    $text = $method === 'github'
+        ? '您已通过 GitHub 账号登录' . $who . '。'
+        : '您已通过账号密码登录' . $who . '。';
+    return ['method' => $method, 'text' => $text];
+}

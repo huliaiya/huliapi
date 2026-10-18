@@ -11,6 +11,7 @@ if (file_exists('../common/version.php')) {
     require_once '../common/version.php';
 }
 require_once __DIR__ . '/../common/payment/order_fulfillment.php';
+require_once __DIR__ . '/../common/gh_connect.php';
 if (!defined('SENLIN_CLIENT_VERSION')) {
     define('SENLIN_CLIENT_VERSION', '1.5.0');
 }
@@ -472,6 +473,13 @@ function formatUptime($seconds) {
     <?php if ($db_error): ?>
     <div class="alert alert-danger mt-3">
         <?php echo $db_error; ?>
+    </div>
+    <?php endif; ?>
+    <?php $login_notice = gh_connect_enabled() ? gh_connect_take_flash('admin') : null; ?>
+    <?php if ($login_notice): ?>
+    <div class="alert alert-info alert-dismissible fade show mt-3" role="alert">
+        <i class="mdi mdi-information-outline me-1"></i><?php echo htmlspecialchars($login_notice['text']); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     <?php endif; ?>
     <div class="row mt-3 stats-card-row g-3">
