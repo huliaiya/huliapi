@@ -15,7 +15,6 @@ require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/turnstile.php';
 require_once ROOT_PATH . 'common/gallery.php';
 require_once ROOT_PATH . 'common/login_helper.php';
-require_once ROOT_PATH . 'common/qq_connect.php';
 require_once ROOT_PATH . 'common/gh_connect.php';
 $favicon_url = ''; try{$fp=new PDO("mysql:host=".DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=".DB_NAME.";charset=".DB_CHARSET,DB_USER,DB_PASS);$favicon_url=$fp->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:'';}catch(Exception $e){}
 $error_msg = '';
@@ -36,10 +35,6 @@ try {
 $show_qq_mode = false;
 $show_qq_confirm = false;
 $pre_qq = '';
-if (!empty($_SESSION['qq_connect_error'])) {
-    $error_msg = (string)$_SESSION['qq_connect_error'];
-    unset($_SESSION['qq_connect_error']);
-}
 if (!empty($_SESSION['gh_connect_error'])) {
     $error_msg = (string)$_SESSION['gh_connect_error'];
     unset($_SESSION['gh_connect_error']);
@@ -222,14 +217,9 @@ body {
     <?php if (!empty($error_msg)): ?>
     <div class="alert alert-danger text-center"><?php echo htmlspecialchars($error_msg); ?></div>
   <?php endif; ?>
-  <?php if (qq_connect_enabled() || gh_connect_enabled()): ?>
+  <?php if (gh_connect_enabled()): ?>
   <div class="mb-3 d-grid gap-2">
-    <?php if (qq_connect_enabled()): ?>
-    <a href="<?php echo htmlspecialchars(qq_connect_auth_url('user')); ?>" class="btn btn-outline-primary">使用 QQ 互联登录</a>
-    <?php endif; ?>
-    <?php if (gh_connect_enabled()): ?>
     <a href="<?php echo htmlspecialchars(gh_connect_auth_url('user')); ?>" class="btn btn-outline-dark">使用 GitHub 登录</a>
-    <?php endif; ?>
   </div>
   <div class="text-center text-muted mb-3 small">或使用账号密码登录</div>
   <?php endif; ?>
