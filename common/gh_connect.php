@@ -44,20 +44,23 @@ function gh_connect_base_url(): string {
     if ($configured !== '') {
         return rtrim($configured, '/');
     }
-    $scheme = 'http';
-    if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
-        || !empty($_SERVER['HTTP_X_FORWARDED_PROTO'])
-        || !empty($_SERVER['HTTP_X_FORWARDED_SSL'])) {
-        $scheme = 'https';
-    }
+    // Prefer an explicit forwarded proto when a reverse proxy provides one.
     if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
         $fw = strtolower(trim(explode(',', (string)$_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
         if ($fw === 'https' || $fw === 'http') {
-            $scheme = $fw;
+            return $fw . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
         }
     }
-    return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    if (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_SSL']) !== 'off') {
+        return 'https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    }
+    if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)) {
+        return 'https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    }
+    // No protocol hints (e.g. behind a proxy that strips headers): assume https,
+    // which is the correct choice for any real deployment.
+    return 'https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
 }
 
 function gh_connect_redirect_uri(string $scope): string {
