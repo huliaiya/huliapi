@@ -53,9 +53,22 @@ try {
             throw new Exception('密码至少 6 位');
         }
         $db_code_ok = function_exists('huli_verification_code_check') ? huli_verification_code_check('admin_reset', $email, $code) : false;
-        if (!$db_code_ok && (!isset($_SESSION['admin_reset_code']) || !isset($_SESSION['admin_reset_code_expire']) || time() > $_SESSION['admin_reset_code_expire'] || !hash_equals(strtolower($_SESSION['admin_reset_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['admin_reset_email']), strtolower($email)))) {
-            throw new Exception('邮箱验证码不正确或已过期');
+        if (!$db_code_ok) {
+            $session_code_available = isset($_SESSION['admin_reset_code'], $_SESSION['admin_reset_code_expire'], $_SESSION['admin_reset_email'])
+                && time() <= (int)$_SESSION['admin_reset_code_expire'];
+            $session_code_ok = $session_code_available
+                && hash_equals(strtolower((string)$_SESSION['admin_reset_code']), strtolower($code))
+                && hash_equals(strtolower((string)$_SESSION['admin_reset_email']), strtolower($email));
+            if (!$session_code_ok) {
+                $_SESSION['admin_reset_code_attempts'] = (int)($_SESSION['admin_reset_code_attempts'] ?? 0) + 1;
+                if ($_SESSION['admin_reset_code_attempts'] >= 5) {
+                    unset($_SESSION['admin_reset_code'], $_SESSION['admin_reset_email'], $_SESSION['admin_reset_code_expire'], $_SESSION['admin_reset_code_attempts']);
+                    throw new Exception('验证码尝试次数过多，请重新获取验证码');
+                }
+                throw new Exception('邮箱验证码不正确或已过期');
+            }
         }
+        unset($_SESSION['admin_reset_code_attempts']);
         $stmt = $pdo->prepare("SELECT id, status FROM huli_admins WHERE email = ?");
         $stmt->execute([$email]);
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -70,6 +83,8 @@ try {
         if ($stmt->rowCount() === 0) {
             throw new Exception('密码更新失败，请重试');
         }
+        require_once __DIR__ . '/../common/account_security.php';
+        huli_revoke_account_tokens($pdo, 'admin', (int)$admin['id']);
         unset($_SESSION['admin_reset_code'], $_SESSION['admin_reset_email'], $_SESSION['admin_reset_code_expire']);
         if ($is_ajax) {
             header('Content-Type: application/json');

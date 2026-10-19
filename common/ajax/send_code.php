@@ -186,6 +186,7 @@ if ($type === 'register') {
     $_SESSION['reset_code'] = $code;
     $_SESSION['reset_email'] = $email;
     $_SESSION['reset_code_expire'] = time() + 300;
+    unset($_SESSION['reset_code_attempts']);
 } elseif ($type === 'admin_reset') {
     $mail->Subject = '【' . ($settings['site_name'] ?? '系统') . '】管理员密码重置 - 您的验证码';
     $mail->Body = '
@@ -222,6 +223,7 @@ if ($type === 'register') {
     $_SESSION['admin_reset_code'] = $code;
     $_SESSION['admin_reset_email'] = $email;
     $_SESSION['admin_reset_code_expire'] = time() + 300;
+    unset($_SESSION['admin_reset_code_attempts']);
 } elseif ($type === 'friend_link') {
     $mail->Subject = '【' . ($settings['site_name'] ?? '系统') . '】友情链接申请 - 您的验证码';
     $mail->Body = '

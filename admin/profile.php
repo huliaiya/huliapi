@@ -37,6 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($admin_data && password_verify($current_password, $admin_data['password'])) {
                     $update_stmt = $pdo->prepare("UPDATE huli_admins SET password = ? WHERE id = ?");
                     $update_stmt->execute([password_hash($new_password, PASSWORD_DEFAULT), $admin_id]);
+                    require_once __DIR__ . '/../common/account_security.php';
+                    huli_revoke_account_tokens($pdo, 'admin', (int)$admin_id);
                     $feedback_msg = '密码已成功更新。'; $feedback_type = 'success';
                 } else { $feedback_msg = '当前密码不正确。'; $feedback_type = 'error'; }
             } catch (PDOException $e) { $feedback_msg = '出现错误！数据库操作失败。'; $feedback_type = 'error'; }
