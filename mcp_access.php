@@ -6,36 +6,48 @@ header('Content-Type: text/markdown; charset=utf-8');
 header('Cache-Control: no-store, max-age=0');
 header('X-Content-Type-Options: nosniff');
 
-$authorization = (string)($_SERVER['HTTP_AUTHORIZATION'] ?? '');
-if ($authorization === '' && function_exists('getallheaders')) {
-    $headers = getallheaders();
-    $authorization = (string)($headers['Authorization'] ?? $headers['authorization'] ?? '');
-}
-$token = preg_match('/^Bearer\s+(.+)$/i', trim($authorization), $matches)
-    ? trim($matches[1])
-    : '';
-if ($token === '') {
+$code = trim((string)($_GET['code'] ?? ''));
+if ($code === '') {
     http_response_code(400);
-    echo "# 错误\n\n缺少 Authorization Bearer Token。\n";
+    echo "# 错误\n\n缺少短期接入码 code。请登录后在 MCP 页面重新生成（10 分钟内有效，且仅可使用一次）。\n";
     try {
         $pdo = huli_mcp_pdo();
-        $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES ('user', 0, '', 'access_doc', NULL, ?, 'invalid', 'missing token', 0)");
+        $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES ('user', 0, '', 'access_doc', NULL, ?, 'invalid', 'missing code', 0)");
         $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? '')]);
-    } catch (Throwable $e) { error_log('[mcp_access] 缺少token日志写入失败: ' . $e->getMessage()); }
+    } catch (Throwable $e) { error_log('[mcp_access] 缺少code日志写入失败: ' . $e->getMessage()); }
     exit;
 }
 
-$ctx = huli_mcp_validate_token($token);
-if (!$ctx) {
+$access = huli_mcp_consume_access_code($code);
+if (!$access) {
     http_response_code(403);
-    echo "# 错误\n\nToken 无效或已失效。\n";
+    echo "# 错误\n\n接入码无效、已过期或已被使用，请回 MCP 页面重新生成。\n";
     try {
         $pdo = huli_mcp_pdo();
         $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, status, error_msg, latency_ms) VALUES ('user', 0, '', 'access_doc', NULL, ?, 'error', ?, 0)");
-        $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? ''), 'invalid token prefix=' . substr($token, 0, 4) . '***']);
-    } catch (Throwable $e) { error_log('[mcp_access] 无效token日志写入失败: ' . $e->getMessage()); }
+        $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? ''), 'invalid access code']);
+    } catch (Throwable $e) { error_log('[mcp_access] 无效code日志写入失败: ' . $e->getMessage()); }
     exit;
 }
+
+$role = $access['role'] === 'admin' ? 'admin' : 'user';
+$lookupId = (int)$access['user_id'];
+$pdo = huli_mcp_pdo();
+$table = $role === 'admin' ? 'huli_admins' : 'huli_users';
+$stmt = $pdo->prepare("SELECT id, username, status FROM `$table` WHERE id = ? LIMIT 1");
+$stmt->execute([$lookupId]);
+$account = $stmt->fetch(PDO::FETCH_ASSOC);
+if (!$account) {
+    http_response_code(403);
+    echo "# 错误\n\n接入码对应的账号不存在。\n";
+    exit;
+}
+$ctx = [
+    'role' => $role,
+    'id' => (int)$account['id'],
+    'username' => (string)$account['username'],
+    'status' => $role === 'admin' ? (int)$account['status'] : (string)$account['status'],
+];
 
 $account_disabled = ($ctx['role'] === 'user' && $ctx['status'] !== 'active')
     || ($ctx['role'] === 'admin' && (int)$ctx['status'] !== 1);
@@ -68,7 +80,7 @@ if ($out === false) {
 }
 $out = str_replace(
     ['{{SERVER_NAME}}', '{{ROLE_NAME}}', '{{MCP_URL}}', '{{TOKEN}}', '{{TOOL_COUNT}}'],
-    [$serverName, $roleName, $mcpUrl, $token, (string)$toolCount],
+    [$serverName, $roleName, $mcpUrl, '（请填写你在 MCP 页面生成并保存的 Token）', (string)$toolCount],
     $out
 );
 

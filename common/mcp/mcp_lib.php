@@ -52,6 +52,66 @@ function huli_mcp_clear_token($role, $id) {
     huli_mcp_log_token_event($role, $id, 'revoke', '');
 }
 
+function huli_mcp_ensure_access_code_schema() {
+    static $done = false;
+    if ($done) { return; }
+    $done = true;
+    $pdo = huli_mcp_pdo();
+    $exists = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'huli_mcp_access_codes'")->fetchColumn();
+    if (!$exists) {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `huli_mcp_access_codes` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `code_hash` CHAR(64) NOT NULL,
+            `role` ENUM('user','admin') NOT NULL,
+            `user_id` INT UNSIGNED NOT NULL DEFAULT 0,
+            `expires_at` DATETIME NOT NULL,
+            `used_at` DATETIME NULL DEFAULT NULL,
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uniq_code_hash` (`code_hash`),
+            KEY `idx_expires` (`expires_at`),
+            KEY `idx_user` (`role`,`user_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MCP 接入指令短期下载码'");
+    }
+}
+
+function huli_mcp_issue_access_code($role, $id, $ttl = 600) {
+    if ($role !== 'admin' && $role !== 'user') { return ''; }
+    huli_mcp_ensure_access_code_schema();
+    $pdo = huli_mcp_pdo();
+    $code = 'mcp_c_' . bin2hex(random_bytes(24));
+    $ttl = max(60, min(3600, (int)$ttl));
+    try {
+        $pdo->prepare("DELETE FROM huli_mcp_access_codes WHERE expires_at < NOW() OR used_at IS NOT NULL")->execute();
+        $stmt = $pdo->prepare("INSERT INTO huli_mcp_access_codes (code_hash, role, user_id, expires_at) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND))");
+        $stmt->execute([hash('sha256', $code), $role, (int)$id, $ttl]);
+    } catch (Throwable $e) {
+        error_log('[mcp_lib] 生成接入码失败: ' . $e->getMessage());
+        return '';
+    }
+    return $code;
+}
+
+function huli_mcp_consume_access_code($code) {
+    $code = trim((string)$code);
+    if ($code === '' || strlen($code) > 128) { return null; }
+    try {
+        huli_mcp_ensure_access_code_schema();
+        $pdo = huli_mcp_pdo();
+        $hash = hash('sha256', $code);
+        $stmt = $pdo->prepare("UPDATE huli_mcp_access_codes SET used_at = NOW() WHERE code_hash = ? AND used_at IS NULL AND expires_at > NOW()");
+        $stmt->execute([$hash]);
+        if ($stmt->rowCount() !== 1) { return null; }
+        $stmt = $pdo->prepare("SELECT role, user_id, expires_at FROM huli_mcp_access_codes WHERE code_hash = ? LIMIT 1");
+        $stmt->execute([$hash]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    } catch (Throwable $e) {
+        error_log('[mcp_lib] 校验接入码失败: ' . $e->getMessage());
+        return null;
+    }
+}
+
 function huli_mcp_ensure_audit_schema() {
     static $done = false;
     if ($done) { return; }
