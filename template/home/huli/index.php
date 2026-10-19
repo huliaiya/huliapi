@@ -232,6 +232,9 @@ body {
     .lyear-layout-sidebar-close .lyear-layout-sidebar:not(:hover) .nav-drawer > li > a > span {
         display: none !important;
     }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:not(:hover) .lyear-layout-sidebar-info > :not(.sidebar-main) {
+        display: none !important;
+    }
 }
 .lyear-layout-header {
     background: rgba(255, 255, 255, 0.4) !important;
