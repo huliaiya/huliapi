@@ -29,6 +29,31 @@ check_ok() {
     fi
 }
 
+check_login_lock() {
+    local page="$1"
+    local label="$2"
+    local ip="198.51.100.$((RANDOM % 200 + 2))"
+    local jar token i body=""
+    jar="$(mktemp)"
+    token="$(curl -s --max-time 10 -A "${label}-locktest" -H "X-Forwarded-For: ${ip}" -c "$jar" "${BASE_URL}${page}" | grep -o 'var t="[a-f0-9]*"' | head -1 | cut -d'"' -f2)"
+    if [[ -z "$token" ]]; then
+        echo "FAIL login lock token ${page}"
+        failed=1
+        return
+    fi
+    for i in 1 2 3 4 5 6; do
+        body="$(curl -s --max-time 10 -A "${label}-locktest" -H "X-Forwarded-For: ${ip}" -b "$jar" -c "$jar" \
+            -d "_csrf=${token}" --data-urlencode "username=${label}_lock_${ip}" --data-urlencode "password=wrongpass" \
+            "${BASE_URL}${page}")"
+    done
+    if [[ "$body" == *"登录尝试过于频繁"* ]]; then
+        echo "OK   login lock ${page}"
+    else
+        echo "FAIL login lock ${page}"
+        failed=1
+    fi
+}
+
 check_blocked "/.git/HEAD"
 check_blocked "/.git/config"
 check_blocked "/logs/update_status_abc123.json"
@@ -59,6 +84,9 @@ else
     echo "FAIL ${login_csrf_code} login without CSRF"
     failed=1
 fi
+
+check_login_lock "/template/user/huli/login.php" "user"
+check_login_lock "/admin/login.php" "admin"
 
 php -r '
 require $argv[1] . "/config.php";
