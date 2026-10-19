@@ -302,31 +302,45 @@ $(document).ready(function() {
                 $btn.text('获取验证码');
             }
         }, 1000);
-        $.post('../common/ajax/send_code.php', {
-            email: email,
-            type: 'admin_reset'
-        }, function(response) {
-            if (!response.success) {
+        ensureTurnstile(function(token) {
+            $.post('../common/ajax/send_code.php', {
+                email: email,
+                type: 'admin_reset',
+                'cf-turnstile-response': token
+            }, function(response) {
+                resetTurnstileWidget();
+                if (!response.success) {
+                    clearInterval(interval);
+                    $btn.prop('disabled', false);
+                    $btn.text('获取验证码');
+                    $.notify({ message: response.message || '验证码发送失败' }, {
+                        type: 'danger', placement: { from: 'top', align: 'right' },
+                        z_index: 10800, delay: 1500,
+                        animate: { enter: 'animate__animated animate__shakeX', exit: 'animate__animated animate__fadeOutDown' }
+                    });
+                } else {
+                    $.notify({ message: '验证码已发送到您的邮箱' }, {
+                        type: 'success', placement: { from: 'top', align: 'right' },
+                        z_index: 10800, delay: 1500,
+                        animate: { enter: 'animate__animated animate__fadeInUp', exit: 'animate__animated animate__fadeOutDown' }
+                    });
+                }
+            }).fail(function() {
+                resetTurnstileWidget();
                 clearInterval(interval);
                 $btn.prop('disabled', false);
                 $btn.text('获取验证码');
-                $.notify({ message: response.message || '验证码发送失败' }, {
+                $.notify({ message: '服务器错误，请稍后再试' }, {
                     type: 'danger', placement: { from: 'top', align: 'right' },
                     z_index: 10800, delay: 1500,
                     animate: { enter: 'animate__animated animate__shakeX', exit: 'animate__animated animate__fadeOutDown' }
                 });
-            } else {
-                $.notify({ message: '验证码已发送到您的邮箱' }, {
-                    type: 'success', placement: { from: 'top', align: 'right' },
-                    z_index: 10800, delay: 1500,
-                    animate: { enter: 'animate__animated animate__fadeInUp', exit: 'animate__animated animate__fadeOutDown' }
-                });
-            }
-        }).fail(function() {
+            });
+        }, function(message) {
             clearInterval(interval);
             $btn.prop('disabled', false);
             $btn.text('获取验证码');
-            $.notify({ message: '服务器错误，请稍后再试' }, {
+            $.notify({ message: message }, {
                 type: 'danger', placement: { from: 'top', align: 'right' },
                 z_index: 10800, delay: 1500,
                 animate: { enter: 'animate__animated animate__shakeX', exit: 'animate__animated animate__fadeOutDown' }
