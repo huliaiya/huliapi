@@ -108,6 +108,37 @@ function gh_connect_pdo(): ?PDO {
     }
 }
 
+// Older installs predate the GitHub column, and a fresh install used to miss it
+// in install.sql. Make sure the backing column and unique index exist before use.
+function gh_connect_ensure_account_schema(PDO $pdo, string $table): void {
+    if (!in_array($table, array('huli_users', 'huli_admins'), true)) {
+        return;
+    }
+    static $checked = array();
+    if (!empty($checked[$table])) {
+        return;
+    }
+    $checked[$table] = true;
+    try {
+        $stmt = $pdo->prepare("SHOW COLUMNS FROM `$table` LIKE 'gh_id'");
+        $stmt->execute();
+        if (!$stmt->fetch()) {
+            $pdo->exec("ALTER TABLE `$table` ADD COLUMN `gh_id` varchar(32) DEFAULT NULL COMMENT 'GitHub 数字ID'");
+        }
+        $idx = $pdo->prepare("SHOW INDEX FROM `$table` WHERE Key_name = 'uniq_gh_id'");
+        $idx->execute();
+        if (!$idx->fetch()) {
+            try {
+                $pdo->exec("ALTER TABLE `$table` ADD UNIQUE KEY `uniq_gh_id` (`gh_id`)");
+            } catch (Throwable $e) {
+                error_log('[gh_connect] 创建 gh_id 唯一索引失败（可能存在重复绑定）: ' . $e->getMessage());
+            }
+        }
+    } catch (Throwable $e) {
+        error_log('[gh_connect] 检查 gh_id 列失败: ' . $e->getMessage());
+    }
+}
+
 // OAuth state is authoritative in the database: the GitHub round trip leaves
 // the site and may land in a different browser session, so session-only storage
 // silently loses the pending login/bind request.
