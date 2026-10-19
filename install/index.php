@@ -8,8 +8,13 @@ define('STEP_COMPLETE', 4);
 define('HULI_INSTALL_PHP_MIN_VERSION', '7.4.0');
 
 $is_installed = file_exists(__DIR__ . '/install.lock');
-if ($is_installed && basename($_SERVER['PHP_SELF']) !== 'install.php' && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_COMPLETE)) {
-    die('系统已安装，如需重新安装请删除install.lock文件');
+if ($is_installed) {
+    $is_complete_view = $_SERVER['REQUEST_METHOD'] === 'GET'
+        && isset($_GET['step'])
+        && (int)$_GET['step'] === STEP_COMPLETE;
+    if (!$is_complete_view) {
+        die('系统已安装，如需重新安装请先手动删除 install/install.lock 文件');
+    }
 }
 if (!$is_installed && $_SERVER['REQUEST_METHOD'] !== 'POST' && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_CHECK_ENV) && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_COMPLETE)) {
     header('Location: ?step=' . STEP_CHECK_ENV);

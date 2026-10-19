@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') { json_response(false, '无效的请�
 if (!isset($_SESSION['user_id'])) { json_response(false, '请先登录。'); }
 if (!file_exists('../../config.php')) { json_response(false, '系统错误: 配置文件丢失。'); }
 require_once '../../config.php';
+huli_csrf_require();
 $cdkey = trim($_POST['cdkey'] ?? '');
 $user_id = $_SESSION['user_id'];
 if (empty($cdkey)) { json_response(false, '请输入卡密。'); }

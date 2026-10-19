@@ -22,12 +22,17 @@ function huli_verification_code_pdo(): ?PDO {
             `code_type` varchar(32) NOT NULL DEFAULT '',
             `email` varchar(255) NOT NULL DEFAULT '',
             `code_hash` char(64) NOT NULL DEFAULT '',
+            `attempts` tinyint(3) unsigned NOT NULL DEFAULT 0,
             `expires_at` int(10) unsigned NOT NULL DEFAULT 0,
             `created_at` int(10) unsigned NOT NULL DEFAULT 0,
             PRIMARY KEY (`id`),
             KEY `idx_email_type` (`email`,`code_type`),
             KEY `idx_expires` (`expires_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $columns = $pdo->query("SHOW COLUMNS FROM `huli_verification_codes`")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('attempts', $columns, true)) {
+            $pdo->exec("ALTER TABLE `huli_verification_codes` ADD `attempts` tinyint(3) unsigned NOT NULL DEFAULT 0 AFTER `code_hash`");
+        }
         return $pdo;
     } catch (Throwable $e) {
         error_log('[verification_code] 数据库不可用: ' . $e->getMessage());
@@ -57,10 +62,18 @@ function huli_verification_code_check(string $type, string $email, string $code)
     $pdo = huli_verification_code_pdo();
     if (!$pdo) { return false; }
     try {
-        $stmt = $pdo->prepare("SELECT id FROM huli_verification_codes WHERE code_type = ? AND email = ? AND code_hash = ? AND expires_at >= ? ORDER BY id DESC LIMIT 1");
-        $stmt->execute([$type, $email, hash('sha256', $code), time()]);
-        $id = $stmt->fetchColumn();
-        if ($id === false) { return false; }
+        $stmt = $pdo->prepare("SELECT id, code_hash, attempts FROM huli_verification_codes WHERE code_type = ? AND email = ? AND expires_at >= ? ORDER BY id DESC LIMIT 1");
+        $stmt->execute([$type, $email, time()]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) { return false; }
+        if ((int)$row['attempts'] >= 5) {
+            $pdo->prepare("DELETE FROM huli_verification_codes WHERE id = ?")->execute([$row['id']]);
+            return false;
+        }
+        if (!hash_equals((string)$row['code_hash'], hash('sha256', $code))) {
+            $pdo->prepare("UPDATE huli_verification_codes SET attempts = attempts + 1 WHERE id = ?")->execute([$row['id']]);
+            return false;
+        }
         $pdo->prepare("DELETE FROM huli_verification_codes WHERE code_type = ? AND email = ?")->execute([$type, $email]);
         return true;
     } catch (Throwable $e) {

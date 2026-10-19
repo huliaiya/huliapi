@@ -239,5 +239,6 @@ $(document).ready(function() {
     });
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

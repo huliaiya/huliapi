@@ -1,5 +1,9 @@
 # Apache 安全基线：禁止隐藏文件、日志与安装脚本下载。
 
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
@@ -12,6 +16,9 @@
 
     # 日志目录整体拒绝。
     RewriteRule ^logs/.* - [F,L]
+
+    # CLI 脚本、测试脚本与部署示例只能通过命令行/人工使用。
+    RewriteRule ^(cli|tests|deploy)/.* - [F,L]
 </IfModule>
 
 <FilesMatch "\.(sql|lock|log|ini|bak|old|swp|dist|md)$">

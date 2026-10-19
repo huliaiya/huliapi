@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../common/session_boot.php';
+require_once __DIR__ . '/../common/url_helper.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) {
@@ -45,7 +46,7 @@ try {
         if (mb_strlen($data['site_name']) > 50) {
             throw new Exception("网站名称不能超过50个字符");
         }
-        if (empty($data['url']) || !filter_var($data['url'], FILTER_VALIDATE_URL)) {
+        if (empty($data['url']) || !huli_is_safe_http_url($data['url'])) {
             throw new Exception("请输入有效的URL（以http://或https://开头）");
         }
 if (!empty($data['logo'])) {
