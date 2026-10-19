@@ -8,6 +8,7 @@ require_once '../common/TemplateManager.php';
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = ''; $feedback_type = ''; $page_title = '模板管理中心';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    huli_csrf_require();
     try {
         if (isset($_POST['set_home_active'])) {
             $templateId = (int)$_POST['home_template_id'];
@@ -73,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
+    huli_csrf_require();
     $type = $_POST['type'] ?? '';
     $templateId = (int)$_POST['delete'];
     try {
@@ -350,5 +352,6 @@ $(document).ready(function() {
     }
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

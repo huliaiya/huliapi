@@ -23,6 +23,7 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'logout') {
+    huli_csrf_require();
     require_once __DIR__ . '/../common/admin_remember.php';
     huli_admin_remember_revoke();
     session_destroy();
@@ -701,5 +702,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

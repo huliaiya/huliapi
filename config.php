@@ -82,7 +82,11 @@ function huli_csrf_script() {
     $token = huli_csrf_token();
     if ($token === '') { return ''; }
     $json = json_encode($token, JSON_UNESCAPED_UNICODE);
-    return '<script>(function(){var t=' . $json . ';if(!t){return;}var f=document.querySelectorAll(\'form\');for(var i=0;i<f.length;i++){var m=(f[i].getAttribute(\'method\')||\'get\').toLowerCase();if(m!==\'post\'){continue;}if(f[i].querySelector(\'input[name="_csrf"]\')){continue;}var e=document.createElement(\'input\');e.type=\'hidden\';e.name=\'_csrf\';e.value=t;f[i].appendChild(e);}})();</script>';
+    return '<script>(function(){var t=' . $json . ';if(!t){return;}'
+        . 'var f=document.querySelectorAll(\'form\');for(var i=0;i<f.length;i++){var m=(f[i].getAttribute(\'method\')||\'get\').toLowerCase();if(m!==\'post\'){continue;}if(f[i].querySelector(\'input[name="_csrf"]\')){continue;}var e=document.createElement(\'input\');e.type=\'hidden\';e.name=\'_csrf\';e.value=t;f[i].appendChild(e);}'
+        . 'var X=window.XMLHttpRequest&&XMLHttpRequest.prototype;if(X&&X.open&&X.send){var oo=X.open,os=X.send;X.open=function(m){this.__huliMethod=(m||\'GET\').toUpperCase();return oo.apply(this,arguments);};X.send=function(){try{if(this.__huliMethod&&this.__huliMethod!==\'GET\'&&this.__huliMethod!==\'HEAD\'){this.setRequestHeader(\'X-CSRF-Token\',t);}}catch(e){}return os.apply(this,arguments);};}'
+        . 'if(window.fetch){var of=window.fetch;window.fetch=function(i,n){var m=((n&&n.method)||(i&&i.method)||\'GET\').toUpperCase();if(m!==\'GET\'&&m!==\'HEAD\'){n=n||{};try{var h=new Headers(n.headers||(i&&i.headers)||{});if(!h.has(\'X-CSRF-Token\')){h.set(\'X-CSRF-Token\',t);}n.headers=h;}catch(e){}}return of.call(this,i,n);};}'
+        . '})();</script>';
 }
 
 function huli_post_action_button($url, $fields, $label, $class = 'btn btn-default btn-sm', $confirm = '', $attrs = '') {

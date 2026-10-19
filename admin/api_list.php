@@ -16,6 +16,7 @@ $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
 $feedback_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['id'])) {
+    huli_csrf_require();
     try {
         $id = intval($_POST['id']);
         if ($id <= 0) {
@@ -723,5 +724,6 @@ $(document).ready(function() {
   });
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

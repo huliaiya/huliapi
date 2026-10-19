@@ -12,6 +12,7 @@ try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $call_limit = trim($_POST['call_limit']);
         $expires_at = trim($_POST['expires_at']);
         if (!is_numeric($call_limit)) { throw new Exception('调用次数必须是数字。'); }
@@ -80,5 +81,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <script type="text/javascript" src="../assets/js/popper.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="../assets/js/main.min.js"></script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

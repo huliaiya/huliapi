@@ -93,6 +93,26 @@ huliapi（胡里 API）是一个可直接部署的 API 分发与管理平台：�
 
 > 注意：安装完成后，为安全起见可从服务器移除 `install/` 目录（或删除 `install/install.lock` 前的写入权限）。若安装后访问提示「出现错误！配置文件丢失」，说明 `config.php` 未被写入，请检查目录写权限。
 
+#### Nginx 安全加固（建议）
+
+项目根目录的 `.htaccess` 只对 Apache 生效。使用 Nginx 或宝塔面板时，请在站点配置文件的 `server { ... }` 中补充以下规则，然后重载 Nginx：
+
+```nginx
+# 禁止直接下载数据库备份与安装锁文件
+location ~* \.(sql|lock)$ {
+    deny all;
+    return 404;
+}
+
+# 禁止访问在线更新日志目录（包含任务 token 与执行日志）
+location ^~ /logs/ {
+    deny all;
+    return 404;
+}
+```
+
+Apache 环境无需额外配置，`install/.htaccess` 与 `logs/.htaccess` 已默认拒绝访问。
+
 ### 方式 B：命令行（Linux 服务器）
 
 ```bash
@@ -136,6 +156,8 @@ php -S 0.0.0.0:8000
 ## 六、更新方式
 
 已安装站点通过后台「系统管理 → 系统更新」或 `cli/update_worker.php` 拉取 `miao` 分支更新。手动更新时请使用 `miao` 分支，并保留现有 `config.php` 与安装状态文件。
+
+更新任务的权威状态保存在数据库表 `huli_updater_jobs`（字段：`token`、`payload`、`updated_at`），执行日志与临时任务文件位于 `logs/` 目录。请勿将表名误写为 `huli_update_jobs`。
 
 ---
 

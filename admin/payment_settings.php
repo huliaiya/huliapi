@@ -12,6 +12,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->exec("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('afdian_user_id', ''), ('afdian_token', ''), ('afdian_page_url', '');");
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $pdo->beginTransaction();
         $stmt = $pdo->prepare("UPDATE huli_settings SET setting_value = ? WHERE setting_key = ?");
         $stmt->execute([trim($_POST['afdian_user_id']), 'afdian_user_id']);
@@ -102,5 +103,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <script type="text/javascript" src="../assets/js/popper.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="../assets/js/main.min.js"></script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

@@ -13,6 +13,7 @@ try {
     $favicon_url = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key='favicon_url'")->fetchColumn()?:'';
     huli_ensure_broadcast_columns($pdo);
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        huli_csrf_require();
         $id = intval($_POST['id'] ?? 0);
         if ($_POST['action'] === 'delete') {
             $pdo->prepare("DELETE FROM huli_email_broadcasts WHERE id = ?")->execute([$id]);
@@ -108,4 +109,5 @@ $typeLabels=['once'=>'仅一次','daily'=>'每天'];
 <?php endif; ?>
 </tbody></table></div>
 </div></div></div></div></div>
+<?php echo huli_csrf_script(); ?>
 </body></html>

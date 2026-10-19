@@ -21,6 +21,7 @@ try {
         if (!$category) { header('Location: category_list.php'); exit; }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $category_id = isset($_POST['id']) ? intval($_POST['id']) : null;
         $name = trim($_POST['name']);
         if (empty($name)) {
@@ -92,5 +93,6 @@ try {
 </div>
 <script type="text/javascript" src="../assets/js/jquery.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

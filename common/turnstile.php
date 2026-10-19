@@ -146,6 +146,13 @@ function huli_turnstile_verify_token($token, &$reason = null)
 {
     $reason = '';
     huli_turnstile_last_error('');
+    $settings = huli_turnstile_settings();
+    if (!empty($settings['db_error'])) {
+        $reason = '人机验证服务暂时不可用，请稍后重试';
+        huli_turnstile_last_error($reason);
+        error_log('[turnstile] 配置读取失败，按 fail-closed 策略拒绝本次请求');
+        return array('ok' => false, 'reason' => $reason, 'raw' => array('config' => 'db_error'));
+    }
     if (!huli_turnstile_enabled()) {
         return array('ok' => true, 'reason' => '', 'raw' => array('disabled' => true));
     }

@@ -18,6 +18,7 @@ try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['id'])) {
+        huli_csrf_require();
         $id_to_delete = intval($_POST['id']);
         $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM huli_apis WHERE category_id = ?");
         $stmt_check->execute([$id_to_delete]);
@@ -141,5 +142,6 @@ $(document).ready(function() {
     <?php endif; ?>
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>
