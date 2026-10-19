@@ -5,6 +5,7 @@ ob_start();
 
 require_once __DIR__ . '/../redis_client.php';
 require_once __DIR__ . '/../client_ip.php';
+require_once __DIR__ . '/api_owner.php';
 
 function getUserIP() {
     return huli_client_ip();
@@ -286,6 +287,10 @@ try {
                 }
             }
         }
+    }
+    $api_owner_user_id = huli_api_owner_user_id($api);
+    if ($valid_user && $api_owner_user_id !== null && (int)$valid_user['id'] !== $api_owner_user_id) {
+        api_error_exit(403, '该接口为其他用户购买的私有接口，您无权调用');
     }
     if (!$valid_apikey_provided && $enable_free_qps_limit && $free_qps_limit > 0 && $free_qps_seconds > 0) {
         if (checkApiRateLimit($pdo, $settings, 'ip', $log_ip_address, $free_qps_limit, $free_qps_seconds)) {
