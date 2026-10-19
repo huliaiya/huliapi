@@ -717,8 +717,8 @@ $(document).ready(function() {
         return true;
     }
     if (shouldShowAnnouncement()) {
-        $('#modalAnnouncementTitle').text('标题:' + <?php echo json_encode($announcement_title, JSON_UNESCAPED_UNICODE); ?>);
-        $('#modalAnnouncementContent').text('内容:' + <?php echo json_encode($announcement_content, JSON_UNESCAPED_UNICODE); ?>);
+        $('#modalAnnouncementTitle').text('标题:' + <?php echo json_encode($announcement_title, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>);
+        $('#modalAnnouncementContent').text('内容:' + <?php echo json_encode($announcement_content, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>);
         $('#modalAnnouncementTime').text('发布时间:<?php echo $simple_time; ?>');
         $('#announcementModal').modal('show');
     }

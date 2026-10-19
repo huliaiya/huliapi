@@ -13,6 +13,7 @@ if (file_exists('../config.php')) {
     die("出现错误！配置文件丢失。");
 }
 $username = htmlspecialchars($_SESSION['admin_username']);
+$admin_id = (int)$_SESSION['admin_id'];
 $feedback_msg = '';
 $feedback_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['id'])) {
@@ -33,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if (!empty($api['file_path'])) {
             $safe_path = realpath('../' . $api['file_path']);
             $base_dir = realpath('../API');
-            if ($safe_path && $base_dir && strpos($safe_path, $base_dir) === 0 && file_exists($safe_path)) {
+            if ($safe_path && $base_dir && strpos($safe_path, rtrim($base_dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) === 0 && file_exists($safe_path)) {
                 if (!unlink($safe_path)) {
                     throw new Exception('无法删除接口文件');
                 }
@@ -72,6 +73,7 @@ try {
         ]
     );
     if (isset($_POST['batch_action']) && isset($_POST['ids'])) {
+        huli_csrf_require();
         $ids = array_map('intval', $_POST['ids']);
         $ids = array_filter($ids, function($id) {
             return $id > 0;
@@ -81,25 +83,25 @@ try {
         }
         switch ($_POST['batch_action']) {
             case 'activate':
-                $stmt = $pdo->prepare("UPDATE huli_apis SET status = 'normal' WHERE admin_id = ? AND id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
-                $stmt->execute(array_merge([$admin_id], $ids));
+                $stmt = $pdo->prepare("UPDATE huli_apis SET status = 'normal' WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ") AND admin_id = ?");
+                $stmt->execute(array_merge($ids, [$admin_id]));
                 $_SESSION['feedback_msg'] = '已启用选中的 ' . $stmt->rowCount() . ' 个接口';
                 break;
             case 'deactivate':
-                $stmt = $pdo->prepare("UPDATE huli_apis SET status = 'error' WHERE admin_id = ? AND id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
-                $stmt->execute(array_merge([$admin_id], $ids));
+                $stmt = $pdo->prepare("UPDATE huli_apis SET status = 'error' WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ") AND admin_id = ?");
+                $stmt->execute(array_merge($ids, [$admin_id]));
                 $_SESSION['feedback_msg'] = '已禁用选中的 ' . $stmt->rowCount() . ' 个接口';
                 break;
             case 'delete':
-                $stmt = $pdo->prepare("SELECT id, file_path FROM huli_apis WHERE admin_id = ? AND id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
-                $stmt->execute(array_merge([$admin_id], $ids));
+                $stmt = $pdo->prepare("SELECT id, file_path FROM huli_apis WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ") AND admin_id = ?");
+                $stmt->execute(array_merge($ids, [$admin_id]));
                 $apisToDelete = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 $fileErrors = [];
                 foreach ($apisToDelete as $api) {
                     if (!empty($api['file_path'])) {
                         $safe_path = realpath('../' . $api['file_path']);
                         $base_dir = realpath('../API');
-                        if ($safe_path && $base_dir && strpos($safe_path, $base_dir) === 0 && file_exists($safe_path)) {
+                        if ($safe_path && $base_dir && strpos($safe_path, rtrim($base_dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) === 0 && file_exists($safe_path)) {
                             if (!unlink($safe_path)) {
                                 $fileErrors[] = $api['id'];
                             }
@@ -107,8 +109,8 @@ try {
                     }
                 }
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
-                $stmt = $pdo->prepare("DELETE FROM huli_apis WHERE admin_id = ? AND id IN ($placeholders)");
-                $stmt->execute(array_merge([$admin_id], $ids));
+                $stmt = $pdo->prepare("DELETE FROM huli_apis WHERE id IN ($placeholders) AND admin_id = ?");
+                $stmt->execute(array_merge($ids, [$admin_id]));
                 $deletedCount = $stmt->rowCount();
                 $msg = "已删除选中的 $deletedCount 个接口";
                 if (!empty($fileErrors)) {
@@ -125,8 +127,8 @@ try {
     }
     $searchParams = [];
     $whereClause = [];
-    $searchParams[':admin_id'] = $admin_id;
     $whereClause[] = "admin_id = :admin_id";
+    $searchParams[':admin_id'] = $admin_id;
     if (isset($_GET['name']) && !empty($_GET['name'])) {
         $searchParams[':name'] = '%' . $_GET['name'] . '%';
         $whereClause[] = "name LIKE :name";
@@ -690,8 +692,13 @@ $(document).ready(function() {
         b.type = 'hidden';
         b.name = 'id';
         b.value = id;
+        const c = document.createElement('input');
+        c.type = 'hidden';
+        c.name = '_csrf';
+        c.value = <?php echo json_encode(huli_csrf_token()); ?>;
         form.appendChild(a);
         form.appendChild(b);
+        form.appendChild(c);
         document.body.appendChild(form);
         form.submit();
       } catch (e) {

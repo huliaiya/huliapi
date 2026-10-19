@@ -97,6 +97,7 @@ try {
         exit;
     }
     if (isset($_POST['batch_action']) && isset($_POST['ids'])) {
+        huli_csrf_require();
         $ids = array_values(array_filter(array_map('intval', (array)$_POST['ids']), function ($v) { return $v > 0; }));
         if (empty($ids)) {
             $_SESSION['feedback_msg'] = '未选择任何有效友链。';

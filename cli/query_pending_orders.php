@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 if (!defined('HULI_QUERY_PENDING_ORDERS_LOADED')) {
     define('HULI_QUERY_PENDING_ORDERS_LOADED', true);
 

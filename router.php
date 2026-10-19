@@ -10,7 +10,8 @@ if (preg_match('#^/\.well-known(?:/|$)#i', $uri)) {
 $blocked = preg_match('#(?:^|/)\.#', $uri)
     || preg_match('#^/logs(?:/|$)#i', $uri)
     || preg_match('#^/(?:cli|tests|deploy)(?:/|$)#i', $uri)
-    || preg_match('#^/install/(?!$|index\.php$).*#i', $uri);
+    || preg_match('#^/install/(?!$|index\.php$).*#i', $uri)
+    || preg_match('#\.(?:sql|lock|log|ini|bak|old|swp|dist|md)$#i', $uri);
 
 if ($blocked) {
     http_response_code(404);

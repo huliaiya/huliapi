@@ -44,6 +44,9 @@ try {
         if (empty($email) || empty($code) || empty($password)) {
             throw new Exception('所有字段均为必填项');
         }
+        if (strlen($password) < 6) {
+            throw new Exception('密码长度不能少于6位');
+        }
         if ($password !== $confirm_password) {
             throw new Exception('两次输入的密码不一致');
         }

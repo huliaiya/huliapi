@@ -39,7 +39,7 @@ server {
     }
 
     # 数据库脚本、锁文件、备份与日志文件禁止下载。
-    location ~* \.(sql|lock|log|ini|bak|old|swp|dist)$ {
+    location ~* \.(sql|lock|log|ini|bak|old|swp|dist|md)$ {
         deny all;
     }
 

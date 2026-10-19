@@ -8,6 +8,7 @@ if (!isset($_SESSION['admin_id'])) {
 }
 if (file_exists('../config.php')) {
     require_once '../config.php';
+require_once __DIR__ . '/../common/url_helper.php';
 } else {
     die("出现错误！配置文件丢失。");
 }
@@ -43,7 +44,7 @@ try {
         if (mb_strlen($data['title']) > 100) {
             throw new Exception("广告标题不能超过100个字符");
         }
-        if (empty($data['link_url']) || !filter_var($data['link_url'], FILTER_VALIDATE_URL)) {
+        if (empty($data['link_url']) || !huli_is_safe_http_url($data['link_url'])) {
             throw new Exception("请输入有效的链接URL（以http://或https://开头）");
         }
         $updateStmt = $pdo->prepare("UPDATE huli_advertisements SET title = ?, link_url = ?, contact = ?, status = ?, sort_order = ? WHERE id = ?");
