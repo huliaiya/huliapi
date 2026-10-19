@@ -48,6 +48,35 @@ if (file_exists(__DIR__ . '/mcp/mcp_lib.php')) {
             return true;
         }
     }
+    if (!function_exists('huli_mcp_resolve_outbound_ip')) {
+        function huli_mcp_resolve_outbound_ip($host, $port, $scheme) {
+            $host = trim((string)$host);
+            if ($host === '') { return ''; }
+            $candidates = [];
+            if (filter_var($host, FILTER_VALIDATE_IP)) {
+                $candidates[] = $host;
+            } elseif (function_exists('dns_get_record')) {
+                foreach ([DNS_A, DNS_AAAA] as $type) {
+                    $recs = @dns_get_record($host, $type);
+                    if (!is_array($recs)) { continue; }
+                    foreach ($recs as $r) {
+                        if (!empty($r['ip'])) { $candidates[] = $r['ip']; }
+                        if (!empty($r['ipv6'])) { $candidates[] = $r['ipv6']; }
+                    }
+                }
+            }
+            if (!$candidates) {
+                $ip = @gethostbyname($host);
+                if ($ip && $ip !== $host) { $candidates[] = $ip; }
+            }
+            foreach ($candidates as $ip) {
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    return $ip;
+                }
+            }
+            return '';
+        }
+    }
 }
 
  
@@ -105,6 +134,18 @@ function huli_email_html_template($title, $content, array $fields, $site_name = 
 }
 
 function huli_curl_post_json($url, $payload, $headers = []) {
+    $parts = @parse_url((string)$url);
+    if (!$parts || empty($parts['host']) || empty($parts['scheme'])) {
+        return ['code' => 0, 'body' => '', 'curl_err' => '目标地址无效'];
+    }
+    $scheme = strtolower((string)$parts['scheme']);
+    $port = isset($parts['port']) ? (int)$parts['port'] : ($scheme === 'https' ? 443 : 80);
+    $pinnedIp = function_exists('huli_mcp_resolve_outbound_ip')
+        ? huli_mcp_resolve_outbound_ip((string)$parts['host'], $port, $scheme)
+        : '';
+    if ($pinnedIp === '') {
+        return ['code' => 0, 'body' => '', 'curl_err' => '目标地址不允许访问'];
+    }
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
@@ -115,6 +156,12 @@ function huli_curl_post_json($url, $payload, $headers = []) {
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
     curl_setopt($ch, CURLOPT_TIMEOUT, 12);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+    curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+    if (defined('CURLOPT_REDIR_PROTOCOLS')) { curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); }
+    if (strpos($pinnedIp, ':') !== false) { $pinnedIp = '[' . trim($pinnedIp, '[]') . ']'; }
+    curl_setopt($ch, CURLOPT_RESOLVE, [$parts['host'] . ':' . $port . ':' . $pinnedIp]);
     curl_setopt($ch, CURLOPT_USERAGENT, 'huliapi-push/1.0');
     $body = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);

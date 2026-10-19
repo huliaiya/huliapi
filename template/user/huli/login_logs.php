@@ -52,8 +52,9 @@ $s_total7 = (int)($s['s_total'] ?? 0);
 $s_ip7 = (int)($s['s_ip'] ?? 0);
 $s_ua7 = (int)($s['s_ua'] ?? 0);
 
-if (isset($_GET['action']) && $_GET['action'] === 'clear') {
-    $keep = max(0, (int)($_GET['keep'] ?? 30));
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'clear') {
+    huli_csrf_require();
+    $keep = max(0, (int)($_POST['keep'] ?? 30));
     $pdo->prepare("DELETE FROM huli_user_login_logs WHERE user_id = ? AND login_at < DATE_SUB(NOW(), INTERVAL ? DAY)")->execute([$user_id, $keep]);
     header('Location: login_logs.php'); exit;
 }
@@ -276,7 +277,7 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC'
                 <div class="subtitle">记录本账号的每次登录，发现陌生设备或地点请及时修改密码</div>
             </div>
         </div>
-        <a href="login_logs.php?action=clear&keep=90" class="btn btn-warn" onclick="return confirm('确认清理 90 天前的登录日志？')"><i class="mdi mdi-broom"></i>清理 90 天前</a>
+        <?php echo huli_post_action_button('login_logs.php', ['action' => 'clear', 'keep' => 90], '<i class="mdi mdi-broom"></i> 清理 90 天前', 'btn btn-warn', '确认清理 90 天前的登录日志？'); ?>
     </div>
 
     <?php

@@ -269,6 +269,20 @@ function huli_updater_verify_download($info, $zip, $token) {
         throw new Exception($res['err']);
     }
     huli_updater_detail_log($token, '远端提交校验通过: ' . $res['sha']);
+    $expected = '';
+    if (!empty($info['download_sha256_expected'])) {
+        $expected = strtolower(trim((string)$info['download_sha256_expected']));
+    } elseif (!empty($info['commit_sha']) && strcasecmp((string)$info['commit_sha'], (string)$res['sha']) !== 0) {
+        $expected = '__commit_mismatch__';
+    }
+    if ($expected === '__commit_mismatch__') {
+        huli_updater_detail_log($token, '更新包校验失败: 下载结果对应的提交与检测时不一致。');
+        throw new Exception('更新包内容与检测到的提交不一致，已拒绝安装。');
+    }
+    if ($expected !== '' && !hash_equals($expected, $digest)) {
+        huli_updater_detail_log($token, '更新包校验失败: SHA-256 与预期值不一致。');
+        throw new Exception('更新包校验失败：SHA-256 与预期值不一致，已拒绝安装。');
+    }
     $info['commit_sha'] = $res['sha'];
     $info['download_sha256'] = $digest;
     return $info;
@@ -361,7 +375,7 @@ function huli_updater_unzip($zip, $extract) {
 }
 
 function huli_updater_collect_plan($root, $target, $admin_path, $admin_redirect) {
-    $protected = ['config.php', 'install.lock', 'admin/fanghong_switch.txt'];
+    $protected = ['config.php', 'install.lock', 'install/index.php', 'admin/fanghong_switch.txt'];
     $files = [];
     $dirs = [];
     $iter = new RecursiveIteratorIterator(
@@ -430,7 +444,7 @@ function huli_updater_apply($root, array $info, $progress = null, $token = '') {
 
     $repo = defined('SENLIN_CLIENT_REPO') ? SENLIN_CLIENT_REPO : 'huliaiya/huliapi';
     $repo_branch = defined('SENLIN_CLIENT_REPO_BRANCH') ? SENLIN_CLIENT_REPO_BRANCH : 'main';
-    $update_branch = defined('SENLIN_CLIENT_UPDATE_BRANCH') ? SENLIN_CLIENT_UPDATE_BRANCH : 'miao';
+    $update_branch = defined('SENLIN_CLIENT_UPDATE_BRANCH') ? SENLIN_CLIENT_UPDATE_BRANCH : 'main';
     $new_version_content = "<?php\ndefine('SENLIN_CLIENT_VERSION', '" . addslashes($info['version']) . "');\n";
     if (!empty($info['published_at'])) {
         $new_version_content .= "define('SENLIN_CLIENT_RELEASE_DATE', '" . addslashes(date('Y-m-d', strtotime($info['published_at']))) . "');\n";

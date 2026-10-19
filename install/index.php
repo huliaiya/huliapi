@@ -261,6 +261,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $log .= "> 正在创建安装锁文件...\n";
                 file_put_contents(__DIR__ . '/install.lock', "安装锁\n安装完成时间: " . date('Y-m-d H:i:s'));
                 $log .= "✓ 安装锁文件创建成功\n";
+                @file_put_contents(__DIR__ . '/.htaccess', "<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order deny,allow\n    Deny from all\n</IfModule>\n");
+                @chmod(__DIR__ . '/install.lock', 0444);
+                @chmod(__DIR__, 0555);
+                $log .= "✓ 安装目录已设为只读\n";
 
                  
                 $receipt_sent = false;

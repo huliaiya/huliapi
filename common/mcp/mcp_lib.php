@@ -327,11 +327,23 @@ function huli_mcp_public_url($path = '/mcp.php') {
     return huli_mcp_detect_scheme() . '://' . $host . $path;
 }
 
+function huli_mcp_is_public_ip($ip) {
+    if (!filter_var($ip, FILTER_VALIDATE_IP)) { return false; }
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) { return false; }
+    $normalized = strtolower(trim((string)$ip, '[]'));
+    if ($normalized === '::1' || $normalized === '::' || strpos($normalized, '::ffff:') === 0) { return false; }
+    if (preg_match('/^f[cd][0-9a-f]{2}:/', $normalized)) { return false; }
+    if (preg_match('/^fe[89ab][0-9a-f]:/', $normalized)) { return false; }
+    if (preg_match('/^127\./', $normalized) || preg_match('/^0\./', $normalized) || preg_match('/^169\.254\./', $normalized)) { return false; }
+    if (preg_match('/^100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\./', $normalized)) { return false; }
+    return true;
+}
+
 function huli_mcp_safe_outbound_host($host) {
     $host = trim((string)$host);
     if ($host === '') { return false; }
     if (filter_var($host, FILTER_VALIDATE_IP)) {
-        return (bool)filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        return huli_mcp_is_public_ip($host);
     }
     $ips = [];
     if (function_exists('dns_get_record')) {
@@ -351,11 +363,38 @@ function huli_mcp_safe_outbound_host($host) {
     }
     if (!$ips) { return false; }
     foreach ($ips as $ip) {
-        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        if (!huli_mcp_is_public_ip($ip)) {
             return false;
         }
     }
     return true;
+}
+
+function huli_mcp_resolve_outbound_ip($host, $port, $scheme) {
+    $host = trim((string)$host);
+    if ($host === '') { return ''; }
+    if (filter_var($host, FILTER_VALIDATE_IP)) {
+        return huli_mcp_is_public_ip($host) ? $host : '';
+    }
+    $candidates = [];
+    if (function_exists('dns_get_record')) {
+        foreach ([DNS_A, DNS_AAAA] as $type) {
+            $recs = @dns_get_record($host, $type);
+            if (!is_array($recs)) { continue; }
+            foreach ($recs as $r) {
+                if (!empty($r['ip'])) { $candidates[] = $r['ip']; }
+                if (!empty($r['ipv6'])) { $candidates[] = $r['ipv6']; }
+            }
+        }
+    }
+    if (!$candidates) {
+        $ip = @gethostbyname($host);
+        if ($ip && $ip !== $host) { $candidates[] = $ip; }
+    }
+    foreach ($candidates as $ip) {
+        if (huli_mcp_is_public_ip($ip)) { return $ip; }
+    }
+    return '';
 }
 
 function huli_mcp_safe_outbound_url($url) {
