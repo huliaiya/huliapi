@@ -211,7 +211,10 @@ try {
             $method = 'GET';
         } else {
             $remote_url = trim($_POST['remote_url']);
-            $method = $_POST['method'];
+            $method = strtoupper(trim((string)($_POST['method'] ?? 'GET')));
+            if (!in_array($method, ['GET', 'POST'], true)) {
+                $method = 'GET';
+            }
             if (empty($remote_url)) {
                 throw new Exception('远程接口地址不能为空。');
             }

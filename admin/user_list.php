@@ -58,6 +58,13 @@ try {
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['ids'])) {
         $ids = array_map('intval', $_POST['ids']);
+        $ids = array_values(array_filter($ids, function ($v) { return $v > 0; }));
+        if (empty($ids)) {
+            $_SESSION['feedback_msg'] = '未选择任何有效用户。';
+            $_SESSION['feedback_type'] = 'error';
+            header('Location: user_list.php');
+            exit;
+        }
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         switch ($_POST['action']) {
             case 'enable':

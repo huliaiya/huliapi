@@ -490,7 +490,7 @@ function getStatusBadge($status) {
                     </h3>
                     <p class="text-xs text-gray-500 mt-0.5">
                       <i class="fa fa-globe mr-1"></i>
-                      <?= mb_strlen($link['url']) > 30 ? mb_substr($link['url'], 0, 30) . '...' : $link['url'] ?>
+                      <?= htmlspecialchars(mb_strlen($link['url']) > 30 ? mb_substr($link['url'], 0, 30) . '...' : $link['url']) ?>
                     </p>
                   </div>
                 </div>
