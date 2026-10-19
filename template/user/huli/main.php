@@ -18,6 +18,7 @@ require_once ROOT_PATH . 'common/settings_helper.php';
 require_once ROOT_PATH . 'common/gh_connect.php';
 require_once ROOT_PATH . 'common/turnstile.php';
 $template = TemplateManager::getActiveUserTemplate();
+if (empty($_SESSION['gh_bind_csrf'])) { $_SESSION['gh_bind_csrf'] = bin2hex(random_bytes(16)); }
 $template_base_url = "/template/user/{$template}/";
 $feedback_msg = '';
 $feedback_type = '';
@@ -407,7 +408,8 @@ try {
                                             <div class="border-top pt-3 mb-3">
                                                 <label class="form-label d-block">GitHub 账号绑定</label>
                                                 <p class="text-muted small mb-2">绑定后可直接使用 GitHub 快捷登录，无需输入账号密码。</p>
-                                                <form method="POST" action="<?php echo htmlspecialchars(gh_connect_auth_url('user', 'bind', (int)$_SESSION['user_id'])); ?>" class="gh-bind-form">
+                                                <form method="POST" action="/gh_bind_start.php" class="gh-bind-form">
+                                                    <input type="hidden" name="gh_csrf" value="<?php echo htmlspecialchars($_SESSION['gh_bind_csrf']); ?>">
                                                     <?php echo huli_turnstile_widget_html(); ?>
                                                     <button type="submit" class="btn btn-outline-dark btn-sm">绑定 GitHub</button>
                                                 </form>
@@ -795,6 +797,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+</script>
+<script>
+(function () {
+    var form = document.querySelector('.gh-bind-form');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        if (typeof window.huliTurnstileEnsureToken !== 'function') return;
+        if (!form.querySelector('.huli-turnstile')) return;
+        if (typeof window.huliGetTurnstileResponse === 'function' && window.huliGetTurnstileResponse()) return;
+        e.preventDefault();
+        var btn = form.querySelector('button[type="submit"]');
+        var label = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '正在验证...'; }
+        window.huliTurnstileEnsureToken(function () {
+            form.submit();
+        }, function (message) {
+            if (btn) { btn.disabled = false; btn.textContent = label; }
+            var alertBox = form.parentNode.querySelector('.gh-bind-alert');
+            if (!alertBox) {
+                alertBox = document.createElement('div');
+                alertBox.className = 'alert alert-danger py-2 small mt-2 gh-bind-alert';
+                form.parentNode.insertBefore(alertBox, form.nextSibling);
+            }
+            alertBox.textContent = message || '请先完成人机验证后再继续';
+        });
+    });
+})();
 </script>
 </body>
 </html>

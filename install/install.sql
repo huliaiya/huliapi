@@ -45,8 +45,10 @@ CREATE TABLE `huli_admins` (
   `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '状态',
   `mcp_token_hash` varchar(64) NULL DEFAULT NULL COMMENT 'MCP Token哈希',
   `mcp_token_prefix` varchar(16) NULL DEFAULT NULL COMMENT 'MCP Token前缀(展示用)',
+  `gh_id` varchar(32) DEFAULT NULL COMMENT 'GitHub 数字ID',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`)
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `uniq_gh_id` (`gh_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员账户表';
 DROP TABLE IF EXISTS `huli_admin_remember`;
 CREATE TABLE `huli_admin_remember` (
@@ -404,8 +406,10 @@ CREATE TABLE `huli_users` (
   `qq` varchar(20) NOT NULL DEFAULT '' COMMENT 'QQ号',
   `mcp_token_hash` varchar(64) NULL DEFAULT NULL COMMENT 'MCP Token哈希',
   `mcp_token_prefix` varchar(16) NULL DEFAULT NULL COMMENT 'MCP Token前缀(展示用)',
+  `gh_id` varchar(32) DEFAULT NULL COMMENT 'GitHub 数字ID',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `api_key` (`api_key`)
+  UNIQUE KEY `api_key` (`api_key`),
+  UNIQUE KEY `uniq_gh_id` (`gh_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户账户表';
 DROP TABLE IF EXISTS `huli_daily_points_claim`;
 CREATE TABLE `huli_daily_points_claim` (

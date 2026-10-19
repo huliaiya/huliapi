@@ -9,6 +9,7 @@ require_once __DIR__ . '/../common/push.php';
 require_once __DIR__ . '/../common/gh_connect.php';
 require_once __DIR__ . '/../common/turnstile.php';
 $username = htmlspecialchars($_SESSION['admin_username']); $admin_id = $_SESSION['admin_id'];
+if (empty($_SESSION['gh_bind_csrf'])) { $_SESSION['gh_bind_csrf'] = bin2hex(random_bytes(16)); }
 $admin_qq = '';
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
@@ -155,7 +156,8 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
             <?php if (!empty($_SESSION['gh_connect_notice'])): ?>
               <div class="alert alert-success py-2 small"><?php echo htmlspecialchars($_SESSION['gh_connect_notice']); unset($_SESSION['gh_connect_notice']); ?></div>
             <?php endif; ?>
-            <form method="POST" action="<?php echo htmlspecialchars(gh_connect_auth_url('admin', 'bind', (int)$_SESSION['admin_id'])); ?>" class="gh-bind-form">
+            <form method="POST" action="/gh_bind_start.php" class="gh-bind-form">
+              <input type="hidden" name="gh_csrf" value="<?php echo htmlspecialchars($_SESSION['gh_bind_csrf']); ?>">
               <?php echo huli_turnstile_widget_html(); ?>
               <button type="submit" class="btn btn-outline-dark btn-sm">绑定 GitHub</button>
             </form>
@@ -206,5 +208,32 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
 <script type="text/javascript" src="../assets/js/popper.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="../assets/js/main.min.js"></script>
+<script>
+(function () {
+    var form = document.querySelector('.gh-bind-form');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        if (typeof window.huliTurnstileEnsureToken !== 'function') return;
+        if (!form.querySelector('.huli-turnstile')) return;
+        if (typeof window.huliGetTurnstileResponse === 'function' && window.huliGetTurnstileResponse()) return;
+        e.preventDefault();
+        var btn = form.querySelector('button[type="submit"]');
+        var label = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '正在验证...'; }
+        window.huliTurnstileEnsureToken(function () {
+            form.submit();
+        }, function (message) {
+            if (btn) { btn.disabled = false; btn.textContent = label; }
+            var alertBox = form.parentNode.querySelector('.gh-bind-alert');
+            if (!alertBox) {
+                alertBox = document.createElement('div');
+                alertBox.className = 'alert alert-danger py-2 small mt-2 gh-bind-alert';
+                form.parentNode.insertBefore(alertBox, form.nextSibling);
+            }
+            alertBox.textContent = message || '请先完成人机验证后再继续';
+        });
+    });
+})();
+</script>
 </body>
 </html>

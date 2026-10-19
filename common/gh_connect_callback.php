@@ -7,7 +7,6 @@ require_once __DIR__ . '/session_boot.php';
 require_once __DIR__ . '/url_helper.php';
 require_once __DIR__ . '/login_helper.php';
 require_once __DIR__ . '/gh_connect.php';
-require_once __DIR__ . '/turnstile.php';
 
 $root = dirname(__DIR__);
 if (!file_exists($root . '/config.php')) {
@@ -70,14 +69,8 @@ if ($action === 'bind') {
     if ($pending_account_id <= 0) {
         $fail('请先登录再进行 GitHub 绑定。');
     }
-    // Binding escalates an account to GitHub sign-in, so it needs the same
-    // human check that guards the password login form.
-    $ts_reason = '';
-    if (!huli_turnstile_verify_token(trim((string)($_POST['cf-turnstile-response'] ?? '')), $ts_reason)) {
-        $_SESSION['gh_bind_error'] = $ts_reason !== '' ? $ts_reason : '人机验证未通过，请完成验证后重试。';
-        header('Location: ' . $profile_path);
-        exit;
-    }
+    // Human verification happens in /gh_bind_start.php before the GitHub
+    // redirect; GitHub sends us a GET request, so no token can arrive here.
 }
 
 $tok = gh_connect_access_token($code, $scope);
@@ -99,6 +92,7 @@ try {
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $table = $scope === 'admin' ? 'huli_admins' : 'huli_users';
+    gh_connect_ensure_account_schema($pdo, $table);
 
     if ($action === 'bind') {
         $account_id = $pending_account_id > 0 ? $pending_account_id : (int)($scope === 'admin' ? $_SESSION['admin_id'] : $_SESSION['user_id']);
@@ -108,7 +102,13 @@ try {
             $fail('该 GitHub 账号已绑定其他账号，请先解绑后再试。');
         }
         $upd = $pdo->prepare("UPDATE $table SET gh_id = ? WHERE id = ?");
-        $upd->execute([$gh_id, $account_id]);
+        try {
+            $upd->execute([$gh_id, $account_id]);
+        } catch (Throwable $e) {
+            // The unique index is the final guard against two accounts racing
+            // to bind the same GitHub id.
+            $fail('该 GitHub 账号已绑定其他账号，请先解绑后再试。');
+        }
         $label = $gh['login'] !== '' ? $gh['login'] : $gh_id;
         $_SESSION['gh_connect_notice'] = 'GitHub 绑定成功（' . $label . '）。';
         header('Location: ' . $profile_path);
