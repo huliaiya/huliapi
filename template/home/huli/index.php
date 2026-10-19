@@ -209,6 +209,19 @@ body {
     .lyear-layout-sidebar {
         contain: paint;
     }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar {
+        width: 0 !important;
+        border-right: 0 !important;
+        box-shadow: none !important;
+        visibility: hidden !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:hover {
+        width: 0 !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-header,
+    .lyear-layout-sidebar-close .lyear-layout-content {
+        padding-left: 0 !important;
+    }
     .lyear-layout-sidebar-close .lyear-layout-sidebar > * {
         width: var(--sidebar-width);
     }
