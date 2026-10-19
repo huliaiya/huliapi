@@ -93,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($smtp_user === '') $field_errors['mail_smtp_user'] = 'SMTP 用户名不能为空';
             if ($smtp_pass === '') $field_errors['mail_smtp_pass'] = 'SMTP 密码不能为空';
             if (($turnstile_site_key === '') !== ($turnstile_secret_key === '')) $field_errors['turnstile_keys'] = 'Site Key 与 Secret Key 需同时填写或同时留空';
+            if ($turnstile_enabled === '1' && ($turnstile_site_key === '' || $turnstile_secret_key === '')) $field_errors['turnstile_keys'] = '启用 Turnstile 时必须填写 Site Key 与 Secret Key';
 
             if (!empty($field_errors)) {
                  
@@ -965,7 +966,7 @@ body {
 
         <div class="form-group mb-4">
           <label class="form-check-label">
-            <input class="form-check-input" type="checkbox" name="turnstile_enabled" value="1" <?= (!empty($_SESSION['install_config']['turnstile_enabled']) || empty($_SESSION['install_config'])) ? 'checked' : '' ?>>
+            <input class="form-check-input" type="checkbox" name="turnstile_enabled" value="1" <?= !empty($_SESSION['install_config']['turnstile_enabled']) ? 'checked' : '' ?>>
             启用 Cloudflare Turnstile 人机验证（启用后须填写下方两个 Key）
           </label>
         </div>
@@ -973,17 +974,17 @@ body {
         <div class="form-row">
           <div class="form-group mb-4">
             <label class="form-label">Turnstile Site Key</label>
-            <input class="form-control" type="text" name="turnstile_site_key" value="<?= htmlspecialchars($_SESSION['install_config']['turnstile_site_key'] ?? '3x00000000000000000000FF') ?>">
+            <input class="form-control" type="text" name="turnstile_site_key" value="<?= htmlspecialchars($_SESSION['install_config']['turnstile_site_key'] ?? '') ?>">
           </div>
           <div class="form-group mb-4">
             <label class="form-label">Turnstile Secret Key</label>
-            <input class="form-control" type="text" name="turnstile_secret_key" value="<?= htmlspecialchars($_SESSION['install_config']['turnstile_secret_key'] ?? '1x0000000000000000000000000000000AA') ?>">
+            <input class="form-control" type="text" name="turnstile_secret_key" value="<?= htmlspecialchars($_SESSION['install_config']['turnstile_secret_key'] ?? '') ?>">
           </div>
         </div>
         <?php if ($f('turnstile_keys')): ?>
         <div class="alert alert-danger"><i class="mdi mdi-alert-circle-outline mr-1"></i><?= $f('turnstile_keys') ?></div>
         <?php else: ?>
-        <div class="text-muted small mb-3">当前默认使用 Cloudflare 官方测试密钥，任何环境均可通过验证。正式上线前请在 https://dash.cloudflare.com 创建 Turnstile 站点并替换为您自己的密钥。</div>
+        <div class="text-muted small mb-3">正式上线前请在 https://dash.cloudflare.com 创建 Turnstile 站点并填写您自己的密钥。Site Key 与 Secret Key 必须来自同一个站点。</div>
         <?php endif; ?>
 
         <?php elseif ($step == STEP_INSTALL_DB): ?>

@@ -464,6 +464,12 @@ function huli_mcp_safe_outbound_url($url) {
     if ($scheme !== 'http' && $scheme !== 'https') { return false; }
     $host = strtolower($parts['host']);
     $port = isset($parts['port']) ? (int)$parts['port'] : ($scheme === 'https' ? 443 : 80);
+    if (!defined('HULI_MCP_ALLOWED_OUTBOUND_PORTS')) {
+        define('HULI_MCP_ALLOWED_OUTBOUND_PORTS', [80, 443]);
+    }
+    if (!in_array($port, (array)HULI_MCP_ALLOWED_OUTBOUND_PORTS, true)) {
+        return false;
+    }
     $selfHosts = [];
     foreach (['HTTP_HOST', 'SERVER_NAME', 'SERVER_ADDR'] as $k) {
         if (!empty($_SERVER[$k])) {

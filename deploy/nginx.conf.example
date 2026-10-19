@@ -1,0 +1,44 @@
+# huliapi Nginx 安全基线示例
+# 部署时替换 server_name、root 与 fastcgi_pass。
+server {
+    listen 80;
+    server_name example.com;
+    root /var/www/huliapi;
+    index index.php index.html;
+
+    # 禁止访问隐藏文件与目录（保留 ACME 校验）。
+    location ~ /\.(?!well-known) {
+        deny all;
+    }
+
+    # 日志目录整体拒绝。
+    location ^~ /logs/ {
+        deny all;
+    }
+
+    # 安装目录：安装完成后建议直接整段拒绝。
+    # 未安装时需要访问 /install/index.php，可保留下面两行并注释整段拒绝。
+    location = /install/index.php {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+    }
+    location ^~ /install/ {
+        deny all;
+    }
+
+    # 数据库脚本、锁文件、备份与日志文件禁止下载。
+    location ~* \.(sql|lock|log|ini|bak|old|swp|dist)$ {
+        deny all;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+    }
+}
