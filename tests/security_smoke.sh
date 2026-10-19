@@ -68,6 +68,8 @@ check_blocked "/README.md"
 check_blocked "/common/mcp/mcp_prompt_admin.md"
 check_ok "/"
 check_ok "/admin/login.php"
+check_ok "/gh_callback.php"
+check_ok "/admin/gh_callback.php"
 
 # 已安装状态下，安装器只允许查看完成页 GET，任何 POST 必须被拒绝。
 install_post_body="$(curl -s --max-time 10 -X POST -d 'step=4' "${BASE_URL}/install/index.php" || true)"
@@ -183,6 +185,14 @@ foreach ($cases as [$api, $want]) {
     else { echo "OK   api owner " . $api["endpoint"] . " => " . var_export($got, true) . "\n"; }
 }
 exit($bad);
+' "$ROOT_DIR" || failed=1
+
+php -r '
+require $argv[1] . "/config.php";
+require $argv[1] . "/common/gh_connect.php";
+$u = gh_connect_redirect_uri();
+if (preg_match("#/gh_callback\\.php$#", $u)) { echo "OK   oauth callback {$u}\n"; }
+else { fwrite(STDERR, "FAIL oauth callback {$u}\n"); exit(1); }
 ' "$ROOT_DIR" || failed=1
 
 if [[ "$failed" -ne 0 ]]; then

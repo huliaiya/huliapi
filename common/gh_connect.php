@@ -67,7 +67,7 @@ function gh_connect_base_url(): string {
 // GitHub OAuth Apps allow only one callback URL, so both scopes must use
 // the same path; the originating scope is carried in the session instead.
 function gh_connect_redirect_uri(string $scope = ''): string {
-    return gh_connect_base_url() . '/admin/gh_callback.php';
+    return gh_connect_base_url() . '/gh_callback.php';
 }
 
 function gh_connect_pdo(): ?PDO {
