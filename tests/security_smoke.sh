@@ -166,6 +166,25 @@ foreach ($cases as [$remote, $xff, $want]) {
 exit($bad);
 ' "$ROOT_DIR" || failed=1
 
+php -r '
+require $argv[1] . "/common/security/api_owner.php";
+$cases = [
+    [["visibility" => "private", "admin_id" => 0, "endpoint" => "u5_ip_abcd1234"], 5],
+    [["visibility" => "private", "admin_id" => 0, "endpoint" => "u12_x"], 12],
+    [["visibility" => "public", "admin_id" => 0, "endpoint" => "u5_ip"], null],
+    [["visibility" => "private", "admin_id" => 1, "endpoint" => "u5_ip"], null],
+    [["visibility" => "private", "admin_id" => 0, "endpoint" => "ip"], null],
+    [["visibility" => "private", "admin_id" => 0, "endpoint" => "xu5_ip"], null],
+];
+$bad = 0;
+foreach ($cases as [$api, $want]) {
+    $got = huli_api_owner_user_id($api);
+    if ($got !== $want) { fwrite(STDERR, "FAIL api owner " . json_encode($api) . " => " . var_export($got, true) . "\n"); $bad = 1; }
+    else { echo "OK   api owner " . $api["endpoint"] . " => " . var_export($got, true) . "\n"; }
+}
+exit($bad);
+' "$ROOT_DIR" || failed=1
+
 if [[ "$failed" -ne 0 ]]; then
     echo "security smoke failed"
     exit 1
