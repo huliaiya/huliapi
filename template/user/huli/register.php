@@ -65,9 +65,22 @@ try {
         }
         if ($mail_reg_enabled) {
             $db_code_ok = function_exists('huli_verification_code_check') ? huli_verification_code_check('register', $email, $code) : false;
-            if (!$db_code_ok && (empty($code) || !isset($_SESSION['reg_code']) || !isset($_SESSION['reg_code_expire']) || time() > $_SESSION['reg_code_expire'] || !hash_equals(strtolower($_SESSION['reg_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['reg_email']), strtolower($email)))) {
+            $session_code_available = isset($_SESSION['reg_code'], $_SESSION['reg_code_expire'], $_SESSION['reg_email'])
+                && time() <= (int)$_SESSION['reg_code_expire'];
+            if (!$db_code_ok && $session_code_available) {
+                $_SESSION['reg_code_attempts'] = (int)($_SESSION['reg_code_attempts'] ?? 0) + 1;
+                if ($_SESSION['reg_code_attempts'] > 5) {
+                    unset($_SESSION['reg_code'], $_SESSION['reg_email'], $_SESSION['reg_code_expire'], $_SESSION['reg_code_attempts']);
+                    throw new Exception('验证码尝试次数过多，请重新获取验证码');
+                }
+            }
+            $session_code_ok = $session_code_available
+                && hash_equals(strtolower((string)$_SESSION['reg_code']), strtolower($code))
+                && hash_equals(strtolower((string)$_SESSION['reg_email']), strtolower($email));
+            if (!$db_code_ok && !$session_code_ok) {
                 throw new Exception('邮箱验证码不正确或已过期');
             }
+            unset($_SESSION['reg_code_attempts']);
         }
         $stmt_check_user = $pdo->prepare("SELECT id FROM huli_users WHERE username = ?");
         $stmt_check_user->execute([$username]);
@@ -84,7 +97,7 @@ try {
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$username, $email, $qq, password_hash($password, PASSWORD_DEFAULT), $api_key]);
         if ($mail_reg_enabled) {
-            unset($_SESSION['reg_code'], $_SESSION['reg_email']);
+            unset($_SESSION['reg_code'], $_SESSION['reg_email'], $_SESSION['reg_code_attempts']);
         }
         if ($is_ajax) {
             header('Content-Type: application/json');

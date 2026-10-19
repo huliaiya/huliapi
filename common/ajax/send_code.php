@@ -149,6 +149,7 @@ if ($type === 'register') {
     $_SESSION['reg_code'] = $code;
     $_SESSION['reg_email'] = $email;
     $_SESSION['reg_code_expire'] = time() + 300;
+    unset($_SESSION['reg_code_attempts']);
 } elseif ($type === 'reset') {
     $mail->Subject = '【' . ($settings['site_name'] ?? '系统') . '】密码重置 - 您的验证码';
     $mail->Body = '
