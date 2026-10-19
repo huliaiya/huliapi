@@ -88,7 +88,7 @@ function getCallCountStyle($count) {
 <link rel="canonical" href="https://api.ipojie.com">
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <title>API大厅 - <?php echo htmlspecialchars($site_name ?? 'huliapi'); ?></title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">

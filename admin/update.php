@@ -500,7 +500,7 @@ function refreshCheck() {
     }
     $('#update-source').html(sourceText);
     if (info.body && info.body.length) {
-      $('#changelog').html('<pre class="bg-light p-3 rounded" style="white-space: pre-wrap;">' + esc(info.body) + '</pre>');
+      $('#changelog').html('<pre class="bg-light p-3 rounded" style="white-space: pre-wrap; overflow-x: auto; word-break: break-word;">' + esc(info.body) + '</pre>');
     } else if (info.name) {
       $('#changelog').html('<p>' + esc(info.name) + '</p>');
     } else {

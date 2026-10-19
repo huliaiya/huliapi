@@ -65,6 +65,15 @@ try {
 .table>thead>tr>th:last-child{z-index:3}
 @media (max-width: 768px) {
     .d-col-id, .d-col-mode, .d-col-progress, .d-col-schedule, .d-col-last, .d-col-created { display: none !important; }
+    .table>thead>tr>th:last-child,
+    .table>tbody>tr>td:last-child{
+        position:static;
+        width:auto!important;
+        white-space:normal;
+        background:transparent!important;
+        background-image:none!important;
+        box-shadow:none}
+    .d-col-actions .btn{width:auto}
 }
 </style>
 </head>

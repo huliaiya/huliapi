@@ -73,20 +73,26 @@ try {
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" type="text/css" href="../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
+<style>
+.d-col-ip code { word-break: break-all; }
+@media (max-width: 768px) {
+    .d-col-location, .d-col-network, .d-col-ua { display: none !important; }
+}
+</style>
 
 </head>
 <body>
 <div class="container-fluid">
   <div class="row">
     <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
             <div>
                 <h2 class="fw-bold mb-1">登录日志</h2>
                 <div class="text-muted small">仅统计后台管理员的登录记录</div>
