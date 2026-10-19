@@ -29,6 +29,7 @@ try {
         die("未找到该友链信息");
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $data = [
             'site_name' => trim($_POST['site_name'] ?? ''),
             'url' => trim($_POST['url'] ?? ''),
@@ -240,5 +241,6 @@ function previewLogo(url) {
     }
 }
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

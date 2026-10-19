@@ -22,6 +22,7 @@ try {
 } catch (PDOException $e) { $nickname = $username; $admin_email = ''; }
 $feedback_msg = ''; $feedback_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    huli_csrf_require();
         $type = $_POST['form_type'] ?? '';
         if ($type === 'password') {
         $current_password = $_POST['current_password']; $new_password = $_POST['new_password']; $confirm_password = $_POST['confirm_password'];
@@ -235,5 +236,6 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
     });
 })();
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

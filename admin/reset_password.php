@@ -35,6 +35,7 @@ $success_msg = '';
 $turnstile_reason = '';
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $email = trim($_POST['email']);
         $code = trim($_POST['code']);
         $password = $_POST['password'] ?? '';
@@ -365,5 +366,6 @@ $(document).ready(function() {
     }
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

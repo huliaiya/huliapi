@@ -19,6 +19,7 @@ try {
         if (!$announcement) { header('Location: announcement_list.php'); exit; }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $id = isset($_POST['id']) ? intval($_POST['id']) : null;
         $title = trim($_POST['title']);
         $content = trim($_POST['content']);
@@ -116,5 +117,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <script type="text/javascript" src="../assets/js/popper.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="../assets/js/main.min.js"></script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

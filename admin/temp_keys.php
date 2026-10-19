@@ -17,6 +17,7 @@ try {
         if (!in_array('call_limit', $columns)) $pdo->exec("ALTER TABLE `huli_users` ADD `call_limit` INT NULL DEFAULT NULL AFTER `expires_at`;");
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        huli_csrf_require();
         if ($_POST['action'] === 'cleanup') {
             $stmt = $pdo->prepare("DELETE FROM huli_users WHERE username LIKE 'temp_%' AND (expires_at < NOW() OR call_limit <= 0)");
             $deleted_count = $stmt->execute() ? $stmt->rowCount() : 0;
@@ -163,5 +164,6 @@ $(document).ready(function() {
     <?php endif; ?>
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

@@ -15,6 +15,7 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        huli_csrf_require();
         if ($_POST['action'] === 'clear' && isset($_POST['range'])) {
             $range = $_POST['range'];
             $where = '';
@@ -197,5 +198,6 @@ try {
 <script type="text/javascript" src="../assets/js/jquery.min.js"></script>
 <script type="text/javascript" src="../assets/js/popper.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

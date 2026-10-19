@@ -35,6 +35,46 @@ function huli_geo_lookup($ip, $pdo = null) {
     return ['country' => '未知', 'region' => '未知', 'city' => '未知', 'isp' => '未知'];
 }
 
+function huli_login_lock_message($pdo, $actor_type, $username) {
+    $ip = huli_get_client_ip();
+    if ($actor_type === 'admin') {
+        $table = 'huli_login_logs';
+        $name_column = 'actor_name';
+    } elseif ($actor_type === 'user') {
+        $table = 'huli_user_login_logs';
+        $name_column = 'username';
+    } else {
+        return '';
+    }
+    $username = trim((string)$username);
+    $rules = [
+        ['condition' => 'ip = ?', 'params' => [$ip], 'limit' => 5, 'window' => 900, 'scope' => 'ip'],
+        ['condition' => $name_column . ' = ?', 'params' => [$username], 'limit' => 10, 'window' => 3600, 'scope' => 'account'],
+    ];
+    foreach ($rules as $rule) {
+        if ($rule['scope'] === 'account' && $username === '') {
+            continue;
+        }
+        try {
+            $window = (int)$rule['window'];
+            $sql = "SELECT COUNT(*) AS total, TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(MIN(login_at), INTERVAL " . $window . " SECOND)) AS retry_after"
+                . " FROM " . $table
+                . " WHERE status = 'failed' AND " . $rule['condition']
+                . " AND login_at >= DATE_SUB(NOW(), INTERVAL " . $window . " SECOND)";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($rule['params']);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && (int)$row['total'] >= (int)$rule['limit']) {
+                $retry = max(60, (int)$row['retry_after']);
+                return '登录尝试过于频繁，请 ' . (int)ceil($retry / 60) . ' 分钟后再试。';
+            }
+        } catch (Throwable $e) {
+            error_log('[login] 登录限流检查失败: ' . $e->getMessage());
+        }
+    }
+    return '';
+}
+
 function huli_record_login($pdo, $actor_type, $actor_id, $actor_name, $status, $extra = []) {
     $ip = huli_get_client_ip();
     $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255);

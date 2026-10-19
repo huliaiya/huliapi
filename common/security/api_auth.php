@@ -28,8 +28,12 @@ function checkApiRateLimit($pdo, $settings, $scope, $identifier, $limit, $window
         $stmt = $pdo->prepare("INSERT INTO huli_rate_limits (scope, identifier, window_start, request_count) VALUES (?, ?, ?, LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE request_count = LAST_INSERT_ID(request_count + 1)");
         $stmt->execute([$scope, $identifier, $window_start]);
         $count = (int)$pdo->query("SELECT LAST_INSERT_ID()")->fetchColumn();
-        if ($count % 64 === 0) {
-            $pdo->prepare("DELETE FROM huli_rate_limits WHERE window_start < ?")->execute([time() - 86400]);
+        if (mt_rand(1, 100) === 1) {
+            try {
+                $pdo->prepare("DELETE FROM huli_rate_limits WHERE window_start < ?")->execute([time() - 86400]);
+            } catch (Throwable $e) {
+                error_log('huliapi 限速记录清理失败: ' . $e->getMessage());
+            }
         }
         return $count > $limit;
     } catch (Throwable $e) {
