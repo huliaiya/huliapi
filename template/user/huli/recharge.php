@@ -17,6 +17,7 @@ if (!file_exists(ROOT_PATH . 'config.php')) {
 }
 require_once ROOT_PATH . 'config.php';
 require_once ROOT_PATH . 'common/payment/order_fulfillment.php';
+huli_csrf_require();
 $plan_id = intval($_POST['plan_id']);
 $user_id = $_SESSION['user_id'];
 try {

@@ -484,7 +484,7 @@ function getStatusBadge($status) {
                   </div>
                   <div class="ml-3 flex-1">
                     <h3 class="text-sm font-semibold text-gray-900">
-                      <a href="<?= htmlspecialchars($link['url']) ?>" target="_blank" class="hover:text-primary transition-colors">
+                      <a href="<?= huli_is_safe_http_url($link['url']) ? htmlspecialchars($link['url']) : '#' ?>" target="_blank" class="hover:text-primary transition-colors">
                         <?= htmlspecialchars($link['site_name']) ?>
                         <i class="fa fa-external-link text-xs ml-1 text-gray-400"></i>
                       </a>

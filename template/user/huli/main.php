@@ -45,6 +45,7 @@ try {
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_qq'])) {
+        huli_csrf_require();
         $new_qq = trim($_POST['qq'] ?? '');
         if ($new_qq !== '' && !preg_match('/^\d{5,12}$/', $new_qq)) {
             $_SESSION['feedback_msg'] = '请输入有效的QQ号（5-12位数字）。';
@@ -75,6 +76,7 @@ try {
         }
     }
     if(isset($_POST['cdkey']) && !empty($_POST['cdkey'])) {
+        huli_csrf_require();
         $cdkey = trim($_POST['cdkey']);
         $pdo->beginTransaction();
         try {
@@ -826,5 +828,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 })();
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

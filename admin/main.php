@@ -473,7 +473,7 @@ function formatUptime($seconds) {
 <div class="container-fluid">
     <?php if ($db_error): ?>
     <div class="alert alert-danger mt-3">
-        <?php echo $db_error; ?>
+        <?php echo htmlspecialchars($db_error); ?>
     </div>
     <?php endif; ?>
     <?php $login_notice = gh_connect_enabled() ? gh_connect_take_flash('admin') : null; ?>

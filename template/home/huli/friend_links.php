@@ -195,10 +195,10 @@ try {
         if (mb_strlen($site_name, 'UTF-8') > 50) {
             throw new Exception("网站名称长度不能超过50个字符");
         }
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        if (!huli_is_safe_http_url($url)) {
             throw new Exception("网站URL格式不正确，请以http://或https://开头");
         }
-        if (!empty($logo_url) && !filter_var($logo_url, FILTER_VALIDATE_URL)) {
+        if (!empty($logo_url) && !huli_is_safe_http_url($logo_url)) {
             throw new Exception("LOGO URL格式不正确，请以http://或https://开头");
         }
         if (empty($email)) {
@@ -453,7 +453,10 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                         </div>
                         <div class="friend-card-grid">
                             <?php foreach ($links as $link): ?>
-                                <?php $link_host = parse_url($link['url'], PHP_URL_HOST) ?: $link['url']; ?>
+                                <?php
+                                $link_host = parse_url($link['url'], PHP_URL_HOST) ?: $link['url'];
+                                $link_url_is_safe = huli_is_safe_http_url($link['url']);
+                                ?>
                                 <div class="friend-card fade-in">
                                     <div class="friend-status">
                                         <?php if ($link['status_check'] == 'broken'): ?>
@@ -483,9 +486,13 @@ body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; backgro
                                             </div>
                                             <div class="flex-grow-1">
                                                 <h5 class="card-title mb-1 fw-medium">
+                                                    <?php if ($link_url_is_safe): ?>
                                                     <a href="<?= htmlspecialchars($link['url']) ?>" target="_blank" rel="noopener noreferrer">
                                                         <?= htmlspecialchars($link['site_name']) ?>
                                                     </a>
+                                                    <?php else: ?>
+                                                    <span><?= htmlspecialchars($link['site_name']) ?></span>
+                                                    <?php endif; ?>
                                                 </h5>
                                                 <p class="card-text text-sm">
                                                     <?= htmlspecialchars($link['description'] ?? '暂无描述') ?>

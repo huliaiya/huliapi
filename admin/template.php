@@ -221,7 +221,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <div class="card template-card <?php echo $template['is_active'] ? 'active' : ''; ?>">
                       <div class="template-thumbnail">
                         <?php if (file_exists("../template/home/{$template['folder']}/preview.jpg")): ?>
-                          <img src="../template/home/<?php echo $template['folder']; ?>/preview.jpg" alt="<?php echo $template['name']; ?>预览图">
+                          <img src="../template/home/<?php echo htmlspecialchars($template['folder']); ?>/preview.jpg" alt="<?php echo htmlspecialchars($template['name']); ?>预览图">
                         <?php else: ?>
                           <i class="mdi mdi-image-off" style="font-size: 3rem; color: #ccc;"></i>
                         <?php endif; ?>
@@ -291,7 +291,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <div class="card template-card <?php echo $template['is_active'] ? 'active' : ''; ?>">
                       <div class="template-thumbnail">
                         <?php if (file_exists("../template/user/{$template['folder']}/preview.jpg")): ?>
-                          <img src="../template/user/<?php echo $template['folder']; ?>/preview.jpg" alt="<?php echo $template['name']; ?>预览图">
+                          <img src="../template/user/<?php echo htmlspecialchars($template['folder']); ?>/preview.jpg" alt="<?php echo htmlspecialchars($template['name']); ?>预览图">
                         <?php else: ?>
                           <i class="mdi mdi-image-off" style="font-size: 3rem; color: #ccc;"></i>
                         <?php endif; ?>

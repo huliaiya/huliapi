@@ -23,6 +23,7 @@ huli_ensure_user_push_defaults($pdo, $user_id);
 $feedback_msg = '';
 $feedback_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    huli_csrf_require();
     if (isset($_POST['test_channel'])) {
         $valid = ['email','wecom','dingtalk','feishu','bark','webhook'];
         $ch = $_POST['test_channel'];
@@ -250,5 +251,6 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;ba
         <?php foreach ($channels as $c) { echo user_channel_card($c, $mail_cfg_ok); } ?>
     </div>
 </div>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

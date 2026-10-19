@@ -549,6 +549,7 @@ CREATE TABLE `huli_verification_codes` (
   `code_type` varchar(32) NOT NULL DEFAULT '' COMMENT 'register/reset/admin_reset/friend_link/feedback',
   `email` varchar(255) NOT NULL DEFAULT '',
   `code_hash` char(64) NOT NULL DEFAULT '',
+  `attempts` tinyint(3) unsigned NOT NULL DEFAULT 0,
   `expires_at` int(10) unsigned NOT NULL DEFAULT 0,
   `created_at` int(10) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),

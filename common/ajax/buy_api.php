@@ -10,6 +10,7 @@ function json_response($success, $message) {
 if (!isset($_SESSION['user_id'])) { json_response(false, '请先登录。'); }
 if (!isset($_POST['item_id'])) { json_response(false, '无效的请求。'); }
 require_once '../../config.php';
+huli_csrf_require();
 $user_id = $_SESSION['user_id'];
 $item_id = intval($_POST['item_id']);
 try {

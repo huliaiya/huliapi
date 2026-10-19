@@ -40,6 +40,7 @@ if (!empty($_SESSION['gh_connect_error'])) {
     unset($_SESSION['gh_connect_error']);
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    huli_csrf_require();
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     if (!huli_turnstile_verify($turnstile_reason)) {
@@ -303,5 +304,6 @@ $(document).ready(function() {
     });
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

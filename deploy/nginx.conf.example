@@ -16,6 +16,17 @@ server {
         deny all;
     }
 
+    # CLI 脚本、测试脚本与部署示例禁止通过 Web 访问。
+    location ^~ /cli/ {
+        deny all;
+    }
+    location ^~ /tests/ {
+        deny all;
+    }
+    location ^~ /deploy/ {
+        deny all;
+    }
+
     # 安装目录：安装完成后建议直接整段拒绝。
     # 未安装时需要访问 /install/index.php，可保留下面两行并注释整段拒绝。
     location = /install/index.php {
