@@ -222,7 +222,7 @@ try {
             }
             $proxy_script = "@error_reporting(0);\n\$remote_url = '" . addslashes($remote_url) . "';\n\$method = '" . $method . "';\n\$params = array_merge(\$_GET, \$_POST);\n\$ch = curl_init();\n";
             $proxy_script .= "if (\$method === 'GET' && !empty(\$params)) { \$remote_url .= (strpos(\$remote_url, '?') === false ? '?' : '&') . http_build_query(\$params); }\n";
-            $proxy_script .= "curl_setopt(\$ch, CURLOPT_URL, \$remote_url);\ncurl_setopt(\$ch, CURLOPT_RETURNTRANSFER, true);\ncurl_setopt(\$ch, CURLOPT_FOLLOWLOCATION, true);\n";
+            $proxy_script .= "curl_setopt(\$ch, CURLOPT_URL, \$remote_url);\ncurl_setopt(\$ch, CURLOPT_RETURNTRANSFER, true);\ncurl_setopt(\$ch, CURLOPT_FOLLOWLOCATION, false);\ncurl_setopt(\$ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);\n";
             $proxy_script .= "if (\$method === 'POST') { curl_setopt(\$ch, CURLOPT_POST, true); curl_setopt(\$ch, CURLOPT_POSTFIELDS, http_build_query(\$params)); }\n";
             $proxy_script .= "\$headers = []; foreach (getallheaders() as \$h_name => \$h_value) { if (in_array(strtolower(\$h_name), ['user-agent', 'accept', 'accept-language'])) { \$headers[] = \$h_name . ': ' . \$h_value; } }\n";
             $proxy_script .= "curl_setopt(\$ch, CURLOPT_HTTPHEADER, \$headers);\n\$response = curl_exec(\$ch);\n\$http_code = curl_getinfo(\$ch, CURLINFO_HTTP_CODE);\n\$content_type = curl_getinfo(\$ch, CURLINFO_CONTENT_TYPE);\ncurl_close(\$ch);\n";
