@@ -38,6 +38,30 @@ function huli_installer_disclaimer_text() {
         "如已阅读并同意上述全部条款，请在下方输入框中输入“我已同意”后开始安装。";
 }
 
+function huli_installer_log_html($log) {
+    $log = (string)$log;
+    if (trim($log) === '') { return ''; }
+    $html = '';
+    foreach (explode("\n", $log) as $line) {
+        $line = trim($line);
+        if ($line === '') { continue; }
+        $class = 'terminal-line';
+        if (strpos($line, '✓') === 0) {
+            $class .= ' terminal-success';
+        } elseif (strpos($line, '✗') === 0 || strpos($line, '错误') !== false) {
+            $class .= ' terminal-error';
+        } elseif (strpos($line, '⚠') === 0) {
+            $class .= ' terminal-warning';
+        } elseif (strpos($line, '>') === 0) {
+            $class .= ' terminal-prompt';
+        } else {
+            $class .= ' terminal-info';
+        }
+        $html .= '<div class="' . $class . '">' . htmlspecialchars($line, ENT_QUOTES, 'UTF-8') . '</div>';
+    }
+    return $html;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $action = $_POST['action'] ?? '';
@@ -154,6 +178,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db_port = (int)($db['port'] ?? 3306);
                 $install = $_SESSION['install_config'];
                 $log = '';
+                $_SESSION['install_log'] = '';
+                $dropped_count = 0;
+                $created_count = 0;
+                $import_failed_count = 0;
                 $log .= "> 正在生成数据库配置文件...\n";
                 $config_path = __DIR__ . '/../config.php';
                 $csrf_tail = '';
@@ -187,6 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     foreach ($tables as $table) {
                         try {
                             $pdo->exec("DROP TABLE `{$table}`");
+                            $dropped_count++;
                             $log .= "✓ 已删除表: {$table}\n";
                         } catch (PDOException $e) {
                             $log .= "⚠ 删除表失败: {$table} (" . $e->getMessage() . ")\n";
@@ -194,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
-                $log .= "✓ 数据库清理完成\n";
+                $log .= "✓ 数据库清理完成 (共删除 {$dropped_count} 个表)\n";
                 $log .= "> 正在解析SQL文件...\n";
                 $sql = @file_get_contents('install.sql');
                 if (!$sql) throw new Exception('无法读取 install.sql 文件');
@@ -204,28 +233,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $command = trim($command);
                     if (!empty($command)) {
                         $table_name = '';
+                        $command_type = 'sql';
                         if (preg_match('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([^\s`(]+)/i', $command, $matches)) {
                             $table_name = $matches[1];
+                            $command_type = 'create';
                         }
                         if (empty($table_name) && preg_match('/INSERT\s+INTO\s+`?([^\s`]+)/i', $command, $matches)) {
                             $table_name = $matches[1];
+                            $command_type = 'insert';
                         }
                         if (empty($table_name)) $table_name = 'SQL命令';
                         try {
                             $start_time = microtime(true);
                             $pdo->exec($command);
                             $time_taken = round((microtime(true) - $start_time) * 1000, 2);
-                            $log .= "✓ [{$table_name}] 执行成功 ({$time_taken}ms)\n";
+                            if ($command_type === 'create') {
+                                $created_count++;
+                                $log .= "✓ 已创建表: {$table_name} ({$time_taken}ms)\n";
+                            } elseif ($command_type === 'insert') {
+                                $log .= "✓ 已写入初始数据: {$table_name} ({$time_taken}ms)\n";
+                            } else {
+                                $log .= "✓ [{$table_name}] 执行成功 ({$time_taken}ms)\n";
+                            }
                         } catch (PDOException $e) {
                             if (strpos($e->getMessage(), 'already exists') !== false) {
                                 $log .= "⚠ [{$table_name}] 表已存在 (跳过)\n";
                             } else {
+                                $import_failed_count++;
                                 $log .= "✗ [{$table_name}] 执行失败: " . $e->getMessage() . "\n";
                             }
                         }
                     }
                 }
-                $log .= "✓ 数据库导入完成\n";
+                $log .= "✓ 数据库导入完成 (创建 {$created_count} 个表，失败 {$import_failed_count} 条语句)\n";
                 $adminStmt = $pdo->prepare("UPDATE huli_admins SET username = ?, password = ?, email = ?, qq = ?, nickname = ? WHERE id = 1");
                 $adminUpdated = $adminStmt->execute([
                     $install['admin_username'],
@@ -281,6 +321,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } catch (Exception $e) {
         $error = $e->getMessage();
+        if (isset($action) && $action === 'install_db' && isset($log)) {
+            $log .= "✗ 安装失败: " . $e->getMessage() . "\n";
+            $_SESSION['install_log'] = $log;
+        }
         if ($action === 'install_db' && $config_written_this_run) {
             if (file_exists(__DIR__ . '/../config.php')) @unlink(__DIR__ . '/../config.php');
             if (file_exists(__DIR__ . '/install.lock')) @unlink(__DIR__ . '/install.lock');
@@ -996,27 +1040,9 @@ body {
         <div class="terminal-container">
           <h5 class="mb-3"><i class="mdi mdi-console-line mr-2"></i>安装终端</h5>
           <div class="terminal" id="install-terminal">
-            <?php if (!empty($_SESSION['install_log'])): ?>
-              <?php
-              $log_lines = explode("\n", $_SESSION['install_log']);
-              foreach ($log_lines as $line):
-                $line = trim($line);
-                if (empty($line)) continue;
-                $class = 'terminal-line';
-                if (strpos($line, '✓') === 0) {
-                  $class .= ' terminal-success';
-                } elseif (strpos($line, '✗') === 0 || strpos($line, '错误') !== false) {
-                  $class .= ' terminal-error';
-                } elseif (strpos($line, '⚠') === 0) {
-                  $class .= ' terminal-warning';
-                } elseif (strpos($line, '>') === 0) {
-                  $class .= ' terminal-prompt';
-                } else {
-                  $class .= ' terminal-info';
-                }
-              ?>
-              <div class="<?= $class ?>"><?= htmlspecialchars($line) ?></div>
-              <?php endforeach; ?>
+            <?php $install_log_html = huli_installer_log_html($_SESSION['install_log'] ?? ''); ?>
+            <?php if ($install_log_html !== ''): ?>
+              <?= $install_log_html ?>
             <?php else: ?>
               <div class="terminal-line terminal-prompt">> 准备开始安装...</div>
               <div class="terminal-line terminal-prompt">> 点击「开始安装」按钮继续</div>
@@ -1094,6 +1120,15 @@ body {
             <h5><i class="mdi mdi-security mr-2"></i>安全提示</h5>
             <p class="mb-0">为了系统安全，请立即删除或重命名 install 目录</p>
           </div>
+          <?php $install_log_html = huli_installer_log_html($_SESSION['install_log'] ?? ''); ?>
+          <?php if ($install_log_html !== ''): ?>
+          <div class="terminal-container text-start mt-4">
+            <h5 class="mb-3"><i class="mdi mdi-console-line mr-2"></i>安装日志</h5>
+            <div class="terminal" id="install-complete-terminal">
+              <?= $install_log_html ?>
+            </div>
+          </div>
+          <?php endif; ?>
         </div>
         <?php endif; ?>
 
