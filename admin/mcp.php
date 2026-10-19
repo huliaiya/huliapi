@@ -31,12 +31,21 @@ $feedback_msg = '';
 $feedback_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    huli_csrf_require();
     if ($_POST['action'] === 'generate') {
         $token = huli_mcp_generate_token('admin');
         huli_mcp_store_token('admin', $admin_id, $token);
         $_SESSION['admin_mcp_new_token'] = $token;
         $feedback_msg = 'MCP Token 已生成，请立即复制保存（刷新后不再显示）。';
         $feedback_type = 'success';
+        header('Location: mcp.php');
+        exit;
+    }
+    if ($_POST['action'] === 'doc_code') {
+        if ($hasToken) {
+            $doc_code = huli_mcp_issue_access_code('admin', (int)$admin_id);
+            if ($doc_code !== '') { $_SESSION['admin_mcp_doc_code'] = $doc_code; }
+        }
         header('Location: mcp.php');
         exit;
     }
@@ -56,6 +65,13 @@ if (isset($_SESSION['admin_mcp_new_token'])) {
     unset($_SESSION['admin_mcp_new_token']);
 }
 
+$mcpAccessUrl = '';
+$docCode = $_SESSION['admin_mcp_doc_code'] ?? '';
+unset($_SESSION['admin_mcp_doc_code']);
+if ($docCode !== '') {
+    $mcpAccessUrl = huli_mcp_public_url('/mcp_access.php?code=' . urlencode($docCode));
+}
+
 $mcpUrl = huli_mcp_public_url('/mcp.php');
 
 $tools = huli_mcp_list_tools();
@@ -67,7 +83,6 @@ if ($configToken === '') {
 $configSite = $settings['site_name'] ?? 'huliapi';
 
 $aiInstruction = '';
-$mcpAccessUrl = '';
 $mcpPromptFile = 'common/mcp/mcp_prompt_admin.md';
 $mcpPromptUrl = huli_mcp_public_url('/mcp_instructions_admin.php');
 if ($newToken !== '') {
@@ -231,6 +246,17 @@ $mcpLogSuccessRate = $mcpLogTotal > 0 ? round(($mcpLogSuccess / $mcpLogTotal) * 
                     <input type="hidden" name="action" value="revoke">
                     <button type="submit" class="btn btn-danger" onclick="return confirm('撤销后该 MCP 服务立即不可用，确定继续？');"><i class="mdi mdi-key-remove me-1"></i>撤销 Token</button>
                 </form>
+                <form method="POST" action="mcp.php" class="d-inline">
+                    <input type="hidden" name="action" value="doc_code">
+                    <?php echo huli_csrf_field(); ?>
+                    <button type="submit" class="btn btn-outline-primary"><i class="mdi mdi-file-download-outline me-1"></i>生成接入文档链接</button>
+                </form>
+                <?php endif; ?>
+                <?php if ($mcpAccessUrl !== ''): ?>
+                <div class="alert alert-info mt-3 mb-0 py-2 small">
+                    <i class="mdi mdi-clock-outline me-1"></i>接入文档链接（10 分钟内有效，仅可使用一次）：
+                    <a href="<?php echo htmlspecialchars($mcpAccessUrl); ?>" target="_blank" rel="noopener" class="text-break">下载接入指令</a>
+                </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -413,5 +439,6 @@ $(function() {
     });
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>
