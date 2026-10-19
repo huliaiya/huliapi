@@ -3,12 +3,16 @@
 --   mysql -u用户名 -p 数据库名 < upgrade_updater_db_tables.sql
 -- 幂等：重复执行不报错。新装站点无需执行（install/install.sql 已内置）。
 
-CREATE TABLE IF NOT EXISTS `huli_update_jobs` (
+CREATE TABLE IF NOT EXISTS `huli_updater_jobs` (
   `token` varchar(40) NOT NULL COMMENT '任务令牌',
   `payload` mediumtext NOT NULL COMMENT '任务 JSON（info/site_url/admin_id）',
   `updated_at` int(10) unsigned NOT NULL COMMENT '更新时间戳',
   PRIMARY KEY (`token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='在线更新任务（重要数据落库）';
+
+-- 旧版本可能遗留 huli_update_jobs。确认不再使用后，可执行：
+--   php cli/archive_legacy_update_table.php --yes
+-- 将旧表重命名为 huli_update_jobs_legacy_* 归档，不做删除。
 
 CREATE TABLE IF NOT EXISTS `huli_update_history` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',

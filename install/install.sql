@@ -328,8 +328,8 @@ INSERT INTO `huli_settings` (`setting_key`,`setting_value`) VALUES
 ('temp_key_duration','24'),
 ('temp_key_limit','100'),
 ('turnstile_enabled','0'),
-('turnstile_secret_key','1x0000000000000000000000000000000AA'),
-('turnstile_site_key','3x00000000000000000000FF'),
+('turnstile_secret_key',''),
+('turnstile_site_key',''),
 ('enable_free_qps_limit','1'),
 ('qps_mode','database'),
 ('redis_host','127.0.0.1'),
@@ -567,8 +567,8 @@ CREATE TABLE `huli_oauth_states` (
   KEY `idx_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='第三方登录 state（重要数据落库）';
 
-DROP TABLE IF EXISTS `huli_update_jobs`;
-CREATE TABLE `huli_update_jobs` (
+DROP TABLE IF EXISTS `huli_updater_jobs`;
+CREATE TABLE `huli_updater_jobs` (
   `token` varchar(40) NOT NULL COMMENT '任务令牌',
   `payload` mediumtext NOT NULL COMMENT '任务 JSON（info/site_url/admin_id）',
   `updated_at` int(10) unsigned NOT NULL COMMENT '更新时间戳',

@@ -279,6 +279,19 @@ function huli_push_webhook($cfg, $title, $content, $fields = null) {
     if (!huli_mcp_safe_outbound_url($url)) {
         return ['ok' => false, 'err' => 'webhook 地址不合法'];
     }
+    $parts = @parse_url((string)$url);
+    if (!$parts || empty($parts['scheme']) || empty($parts['host'])) {
+        return ['ok' => false, 'err' => 'webhook 目标地址不合法'];
+    }
+    $scheme = strtolower((string)$parts['scheme']);
+    $port = isset($parts['port']) ? (int)$parts['port'] : ($scheme === 'https' ? 443 : 80);
+    $pinnedIp = function_exists('huli_mcp_resolve_outbound_ip')
+        ? huli_mcp_resolve_outbound_ip((string)$parts['host'], $port, $scheme)
+        : '';
+    if ($pinnedIp === '') {
+        return ['ok' => false, 'err' => 'webhook 目标地址不允许访问'];
+    }
+    if (strpos($pinnedIp, ':') !== false) { $pinnedIp = '[' . trim($pinnedIp, '[]') . ']'; }
     $method = strtoupper($cfg['method'] ?? 'POST');
     $headers = [];
     if (!empty($cfg['headers'])) {
@@ -307,6 +320,11 @@ function huli_push_webhook($cfg, $title, $content, $fields = null) {
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
     curl_setopt($ch, CURLOPT_TIMEOUT, 12);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+    curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+    if (defined('CURLOPT_REDIR_PROTOCOLS')) { curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); }
+    curl_setopt($ch, CURLOPT_RESOLVE, [$parts['host'] . ':' . $port . ':' . $pinnedIp]);
     curl_setopt($ch, CURLOPT_USERAGENT, 'huliapi-push/1.0');
     $body = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);

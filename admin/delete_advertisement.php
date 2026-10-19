@@ -15,6 +15,9 @@ $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
 $feedback_type = '';
 $advertisement = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_delete'])) {
+    huli_csrf_require();
+}
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if ($id <= 0) {
     die("参数错误：广告ID不存在");
@@ -29,7 +32,6 @@ try {
         die("未找到该广告信息");
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_delete'])) {
-        huli_csrf_require();
         $deleteStmt = $pdo->prepare("DELETE FROM huli_advertisements WHERE id = ?");
         $deleteStmt->execute([$id]);
         if ($deleteStmt->rowCount() > 0) {

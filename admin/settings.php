@@ -33,6 +33,17 @@ $feedback_msg = ''; $feedback_type = ''; $page_title = '系统设置';
 $turnstile_feedback_msg = ''; $turnstile_feedback_type = '';
 
 function huli_music_http_get($url, $token = '') {
+    $parts = @parse_url((string)$url);
+    if (!$parts || empty($parts['scheme']) || empty($parts['host'])) {
+        return ['ok' => false, 'code' => 0, 'err' => '目标地址无效'];
+    }
+    $scheme = strtolower((string)$parts['scheme']);
+    $port = isset($parts['port']) ? (int)$parts['port'] : ($scheme === 'https' ? 443 : 80);
+    $pinnedIp = huli_mcp_resolve_outbound_ip((string)$parts['host'], $port, $scheme);
+    if ($pinnedIp === '') {
+        return ['ok' => false, 'code' => 0, 'err' => '目标地址不允许访问'];
+    }
+    if (strpos($pinnedIp, ':') !== false) { $pinnedIp = '[' . trim($pinnedIp, '[]') . ']'; }
     $headers = ['Accept: application/vnd.github.v3+json', 'User-Agent: huliapi-settings'];
     if ($token !== '') $headers[] = 'Authorization: token ' . $token;
     $ch = curl_init($url);
@@ -41,6 +52,11 @@ function huli_music_http_get($url, $token = '') {
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
     curl_setopt($ch, CURLOPT_TIMEOUT, 12);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+    curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+    if (defined('CURLOPT_REDIR_PROTOCOLS')) { curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); }
+    curl_setopt($ch, CURLOPT_RESOLVE, [$parts['host'] . ':' . $port . ':' . $pinnedIp]);
     $body = curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curl_err = curl_errno($ch) ? curl_error($ch) : '';
@@ -82,7 +98,7 @@ $defaults = [
     'allow_registration' => 1, 'allow_temp_key' => 1, 'temp_key_duration' => 24, 'temp_key_limit' => 100,
     'mail_smtp_host' => '', 'mail_smtp_port' => '465', 'mail_smtp_secure' => 'ssl', 'mail_smtp_user' => '', 'mail_smtp_pass' => '',
     'admin_notify_email' => '', 'mail_reg_enabled' => 0, 'mail_forgot_enabled' => 0, 'turnstile_enabled' => 0,
-    'turnstile_site_key' => '3x00000000000000000000FF', 'turnstile_secret_key' => '1x0000000000000000000000000000000AA',
+    'turnstile_site_key' => '', 'turnstile_secret_key' => '',
     'qps_mode' => 'database', 'redis_host' => '127.0.0.1', 'redis_port' => 6379, 'redis_username' => '', 'redis_password' => '', 'redis_database' => 0,
     'enable_free_qps_limit' => 1, 'free_qps_seconds' => 1, 'free_qps_limit' => 10, 'enable_member_qps_limit' => 1, 'member_qps_seconds' => 1, 'member_qps_limit' => 20,
     'warn_points_threshold' => 5, 'warn_balance_threshold' => 0.01, 'enable_warn_notification' => 1, 'enable_daily_points' => 0, 'daily_free_points' => 100, 'enable_daily_points_notification' => 1,
@@ -94,7 +110,7 @@ $defaults = [
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $init_sql = "INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('turnstile_enabled', '0'), ('turnstile_site_key', '3x00000000000000000000FF'), ('turnstile_secret_key', '1x0000000000000000000000000000000AA'), ('qps_mode', 'database'), ('redis_host', '127.0.0.1'), ('redis_port', '6379'), ('redis_password', ''), ('redis_database', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100'), ('enable_daily_points_notification', '1'), ('icp_record_number', ''), ('police_record_number', ''), ('favicon_url', ''), ('yn_github_token', ''), ('update_github_token', ''), ('update_schedule_enabled', '0'), ('update_schedule_time', '08:00'), ('site_url', ''), ('ghconnect_enabled', '0'), ('ghconnect_client_id', ''), ('ghconnect_client_secret', '');";
+    $init_sql = "INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('turnstile_enabled', '0'), ('turnstile_site_key', ''), ('turnstile_secret_key', ''), ('qps_mode', 'database'), ('redis_host', '127.0.0.1'), ('redis_port', '6379'), ('redis_password', ''), ('redis_database', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100'), ('enable_daily_points_notification', '1'), ('icp_record_number', ''), ('police_record_number', ''), ('favicon_url', ''), ('yn_github_token', ''), ('update_github_token', ''), ('update_schedule_enabled', '0'), ('update_schedule_time', '08:00'), ('site_url', ''), ('ghconnect_enabled', '0'), ('ghconnect_client_id', ''), ('ghconnect_client_secret', '');";
     $pdo->exec($init_sql);
     $stmt_music_default = $pdo->prepare("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES (?, ?)");
     foreach ($music_defaults as $music_key => $music_value) {
@@ -223,6 +239,17 @@ try {
                 $push_feedback_type = 'success';
             }
         } else {
+        $ts_enabled_post = isset($_POST['turnstile_enabled']) ? '1' : '0';
+        $ts_site_post = huli_turnstile_normalize_key($_POST['turnstile_site_key'] ?? '');
+        $ts_secret_post = huli_turnstile_normalize_key($_POST['turnstile_secret_key'] ?? '');
+        $ts_site_is_test = $ts_site_post !== '' && strpos(HULI_TURNSTILE_TEST_SITE_KEYS, '|' . $ts_site_post . '|') !== false;
+        $ts_secret_is_test = $ts_secret_post !== '' && strpos(HULI_TURNSTILE_TEST_SECRET_KEYS, '|' . $ts_secret_post . '|') !== false;
+        if ($ts_enabled_post === '1' && ($ts_site_post === '' || $ts_secret_post === '')) {
+            throw new Exception('启用人机验证前必须填写 Turnstile Site Key 与 Secret Key。');
+        }
+        if ($ts_enabled_post === '1' && $ts_site_is_test && $ts_secret_is_test) {
+            throw new Exception('Turnstile 不能使用 Cloudflare 官方测试密钥上线，请填写同一站点的正式密钥。');
+        }
         $pdo->beginTransaction();
         $stmt = $pdo->prepare("INSERT INTO huli_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
         $bool_keys = ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'enable_free_qps_limit', 'enable_member_qps_limit', 'enable_warn_notification', 'enable_daily_points', 'enable_daily_points_notification', 'update_schedule_enabled', 'ghconnect_enabled'];

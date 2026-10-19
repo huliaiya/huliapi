@@ -98,8 +98,14 @@ huliapi（胡里 API）是一个可直接部署的 API 分发与管理平台：�
 项目根目录的 `.htaccess` 只对 Apache 生效。使用 Nginx 或宝塔面板时，请在站点配置文件的 `server { ... }` 中补充以下规则，然后重载 Nginx：
 
 ```nginx
-# 禁止直接下载数据库备份与安装锁文件
-location ~* \.(sql|lock)$ {
+# 禁止访问 .git、.env、.htaccess 等隐藏路径
+location ~ /\.(?!well-known) {
+    deny all;
+    return 404;
+}
+
+# 禁止直接下载数据库备份、安装锁与日志文件
+location ~* \.(sql|lock|log|bak|old|swp)$ {
     deny all;
     return 404;
 }
@@ -109,7 +115,15 @@ location ^~ /logs/ {
     deny all;
     return 404;
 }
+
+# 安装完成后建议直接拒绝整个 install 目录
+location ^~ /install/ {
+    deny all;
+    return 404;
+}
 ```
+
+完整示例见 `deploy/nginx.conf.example`。
 
 Apache 环境无需额外配置，`install/.htaccess` 与 `logs/.htaccess` 已默认拒绝访问。
 
@@ -159,9 +173,24 @@ php -S 0.0.0.0:8000
 
 更新任务的权威状态保存在数据库表 `huli_updater_jobs`（字段：`token`、`payload`、`updated_at`），执行日志与临时任务文件位于 `logs/` 目录。请勿将表名误写为 `huli_update_jobs`。
 
+`miao` 是已安装站点的更新分支，`common/version.php` 中的 `SENLIN_CLIENT_UPDATE_BRANCH` 默认指向它，属于预期配置。
+
 ---
 
-## 七、常见问题
+## 七、生产部署安全基线
+
+1. 使用 Nginx/Apache + PHP-FPM，不要用 `php -S` 承载公网流量。Nginx 示例见 `deploy/nginx.conf.example`，Apache 可使用仓库根目录的 `.htaccess`。
+2. 必须拒绝以下路径的 HTTP 访问：`.git/`、`logs/`、`install/*.sql`、`install/*.lock`、`install/upgrade_*.sql`、备份与日志文件。
+3. 安装完成后建议直接拒绝整个 `/install/`；未安装时才放行 `/install/index.php`。
+4. 应用错误日志默认写入 `logs/php_error.log`，日志轮转示例见 `deploy/logrotate.conf`。
+5. 定时任务示例见 `deploy/crontab.example`，用于更新调度、邮件广播和爱发电订单查询。未配置 cron 时，站点仍保留惰性触发，但可靠性较低。
+6. Turnstile 不再预置 Cloudflare 测试密钥。启用前必须填写同一站点的正式 Site Key 与 Secret Key；测试密钥只用于本地联调。
+7. 本地预览使用 `php -S 127.0.0.1:8080 -t . router.php`，由 `router.php` 拦截隐藏文件、日志与安装脚本。
+8. 出站请求默认只允许 80/443 端口；如确实需要自定义端口，在 `config.php` 中定义 `HULI_MCP_ALLOWED_OUTBOUND_PORTS` 数组。
+
+---
+
+## 八、常见问题
 
 ### 安装后打不开首页 / 提示丢失配置？
 

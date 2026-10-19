@@ -1,0 +1,25 @@
+# Apache 安全基线：禁止隐藏文件、日志与安装脚本下载。
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 禁止访问 .git、.env、.htaccess 等隐藏路径（放行 ACME 校验）。
+    RewriteCond %{REQUEST_URI} !^/\.well-known/
+    RewriteRule (^|/)\. - [F,L]
+
+    # 锁定安装目录：仅保留 index.php，SQL/锁文件/升级脚本全部拒绝。
+    RewriteRule ^install/(?!$|index\.php$).* - [F,L]
+
+    # 日志目录整体拒绝。
+    RewriteRule ^logs/.* - [F,L]
+</IfModule>
+
+<FilesMatch "\.(sql|lock|log|ini|bak|old|swp|dist|md)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>

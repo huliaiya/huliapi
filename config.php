@@ -7,6 +7,14 @@ define('DB_PASS', getenv('DB_PASS') ?: '');
 define('DB_CHARSET', getenv('DB_CHARSET') ?: 'utf8mb4');
 define('ADMIN_PATH', 'admin');
 
+if (!defined('HULI_LOG_DIR')) {
+    define('HULI_LOG_DIR', __DIR__ . '/logs');
+}
+if (is_dir(HULI_LOG_DIR) && is_writable(HULI_LOG_DIR)) {
+    @ini_set('log_errors', '1');
+    @ini_set('error_log', HULI_LOG_DIR . '/php_error.log');
+}
+
  
 function huli_request_hostname() {
     $host = $_SERVER['HTTP_HOST'] ?? '';

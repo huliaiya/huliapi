@@ -202,7 +202,7 @@ body {
       <span class="mdi mdi-lock" aria-hidden="true"></span>
       <input type="password" class="form-control" id="password" name="password" placeholder="密码">
     </div>
-    <?php echo huli_turnstile_widget_html(true); ?>
+    <?php echo huli_turnstile_widget_html(); ?>
     <div class="mb-3">
       <div class="form-check">
         <input type="checkbox" class="form-check-input" id="remember" name="remember">
