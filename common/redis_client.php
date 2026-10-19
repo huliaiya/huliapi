@@ -175,13 +175,11 @@ function huli_redis_raw_ping(array $settings) {
 function huli_redis_raw_incr(array $settings, $key, $window = 0) {
     $fp = huli_redis_raw_open($settings);
     try {
-        fwrite($fp, huli_redis_raw_encode(['INCR', $key]));
-        $count = (int)huli_redis_raw_read($fp);
-        if ($count === 1 && $window > 0) {
-            fwrite($fp, huli_redis_raw_encode(['EXPIRE', $key, (string)(int)$window]));
-            huli_redis_raw_read($fp);
-        }
-        return $count;
+        $script = "local c = redis.call('INCR', KEYS[1]) "
+            . "if c == 1 and tonumber(ARGV[1]) > 0 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end "
+            . "return c";
+        fwrite($fp, huli_redis_raw_encode(['EVAL', $script, '1', $key, (string)max(0, (int)$window)]));
+        return (int)huli_redis_raw_read($fp);
     } finally {
         fclose($fp);
     }

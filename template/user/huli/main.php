@@ -58,7 +58,8 @@ try {
         header('Location: index.php');
         exit;
     }
-    if (isset($_GET['action']) && $_GET['action'] === 'regenerate_key') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'regenerate_key') {
+        huli_csrf_require();
         $new_key = bin2hex(random_bytes(32));
         $stmt_update = $pdo->prepare("UPDATE huli_users SET api_key = ? WHERE id = ?");
         $stmt_update->execute([$new_key, $user_id]);
@@ -457,7 +458,7 @@ try {
                                             <div class="api-key-box"><?php echo htmlspecialchars($user_data['api_key']); ?></div>
                                             <div class="d-flex gap-2">
                                                 <button id="copy-key-btn" class="btn btn-primary">复制密钥</button>
-                                                <a href="?action=regenerate_key" id="regen-key-btn" class="btn btn-danger">重新生成</a>
+                                                <a href="#" id="regen-key-btn" role="button" data-csrf="<?php echo htmlspecialchars(huli_csrf_token(), ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-danger">重新生成</a>
                                             </div>
                                         </div>
                                     </div>
@@ -670,7 +671,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (confirm('您确定要重新生成API密钥吗？旧的密钥将立即失效。')) {
             btn.html('<span class="spinner-border spinner-border-sm me-1"></span>处理中...')
                .prop('disabled', true);
-            $.get(btn.attr('href'), function(response) {
+            $.post('index.php', { action: 'regenerate_key', _csrf: btn.data('csrf') }, function(response) {
                 if(response.success) {
                     $('.api-key-box').text(response.new_key);
                     alert('API密钥已成功重新生成！');

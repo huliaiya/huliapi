@@ -30,7 +30,7 @@ function huli_turnstile_settings()
     if ($settings !== null) {
         return $settings;
     }
-    $settings = array('enabled' => false, 'site_key' => '', 'secret_key' => '');
+    $settings = array('enabled' => false, 'db_error' => false, 'site_key' => '', 'secret_key' => '');
     if (!defined('DB_HOST') || !defined('DB_NAME') || !defined('DB_USER')) {
         return $settings;
     }
@@ -50,6 +50,11 @@ function huli_turnstile_settings()
         $switch_on = isset($rows['turnstile_enabled']) && trim((string)$rows['turnstile_enabled']) === '1';
         $settings['enabled'] = $switch_on && $settings['site_key'] !== '' && $settings['secret_key'] !== '';
     } catch (Exception $e) {
+        $settings['db_error'] = true;
+        error_log('[turnstile] 读取配置失败，已按安全策略拒绝未验证请求: ' . $e->getMessage());
+    } catch (Throwable $e) {
+        $settings['db_error'] = true;
+        error_log('[turnstile] 读取配置失败，已按安全策略拒绝未验证请求: ' . $e->getMessage());
     }
     return $settings;
 }
@@ -57,7 +62,7 @@ function huli_turnstile_settings()
 function huli_turnstile_enabled()
 {
     $settings = huli_turnstile_settings();
-    return $settings['enabled'];
+    return !empty($settings['enabled']) || !empty($settings['db_error']);
 }
 
 function huli_turnstile_keys()

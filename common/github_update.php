@@ -147,7 +147,10 @@ function huli_detect_update_info() {
     if (!$info) { return null; }
 
     $info['update_branch'] = $update_branch;
-    $info['download_url'] = 'https://github.com/' . $repo . '/archive/refs/heads/' . $update_branch . '.zip';
+    $download_ref = !empty($info['commit_sha']) && preg_match('/^[0-9a-f]{7,40}$/i', (string)$info['commit_sha'])
+        ? (string)$info['commit_sha']
+        : 'refs/heads/' . $update_branch;
+    $info['download_url'] = 'https://github.com/' . $repo . '/archive/' . $download_ref . '.zip';
     $info['published_at_human'] = !empty($info['published_at'])
         ? date('Y-m-d H:i:s', strtotime($info['published_at']))
         : '';

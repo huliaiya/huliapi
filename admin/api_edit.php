@@ -115,6 +115,7 @@ try {
         }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         if (!isset($_POST['name'], $_POST['endpoint'], $_POST['type'], $_POST['status'], $_POST['visibility'])) {
             throw new Exception('提交的数据不完整');
         }
@@ -744,5 +745,6 @@ document.addEventListener('DOMContentLoaded', function() {
     updateParametersJson();
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

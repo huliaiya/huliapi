@@ -33,6 +33,7 @@ try {
         if (!$user) { header('Location: user_list.php'); exit; }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $user_id = isset($_POST['id']) ? intval($_POST['id']) : null;
         $pdo->beginTransaction();
         try {
@@ -300,5 +301,6 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
 <script type="text/javascript" src="../assets/js/popper.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="../assets/js/main.min.js"></script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

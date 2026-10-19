@@ -141,6 +141,7 @@ function huli_api_start() {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    huli_csrf_require();
     if ($_POST['action'] === 'check') { huli_api_check(); }
     elseif ($_POST['action'] === 'start') { huli_api_start(); }
     elseif ($_POST['action'] === 'status') { huli_api_status(); }
@@ -423,6 +424,7 @@ body.theme-dark .update-modal.modal-content {
 }
 </style>
 <script>
+var HULI_CSRF = <?php echo json_encode(huli_csrf_token(), JSON_UNESCAPED_UNICODE); ?>;
 var updateAvailable = false;
 var updateVersion = '';
 var pollTimer = null;
@@ -458,7 +460,7 @@ function renderTaskBanner(task) {
 function refreshCheck() {
   var btn = $('#btn-recheck');
   btn.prop('disabled', true).find('i').addClass('mdi-loading mdi-spin');
-  return $.post('update.php', {action: 'check'}, function(res) {
+  return $.post('update.php', {action: 'check', _csrf: HULI_CSRF}, function(res) {
     if (!res.success) {
       showFeedback('danger', esc(res.message || '检测更新失败'));
       $('#new-version').text('N/A');
@@ -571,14 +573,14 @@ function renderResult(res) {
 function startPolling(token, progressModal) {
   if (pollTimer) { clearInterval(pollTimer); }
   pollTimer = setInterval(function() {
-    $.post('update.php', {action: 'status', token: token}, function(st) {
+    $.post('update.php', {action: 'status', token: token, _csrf: HULI_CSRF}, function(st) {
       if (!st.success || !st.status) { return; }
       var s = st.status;
       setProgress(s.percent != null ? s.percent : 0, s.message || '', s.stage || 'download');
       if (s.status === 'success' || s.status === 'failed') {
         clearInterval(pollTimer); pollTimer = null;
         setTimeout(function() {
-          $.post('update.php', {action: 'status', token: token}, function(st2) {
+          $.post('update.php', {action: 'status', token: token, _csrf: HULI_CSRF}, function(st2) {
             var finalStatus = (st2.success && st2.status) ? st2.status : s;
             progressModal.hide();
             renderResult(statusToResult(finalStatus));
@@ -602,7 +604,7 @@ $('#update-btn').on('click', function() {
   progressModal.show();
   progressLast = 0;
   setProgress(2, '正在创建后台更新任务...', 'download');
-  $.post('update.php', {action: 'start'}, function(res) {
+  $.post('update.php', {action: 'start', _csrf: HULI_CSRF}, function(res) {
     if (!res.success) {
       progressModal.hide();
       $('#update-btn').prop('disabled', false);
@@ -631,7 +633,7 @@ $(document).on('click', '#banner-view-progress', function() {
   progressModal.show();
   $('#progress-title').text('后台更新进行中');
   $('#progress-hint').text('可以关闭此页面，完成后会向管理员邮箱发送通知');
-  $.post('update.php', {action: 'status'}, function(st) {
+  $.post('update.php', {action: 'status', _csrf: HULI_CSRF}, function(st) {
     if (st.success && st.status && st.status.token) {
       var s = st.status;
       setProgress(s.percent != null ? s.percent : 0, s.message || '', s.stage || 'download');
@@ -649,7 +651,7 @@ function stopLog() {
   if (logTimer) { clearInterval(logTimer); logTimer = null; }
 }
 function loadLog(tail) {
-  $.post('update.php', {action: 'log'}, function(res) {
+  $.post('update.php', {action: 'log', _csrf: HULI_CSRF}, function(res) {
     if (!res.success) { $('#log-meta').text(res.message || '无法读取日志'); return; }
     var st = res.status || {};
     var meta = '任务 ' + (res.token || '—');

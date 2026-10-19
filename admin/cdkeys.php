@@ -60,6 +60,7 @@ try {
     }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         if (isset($_POST['action']) && $_POST['action'] === 'generate') {
             $count = filter_var($_POST['count'], FILTER_VALIDATE_INT, [
                 'options' => ['min_range' => 1, 'max_range' => 1000]
@@ -140,6 +141,7 @@ try {
             exit;
         }
     } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        huli_csrf_require();
         if ($_POST['action'] === 'delete' && isset($_POST['id'])) {
             $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
             if ($id === false) {
@@ -543,5 +545,6 @@ function showToast(type, message) {
     });
 }
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

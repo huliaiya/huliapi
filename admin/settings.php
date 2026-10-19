@@ -91,20 +91,6 @@ $defaults = [
     'site_url' => '',
     'ghconnect_enabled' => 0, 'ghconnect_client_id' => '', 'ghconnect_client_secret' => ''
 ];
-if (empty($defaults['icp_record_number'])) {
-    $icp_provinces = ['京','津','沪','渝','冀','豫','云','辽','黑','湘','皖','鲁','新','苏','浙','赣','鄂','甘','晋','蒙','陕','吉','闽','贵','粤','青','藏','川','宁','琼'];
-    $icp_p = $icp_provinces[array_rand($icp_provinces)];
-    $icp_y = date('Y');
-    $icp_n = mt_rand(1000000, 99999999);
-    $defaults['icp_record_number'] = $icp_p . 'ICP备' . $icp_y . str_pad((string)$icp_n, 8, '0', STR_PAD_LEFT) . '号';
-}
-if (empty($defaults['police_record_number'])) {
-    $police_provinces = ['京','津','沪','渝','冀','豫','云','辽','黑','湘','皖','鲁','新','苏','浙','赣','鄂','甘','晋','蒙','陕','吉','闽','贵','粤','青','藏','川','宁','琼'];
-    $police_p = $police_provinces[array_rand($police_provinces)];
-    $police_a = mt_rand(10, 99);
-    $police_b = mt_rand(100000, 999999);
-    $defaults['police_record_number'] = $police_p . '公网安备 ' . $police_a . str_pad((string)$police_b, 6, '0', STR_PAD_LEFT) . '号';
-}
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -118,6 +104,7 @@ try {
     $push_feedback_msg = '';
     $push_feedback_type = '';
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         if (isset($_POST['music_settings_action'])) {
             $music_action = $_POST['music_settings_action'];
             $music_input = [];
@@ -420,7 +407,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 <div class="mb-3">
                   <label for="police_record_number" class="form-label">公安备案号</label>
                   <input class="form-control" type="text" id="police_record_number" name="police_record_number" value="<?php echo htmlspecialchars($settings['police_record_number'] ?? ''); ?>" placeholder="例如：京公网安备 11010102000000号">
-                  <small class="form-text text-muted">留空则使用默认随机生成的备案号</small>
+                  <small class="form-text text-muted">请填写真实备案号，留空则不显示</small>
                 </div>
                 <div class="mb-3">
                     <label for="favicon_url" class="form-label">网站图标 (Favicon)</label>
@@ -855,6 +842,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
 <script type="text/javascript">
 (function () {
     var AJAX_URL = '../common/ajax/turnstile_test.php';
+    var HULI_CSRF = <?php echo json_encode(huli_csrf_token(), JSON_UNESCAPED_UNICODE); ?>;
     function esc(s) {
         return $('<div>').text(s == null ? '' : String(s)).html();
     }
@@ -1004,7 +992,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
         var siteKey = $.trim($('#turnstile_site_key').val());
         var secretKey = $.trim($('#turnstile_secret_key').val());
         $('#ts-test-result').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">正在检测...</div>');
-        $.post(AJAX_URL, { mode: 'keys', site_key: siteKey, secret_key: secretKey }, function (res) {
+        $.post(AJAX_URL, { _csrf: HULI_CSRF, mode: 'keys', site_key: siteKey, secret_key: secretKey }, function (res) {
             if (res && res.success) {
                 showResult('#ts-test-result', true, res.message, null);
             } else {
@@ -1029,7 +1017,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             return;
         }
         $('#ts-e2e-result').html('<div class="alert alert-secondary py-1 px-2 mb-0 small">正在向 Cloudflare 验证令牌...</div>');
-        $.post(AJAX_URL, { mode: 'e2e', site_key: siteKey, secret_key: secretKey, 'cf-turnstile-response': token }, function (res) {
+        $.post(AJAX_URL, { _csrf: HULI_CSRF, mode: 'e2e', site_key: siteKey, secret_key: secretKey, 'cf-turnstile-response': token }, function (res) {
             if (res && res.success) {
                 var html = '<div class="alert ' + (true ? 'alert-success' : 'alert-danger') + ' mb-2">' + esc(res.message) + '</div>';
                 if (res.raw) {
@@ -1079,6 +1067,23 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
         if (tsPane && tsPane.classList.contains('active')) {
             loadE2EWidget(true);
         }
+    }
+})();
+</script>
+<script>
+(function () {
+    var token = <?php echo json_encode(huli_csrf_token(), JSON_UNESCAPED_UNICODE); ?>;
+    if (!token) { return; }
+    var forms = document.querySelectorAll('form');
+    for (var i = 0; i < forms.length; i++) {
+        var method = (forms[i].getAttribute('method') || 'get').toLowerCase();
+        if (method !== 'post') { continue; }
+        if (forms[i].querySelector('input[name="_csrf"]')) { continue; }
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = '_csrf';
+        input.value = token;
+        forms[i].appendChild(input);
     }
 })();
 </script>

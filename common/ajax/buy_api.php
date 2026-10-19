@@ -33,17 +33,25 @@ try {
     $stmt_inc_downloads->execute([$item_id]);
     $stmt_purchase = $pdo->prepare("INSERT INTO huli_market_purchases (item_id, user_id, price) VALUES (?, ?, ?)");
     $stmt_purchase->execute([$item_id, $user_id, $item['price']]);
-    $new_endpoint = 'u' . $user_id . '_' . $item['original_endpoint'] . '_' . substr(md5(uniqid()), 0, 4);
-    $new_endpoint = preg_replace('/[^A-Za-z0-9_\-\/]/', '', $new_endpoint);
-    $new_endpoint = preg_replace('/\.\.+/', '', $new_endpoint);
+    $endpoint_base = preg_replace('/[^A-Za-z0-9_\-]/', '_', (string)$item['original_endpoint']);
+    $endpoint_base = trim(preg_replace('/_+/', '_', $endpoint_base), '_');
+    if ($endpoint_base === '') { $endpoint_base = 'api'; }
+    $new_endpoint = 'u' . (int)$user_id . '_' . $endpoint_base . '_' . bin2hex(random_bytes(4));
     $new_file_path = 'API/' . $new_endpoint . '.php';
     $original_path = realpath('../../' . $item['original_file_path']);
     $api_root = realpath('../../API');
-    if (!$original_path || !$api_root || strpos($original_path, $api_root) !== 0 || !is_file($original_path)) {
+    if (!$original_path || !$api_root || strpos($original_path, $api_root . DIRECTORY_SEPARATOR) !== 0 || !is_file($original_path)) {
         throw new Exception("源接口文件路径无效，无法购买。");
     }
+    $dest_dir = realpath('../../API');
+    if (!$dest_dir || strpos($dest_dir, $api_root) !== 0) {
+        throw new Exception("目标接口目录无效，无法购买。");
+    }
     $original_content = file_get_contents($original_path);
-    if(file_put_contents('../../' . $new_file_path, $original_content) === false){
+    if ($original_content === false) {
+        throw new Exception("读取源接口文件失败，无法购买。");
+    }
+    if (file_put_contents('../../' . $new_file_path, $original_content) === false) {
         throw new Exception("自动安装接口文件失败，请检查/API/目录权限。");
     }
     $sql_clone = "INSERT INTO huli_apis (name, description, endpoint, method, type, file_path, parameters, remote_url, response_format, response_example, visibility, is_billable) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'private', 0)";

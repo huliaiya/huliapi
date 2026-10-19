@@ -25,11 +25,9 @@ function checkApiRateLimit($pdo, $settings, $scope, $identifier, $limit, $window
     }
     $window_start = (int)(time() / $window) * $window;
     try {
-        $stmt = $pdo->prepare("INSERT INTO huli_rate_limits (scope, identifier, window_start, request_count) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE request_count = request_count + 1");
+        $stmt = $pdo->prepare("INSERT INTO huli_rate_limits (scope, identifier, window_start, request_count) VALUES (?, ?, ?, LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE request_count = LAST_INSERT_ID(request_count + 1)");
         $stmt->execute([$scope, $identifier, $window_start]);
-        $stmt = $pdo->prepare("SELECT request_count FROM huli_rate_limits WHERE scope = ? AND identifier = ? AND window_start = ?");
-        $stmt->execute([$scope, $identifier, $window_start]);
-        $count = (int)$stmt->fetchColumn();
+        $count = (int)$pdo->query("SELECT LAST_INSERT_ID()")->fetchColumn();
         if ($count % 64 === 0) {
             $pdo->prepare("DELETE FROM huli_rate_limits WHERE window_start < ?")->execute([time() - 86400]);
         }
