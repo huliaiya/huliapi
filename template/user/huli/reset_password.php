@@ -46,12 +46,26 @@ try {
             throw new Exception('两次输入的密码不一致');
         }
         $db_code_ok = function_exists('huli_verification_code_check') ? huli_verification_code_check('reset', $email, $code) : false;
-        if (!$db_code_ok && (!isset($_SESSION['reset_code']) || !isset($_SESSION['reset_code_expire']) || time() > $_SESSION['reset_code_expire'] || !hash_equals(strtolower($_SESSION['reset_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['reset_email']), strtolower($email)))) {
-            throw new Exception('邮箱验证码不正确或已过期');
+        if (!$db_code_ok) {
+            $session_code_available = isset($_SESSION['reset_code'], $_SESSION['reset_code_expire'], $_SESSION['reset_email'])
+                && time() <= (int)$_SESSION['reset_code_expire'];
+            $session_code_ok = $session_code_available
+                && hash_equals(strtolower((string)$_SESSION['reset_code']), strtolower($code))
+                && hash_equals(strtolower((string)$_SESSION['reset_email']), strtolower($email));
+            if (!$session_code_ok) {
+                $_SESSION['reset_code_attempts'] = (int)($_SESSION['reset_code_attempts'] ?? 0) + 1;
+                if ($_SESSION['reset_code_attempts'] >= 5) {
+                    unset($_SESSION['reset_code'], $_SESSION['reset_email'], $_SESSION['reset_code_expire'], $_SESSION['reset_code_attempts']);
+                    throw new Exception('验证码尝试次数过多，请重新获取验证码');
+                }
+                throw new Exception('邮箱验证码不正确或已过期');
+            }
         }
+        unset($_SESSION['reset_code_attempts']);
         $stmt = $pdo->prepare("SELECT id FROM huli_users WHERE email = ?");
         $stmt->execute([$email]);
-        if ($stmt->rowCount() === 0) {
+        $reset_user_id = (int)$stmt->fetchColumn();
+        if ($reset_user_id <= 0) {
             throw new Exception('该邮箱未注册');
         }
         $stmt = $pdo->prepare("UPDATE huli_users SET password = ? WHERE email = ?");
@@ -59,6 +73,8 @@ try {
         if ($stmt->rowCount() === 0) {
             throw new Exception('密码更新失败，请重试');
         }
+        require_once ROOT_PATH . 'common/account_security.php';
+        huli_revoke_account_tokens($pdo, 'user', $reset_user_id);
         unset($_SESSION['reset_code'], $_SESSION['reset_email'], $_SESSION['reset_code_expire']);
         if ($is_ajax) {
             header('Content-Type: application/json');
