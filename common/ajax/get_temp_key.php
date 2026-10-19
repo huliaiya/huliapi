@@ -65,7 +65,7 @@ try {
     $stmt_check_email = $pdo->prepare("SELECT id FROM huli_users WHERE email = ?");
     $stmt_check_email->execute([$email]);
     if ($stmt_check_email->fetch()) {
-        json_response(false, '该邮箱已被注册，请直接登录或找回密码。');
+        json_response(true, '申请已提交，如邮箱可用将收到密钥，请注意查收。');
     }
     $ip_address = getUserIP();
     $stmt_ip_check = $pdo->prepare("SELECT COUNT(*) FROM huli_temp_key_logs WHERE ip_address = ? AND created_at >= CURDATE()");
@@ -132,7 +132,8 @@ try {
         $mail->Subject = '【' . ($settings['site_name'] ?? 'API服务') . '】您的临时API密钥';
         $site_name = $settings['site_name'] ?? 'huliapi';
         $current_year = date('Y');
-        $logo_url = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/assets/images/logo-sidebar.png';
+        $site_base = rtrim((string)($settings['site_url'] ?? ''), '/');
+        $logo_url = $site_base !== '' ? $site_base . '/assets/images/logo-sidebar.png' : '';
         $mail->Body = '
 <!DOCTYPE html>
 <html>
@@ -177,7 +178,7 @@ try {
     $stmt_log_ip = $pdo->prepare("INSERT INTO huli_temp_key_logs (ip_address) VALUES (?)");
     $stmt_log_ip->execute([$ip_address]);
     $_SESSION['last_temp_key_sent'] = time();
-    json_response(true, '申请成功！临时密钥已发送至您的邮箱，请注意查收。');
+    json_response(true, '申请已提交，如邮箱可用将收到密钥，请注意查收。');
 } catch (Exception $e) {
     if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();

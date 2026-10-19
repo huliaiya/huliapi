@@ -64,6 +64,8 @@ check_blocked "/cli/cron.php"
 check_blocked "/cli/update_scheduler.php"
 check_blocked "/tests/security_smoke.sh"
 check_blocked "/deploy/nginx.conf.example"
+check_blocked "/README.md"
+check_blocked "/common/mcp/mcp_prompt_admin.md"
 check_ok "/"
 check_ok "/admin/login.php"
 
@@ -121,6 +123,45 @@ foreach ($cases as [$url, $want]) {
     $got = huli_is_safe_http_url($url);
     if ($got !== $want) { fwrite(STDERR, "FAIL friend url {$url}\n"); $bad = 1; }
     else { echo "OK   friend url {$url}\n"; }
+}
+exit($bad);
+' "$ROOT_DIR" || failed=1
+
+php -r '
+require $argv[1] . "/common/updater.php";
+$cases = [
+    ["app/config.php", true],
+    ["dir/file.php", true],
+    ["../evil.php", false],
+    ["a/../../evil.php", false],
+    ["/etc/passwd", false],
+    ["C:\\\\evil.php", false],
+    ["a\\\\..\\\\evil.php", false],
+];
+$bad = 0;
+foreach ($cases as [$name, $want]) {
+    $got = huli_updater_zip_entry_is_safe($name);
+    if ($got !== $want) { fwrite(STDERR, "FAIL zip entry {$name}\n"); $bad = 1; }
+    else { echo "OK   zip entry {$name}\n"; }
+}
+exit($bad);
+' "$ROOT_DIR" || failed=1
+
+php -r '
+require $argv[1] . "/config.php";
+require $argv[1] . "/common/client_ip.php";
+$cases = [
+    ["8.8.8.8", "1.2.3.4", "8.8.8.8"],
+    ["127.0.0.1", "8.8.4.4", "8.8.4.4"],
+    ["10.0.0.5", "8.8.8.8", "10.0.0.5"],
+];
+$bad = 0;
+foreach ($cases as [$remote, $xff, $want]) {
+    $_SERVER["REMOTE_ADDR"] = $remote;
+    $_SERVER["HTTP_X_FORWARDED_FOR"] = $xff;
+    $got = huli_client_ip();
+    if ($got !== $want) { fwrite(STDERR, "FAIL client ip {$remote} {$xff} => {$got}\n"); $bad = 1; }
+    else { echo "OK   client ip {$remote} xff={$xff} => {$got}\n"; }
 }
 exit($bad);
 ' "$ROOT_DIR" || failed=1

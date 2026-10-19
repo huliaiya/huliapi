@@ -383,6 +383,18 @@ function huli_mcp_detect_scheme() {
 }
 
 function huli_mcp_public_url($path = '/mcp.php') {
+    $configured = '';
+    try {
+        $pdo = huli_mcp_pdo();
+        $stmt = $pdo->query("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_url' LIMIT 1");
+        $configured = trim((string)$stmt->fetchColumn());
+    } catch (Throwable $e) {
+        $configured = '';
+    }
+    if ($configured !== '' && filter_var($configured, FILTER_VALIDATE_URL)
+        && in_array(strtolower((string)parse_url($configured, PHP_URL_SCHEME)), ['http', 'https'], true)) {
+        return rtrim($configured, '/') . '/' . ltrim((string)$path, '/');
+    }
     $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
     return huli_mcp_detect_scheme() . '://' . $host . $path;
 }

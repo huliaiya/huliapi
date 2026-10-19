@@ -368,7 +368,7 @@ try {
                     <?php endif; ?>
                     <?php if ($feedback_msg): ?>
                     <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> alert-dismissible fade show" role="alert">
-                        <?php echo $feedback_msg; ?>
+                        <?php echo htmlspecialchars($feedback_msg, ENT_QUOTES, 'UTF-8'); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                     <?php endif; ?>

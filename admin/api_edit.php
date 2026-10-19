@@ -120,6 +120,15 @@ try {
             throw new Exception('提交的数据不完整');
         }
         $api_id = isset($_POST['id']) && ctype_digit($_POST['id']) ? (int)$_POST['id'] : null;
+        $owned_api = null;
+        if ($api_id) {
+            $stmt_owned = $pdo->prepare("SELECT id, file_path FROM huli_apis WHERE id = ? AND admin_id = ?");
+            $stmt_owned->execute([$api_id, $admin_id]);
+            $owned_api = $stmt_owned->fetch(PDO::FETCH_ASSOC);
+            if (!$owned_api) {
+                throw new Exception('接口不存在或无权编辑');
+            }
+        }
         $name = trim($_POST['name']);
         $endpoint_raw = trim($_POST['endpoint']);
         $type = $_POST['type'];
@@ -144,6 +153,22 @@ try {
         $encoded_filename = rawurlencode($filename);
         $file_path = 'API/' . (!empty($subdirectory) ? $subdirectory . '/' : '') . $encoded_filename . '.php';
         $full_path = '../' . $file_path;
+        $owned_file_path = $owned_api && !empty($owned_api['file_path']) ? (string)$owned_api['file_path'] : '';
+        if ($file_path !== $owned_file_path) {
+            $stmt_conflict = $pdo->prepare("SELECT COUNT(*) FROM huli_apis WHERE file_path = ? AND id <> ?");
+            $stmt_conflict->execute([$file_path, $api_id ? $api_id : 0]);
+            if ((int)$stmt_conflict->fetchColumn() > 0) {
+                throw new Exception('该接口文件路径已被其他接口占用。');
+            }
+            $real_full = realpath($full_path);
+            $api_dir_real = realpath('../API');
+            if (file_exists($full_path)) {
+                if (!$real_full || !$api_dir_real || strpos($real_full, rtrim($api_dir_real, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) !== 0) {
+                    throw new Exception('接口文件路径不合法。');
+                }
+                throw new Exception('同名接口文件已存在，请更换调用地址。');
+            }
+        }
         switch ($visibility) {
             case 'public':
                 $is_billable = 0;

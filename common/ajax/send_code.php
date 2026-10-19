@@ -92,7 +92,7 @@ try {
         if ((int)$stmt_admin->fetchColumn() !== 1) { json_response(false, '管理员已关闭找回密码功能。'); }
         $stmt_check = $pdo->prepare("SELECT id FROM huli_admins WHERE email = ?");
         $stmt_check->execute([$email]);
-        if (!$stmt_check->fetch()) { json_response(false, '该邮箱未绑定任何管理员账号。'); }
+        if (!$stmt_check->fetch()) { json_response(true, '如果该邮箱已绑定管理员账号，验证码将发送至该邮箱，请注意查收。'); }
     }
     $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -306,7 +306,10 @@ if ($type === 'register') {
     $stmt_log_send = $pdo->prepare("INSERT INTO huli_verification_code_logs (ip_address, email) VALUES (?, ?)");
     $stmt_log_send->execute([$client_ip, $email]);
 
-    json_response(true, '验证码已成功发送到您的邮箱，请注意查收。');
+    $success_message = $type === 'admin_reset'
+        ? '如果该邮箱已绑定管理员账号，验证码将发送至该邮箱，请注意查收。'
+        : '验证码已成功发送到您的邮箱，请注意查收。';
+    json_response(true, $success_message);
 } catch (Exception $e) {
     error_log('[send_code] 邮件发送失败: ' . $e->getMessage() . ' ErrorInfo: ' . $mail->ErrorInfo);
     json_response(false, "邮件发送失败，请稍后再试。");

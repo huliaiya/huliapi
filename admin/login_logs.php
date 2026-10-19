@@ -97,7 +97,7 @@ try {
             </div>
         </div>
         <?php if ($feedback_msg): ?>
-            <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?>"><?php echo $feedback_msg; ?></div>
+            <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?>"><?php echo htmlspecialchars($feedback_msg, ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
         <div class="row g-3 mb-3">
             <?php

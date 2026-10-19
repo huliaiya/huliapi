@@ -7,6 +7,10 @@ define('DB_PASS', getenv('DB_PASS') ?: '');
 define('DB_CHARSET', getenv('DB_CHARSET') ?: 'utf8mb4');
 define('ADMIN_PATH', 'admin');
 
+if (!defined('HULI_TRUSTED_PROXIES')) {
+    define('HULI_TRUSTED_PROXIES', getenv('HULI_TRUSTED_PROXIES') ?: '127.0.0.1,::1');
+}
+
 if (!defined('HULI_LOG_DIR')) {
     define('HULI_LOG_DIR', __DIR__ . '/logs');
 }
