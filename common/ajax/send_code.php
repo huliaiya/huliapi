@@ -22,14 +22,14 @@ $email = filter_var(trim($_POST['email'] ?? ''), FILTER_VALIDATE_EMAIL);
 $type = $_POST['type'] ?? '';
 if (!$email) { json_response(false, '请输入有效的邮箱地址。'); }
 if (!in_array($type, ['register', 'reset', 'admin_reset', 'friend_link', 'feedback'])) { json_response(false, '无效的操作类型。'); }
+$turnstile_reason = '';
+if (!huli_turnstile_verify($turnstile_reason)) {
+    json_response(false, $turnstile_reason ?: '人机验证失败，请完成 Cloudflare 验证后重试');
+}
 if (isset($_SESSION['last_sent_time']) && time() - $_SESSION['last_sent_time'] < 60) {
     json_response(false, '请求过于频繁，请稍后再试。');
 }
 if ($type === 'friend_link' || $type === 'feedback') {
-    $turnstile_reason = '';
-    if (!huli_turnstile_verify($turnstile_reason)) {
-        json_response(false, $turnstile_reason ?: '人机验证失败，请完成 Cloudflare 验证后重试');
-    }
     if (!isset($_SESSION['user_email']) || $_SESSION['user_email'] !== $email) {
         json_response(false, '验证邮箱与登录账号不一致');
     }

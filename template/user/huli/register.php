@@ -337,25 +337,33 @@ $(document).ready(function() {
                 $btn.prop('disabled', false).text('获取验证码');
             }
         }, 1000);
-        $.ajax({
-            url: '../../../common/ajax/send_code.php',
-            type: 'POST',
-            data: { email: email, type: 'register' },
-            dataType: 'json',
-            success: function(response) {
-                if (response && response.success) {
-                    showSuccess('验证码已发送，请注意查收');
-                } else {
+        ensureTurnstile(function(token) {
+            $.ajax({
+                url: '../../../common/ajax/send_code.php',
+                type: 'POST',
+                data: { email: email, type: 'register', 'cf-turnstile-response': token },
+                dataType: 'json',
+                success: function(response) {
+                    resetTurnstileWidget();
+                    if (response && response.success) {
+                        showSuccess('验证码已发送，请注意查收');
+                    } else {
+                        clearInterval(interval);
+                        $btn.prop('disabled', false).text('获取验证码');
+                        showError(response ? response.message : '验证码发送失败');
+                    }
+                },
+                error: function(xhr) {
+                    resetTurnstileWidget();
                     clearInterval(interval);
                     $btn.prop('disabled', false).text('获取验证码');
-                    showError(response ? response.message : '验证码发送失败');
+                    showError('发送验证码时出错: ' + getErrorMessage(xhr));
                 }
-            },
-            error: function(xhr) {
-                clearInterval(interval);
-                $btn.prop('disabled', false).text('获取验证码');
-                showError('发送验证码时出错: ' + getErrorMessage(xhr));
-            }
+            });
+        }, function(message) {
+            clearInterval(interval);
+            $btn.prop('disabled', false).text('获取验证码');
+            showError(message);
         });
     });
     $('.signup-form').on('submit', function(event) {
