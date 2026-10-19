@@ -50,7 +50,7 @@ $auto_origin = $_auto_scheme . '://' . $_auto_host;
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <meta name="description" content="<?php echo htmlspecialchars($auto_origin); ?> - 仪表盘">
 <meta name="author" content="yinq">
 <title><?php echo htmlspecialchars($auto_origin); ?> - 仪表盘</title>
@@ -221,7 +221,7 @@ $auto_origin = $_auto_scheme . '://' . $_auto_host;
           <li class="dropdown">
             <a href="javascript:void(0)" data-bs-toggle="dropdown" class="dropdown-toggle d-flex align-items-center huli-user-toggle">
               <img class="avatar-md rounded-circle" src="<?php echo htmlspecialchars(huli_avatar_url($admin_qq)); ?>" alt="" style="width:40px;height:40px;object-fit:cover;" />
-              <span style="margin-left: 10px;"><?php echo htmlspecialchars($username); ?></span>
+              <span style="margin-left: 10px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><?php echo htmlspecialchars($username); ?></span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
               <li>

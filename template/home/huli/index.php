@@ -148,7 +148,7 @@ $allow_temp_key = isset($settings['allow_temp_key']) ? (int)$settings['allow_tem
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <meta name="keywords" content="<?php echo htmlspecialchars($site_name); ?>">
 <meta name="description" content="<?php echo htmlspecialchars($site_description); ?>">
 <meta name="author" content="yinq">

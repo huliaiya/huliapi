@@ -67,7 +67,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
      <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -78,8 +78,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
         .badge-pending { background-color: #fef3c7; color: #92400e; }
         .badge-paid { background-color: #d1fae5; color: #065f46; }
         .badge-failed { background-color: #fee2e2; color: #991b1b; }
+        .d-col-order code { word-break: break-all; }
         @media (max-width: 768px) {
             .d-col-index, .d-col-remark, .d-col-user, .d-col-plan, .d-col-amount, .d-col-time { display: none !important; }
+            .d-col-actions .btn-group { flex-wrap: wrap; max-width: 90px; }
+            .d-col-actions .btn-group > .btn { border-radius: .2rem !important; }
         }
     </style>
 </head>

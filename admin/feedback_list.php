@@ -135,7 +135,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
     <title>用户反馈 - huliapi</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
@@ -163,7 +163,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
             color: #166534;
         }
         @media (max-width: 768px) {
-            .d-col-id, .d-col-type, .d-col-contact { display: none !important; }
+            .d-col-id, .d-col-type, .d-col-user, .d-col-contact { display: none !important; }
+            .content-cell { white-space: normal; word-break: break-word; max-width: none; }
+            .d-col-actions .btn-group { flex-wrap: wrap; max-width: 90px; }
+            .d-col-actions .btn-group > .btn { border-radius: .2rem !important; }
         }
     </style>
 </head>
@@ -276,7 +279,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </table>
           </div>
           <?php if ($total_pages > 1): ?>
-          <ul class="pagination justify-content-center mt-3">
+          <ul class="pagination flex-wrap justify-content-center mt-3">
             <?php if ($page > 1): ?>
               <li class="page-item">
                 <a class="page-link" href="?page=<?php echo $page - 1; ?>">上一页</a>

@@ -82,7 +82,7 @@ foreach($params as $p) {
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
     <title><?php echo htmlspecialchars($api['name']); ?> - API详情 - <?php echo htmlspecialchars($site_name); ?></title>
     <link rel="stylesheet" type="text/css" href="../../../assets/css/materialdesignicons.min.css">
     <link rel="stylesheet" type="text/css" href="../../../assets/css/bootstrap.min.css">
