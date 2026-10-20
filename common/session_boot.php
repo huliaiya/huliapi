@@ -1,4 +1,7 @@
 <?php
+if (!function_exists('huli_honored_forwarded_headers') && file_exists(__DIR__ . '/client_ip.php')) {
+    require_once __DIR__ . '/client_ip.php';
+}
 if (session_status() !== PHP_SESSION_ACTIVE) {
     if (session_status() !== PHP_SESSION_NONE) {
         return;
@@ -10,12 +13,13 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     @ini_set('session.use_trans_sid', '0');
     $huli_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
-    if (!$huli_https && !empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
-        $huli_fw = strtolower(trim(explode(',', (string)$_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
+    // 仅当请求来自受信任代理时才允许 X-Forwarded-* 头覆盖协议判断，防止直连部署下伪造
+    if (!$huli_https && huli_honored_forwarded_headers()) {
+        $huli_fw = strtolower(trim(explode(',', (string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0]));
         $huli_https = ($huli_fw === 'https');
-    }
-    if (!$huli_https && !empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_SSL']) !== 'off') {
-        $huli_https = true;
+        if (!$huli_https && !empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_SSL']) !== 'off') {
+            $huli_https = true;
+        }
     }
     if ($huli_https) {
         @ini_set('session.cookie_secure', '1');

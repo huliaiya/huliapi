@@ -376,9 +376,21 @@ function huli_updater_unzip($zip, $extract) {
     if (!@mkdir($extract, 0755, true) && !is_dir($extract)) {
         throw new Exception('无法创建临时解压目录。');
     }
+    // 更新包体积上限 512 MB，防止 zip 炸弹导致磁盘/内存耗尽
+    $zipSize = @filesize($zip);
+    if ($zipSize === false || $zipSize > 512 * 1024 * 1024) {
+        throw new Exception('更新包文件不存在或超过 512MB 上限。');
+    }
+    $maxEntries = 5000;
+    $maxUnpackedBytes = 2048 * 1024 * 1024; // 解压后总大小 2 GB
     if (class_exists('ZipArchive')) {
         $za = new ZipArchive;
         if ($za->open($zip) !== true) { throw new Exception('无法打开更新包文件。'); }
+        if ($za->numFiles > $maxEntries) {
+            $za->close();
+            throw new Exception('更新包条目数超过上限（' . $maxEntries . '），已拒绝。');
+        }
+        $totalUnpacked = 0;
         for ($i = 0; $i < $za->numFiles; $i++) {
             $stat = $za->statIndex($i);
             if (!$stat || !huli_updater_zip_entry_is_safe($stat['name'])) {
@@ -394,6 +406,11 @@ function huli_updater_unzip($zip, $extract) {
                     throw new Exception('更新包包含符号链接，已拒绝解压。');
                 }
             }
+            $totalUnpacked += (int)$stat['compressed_size'];
+            if ($totalUnpacked > $maxUnpackedBytes) {
+                $za->close();
+                throw new Exception('更新包解压后体积超过 2GB 上限，已拒绝（疑似 zip 炸弹）。');
+            }
         }
         $ok = $za->extractTo($extract);
         $za->close();
@@ -405,6 +422,9 @@ function huli_updater_unzip($zip, $extract) {
         $listCode = 1;
         @exec('unzip -Z1 ' . escapeshellarg($zip) . ' 2>/dev/null', $list, $listCode);
         if ($listCode !== 0) { throw new Exception('无法读取更新包目录。'); }
+        if (count($list) > $maxEntries) {
+            throw new Exception('更新包条目数超过上限（' . $maxEntries . '），已拒绝。');
+        }
         foreach ($list as $entry) {
             if (!huli_updater_zip_entry_is_safe($entry)) {
                 throw new Exception('更新包包含非法路径，已拒绝解压。');
@@ -414,7 +434,24 @@ function huli_updater_unzip($zip, $extract) {
         $out = [];
         $code = 1;
         @exec($cmd, $out, $code);
-        if ($code === 0) { return; }
+        if ($code === 0) {
+            // 解压后校验实际占用空间
+            $extractedSize = 0;
+            $iter = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($extract, FilesystemIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::LEAVES_ONLY
+            );
+            foreach ($iter as $item) {
+                if ($item->isFile() && !$item->isLink()) {
+                    $extractedSize += $item->getSize();
+                }
+                if ($extractedSize > $maxUnpackedBytes) { break; }
+            }
+            if ($extractedSize > $maxUnpackedBytes) {
+                throw new Exception('更新包解压后体积超过 2GB 上限，已拒绝（疑似 zip 炸弹）。');
+            }
+            return;
+        }
         throw new Exception('解压更新包失败：' . trim(implode(' ', array_slice($out, 0, 3))));
     }
     throw new Exception('服务器不支持 ZipArchive，也没有可用的 unzip 命令。请安装 php-zip 扩展后重试。');

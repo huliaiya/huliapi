@@ -132,10 +132,18 @@ huli_mcp_user_register('call_api', '以当前账号身份调用一个本地 API�
     $stmt_site = $pdo->prepare("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_url' LIMIT 1");
     $stmt_site->execute();
     $site_url = trim((string)$stmt_site->fetchColumn());
+    if ($site_url === '') {
+        // 站点 URL 未配置时，回退到当前请求的 host（本机直连场景）
+        $site_url = huli_mcp_detect_scheme() . '://' . ($_SERVER['HTTP_HOST'] ?? '127.0.0.1');
+    }
     if (!huli_is_safe_http_url($site_url)) {
         throw new RuntimeException('站点 URL 未配置或格式不正确，请先在后台设置站点 URL');
     }
     $url = rtrim($site_url, '/') . '/' . ltrim($filePath, '/');
+    // 对最终拼接出的 URL 再做一次完整 SSRF 校验（scheme + 公网 IP + 端口白名单）
+    if (!huli_mcp_safe_outbound_url($url)) {
+        throw new RuntimeException('接口目标地址不安全，拒绝调用');
+    }
 
     $ch = curl_init();
     $curlOpts = [

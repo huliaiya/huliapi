@@ -201,18 +201,26 @@ try {
         $auth_bootstrap = "<?php require_once __DIR__ . '/{$relativePath}/api_auth.php';\n\n";
         $file_content = '';
         $forbidden_api_calls = ['shell_exec', 'system', 'passthru', 'exec', 'popen', 'proc_open', 'pcntl_fork', 'posix_kill'];
+        $forbidden_dynamic = ['eval', 'assert', 'create_function', 'call_user_func', 'call_user_func_array', 'extract'];
+        $forbidden_file_ops = ['file_put_contents', 'readfile', 'include', 'require'];
+        $forbidden_compiler = ['__halt_compiler', 'token_get_all', 'php_strip_whitespace'];
+        // 检测任意上下文（函数名、字符串字面量、变量拼接）中的危险函数 token，防止 'shell_'. 'exec' 类绕过
+        $all_forbidden = array_merge($forbidden_api_calls, $forbidden_dynamic, $forbidden_file_ops, $forbidden_compiler);
+        $huli_scan_dangerous_tokens = function ($code) use ($all_forbidden) {
+            $found = [];
+            foreach ($all_forbidden as $fn) {
+                if (preg_match('/\b' . preg_quote($fn, '/') . '(?!\w)/i', $code)) { $found[] = $fn; }
+            }
+            return $found;
+        };
         if ($type === 'local') {
-            $user_code = $_POST['local_code'];
-            foreach ($forbidden_api_calls as $fn) {
-                if (preg_match('/\b' . $fn . '\s*\(/i', $user_code)) {
-                    throw new Exception('接口代码不能调用 ' . $fn . ' 等系统命令类函数');
-                }
-            }
-            if (preg_match('/eval\s*\(|assert\s*\(|create_function\s*\(|call_user_func(_array)?\s*\(/i', $user_code)) {
-                throw new Exception('接口代码不能包含动态执行函数');
-            }
-            if (preg_match('/file_put_contents|file_get_contents|fopen|readfile|include|require/i', $user_code)) {
-                throw new Exception('接口代码不能包含文件读写或文件包含函数');
+            $user_code = (string)$_POST['local_code'];
+            $stripped = preg_replace('/^\s*<\?php\s*/i', '', $user_code, 1);
+            $stripped = preg_replace('/\?>\s*$/', '', $stripped, 1);
+            $found = $huli_scan_dangerous_tokens($stripped);
+            if ($found !== []) {
+                $names = implode('、', $found);
+                throw new Exception('接口代码不能包含以下函数: ' . $names . '。请使用纯业务逻辑，如需外部调用请创建远程接口。');
             }
             $existingAuthCode = false;
             if (file_exists($full_path)) {
@@ -222,6 +230,12 @@ try {
             $clean_code = $user_code;
             if (strpos(ltrim($clean_code), '<?php') === 0) {
                 $clean_code = preg_replace('/^<\?php\s*/', '', $clean_code, 1);
+            }
+            $clean_code = preg_replace('/\?>\s*$/', '', $clean_code, 1);
+            // 二次扫描：剥离 PHP 标签后重新确认无危险函数残留
+            $found2 = $huli_scan_dangerous_tokens($clean_code);
+            if ($found2 !== []) {
+                throw new Exception('接口代码不能包含函数: ' . implode('、', $found2));
             }
             if (!$existingAuthCode) {
                 $file_content = $auth_bootstrap . $clean_code;

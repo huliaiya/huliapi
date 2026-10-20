@@ -321,13 +321,13 @@ function huli_mcp_validate_token($token) {
     }
     $hash = hash('sha256', $token);
     $pdo = huli_mcp_pdo();
-    $stmt = $pdo->prepare("SELECT id, username, status FROM huli_users WHERE mcp_token_hash = ? LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, username, status FROM huli_users WHERE mcp_token_hash = ? AND status = 'active' LIMIT 1");
     $stmt->execute([$hash]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($user) {
         return ['role' => 'user', 'id' => (int)$user['id'], 'username' => $user['username'], 'status' => $user['status']];
     }
-    $stmt = $pdo->prepare("SELECT id, username, status FROM huli_admins WHERE mcp_token_hash = ? LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, username, status FROM huli_admins WHERE mcp_token_hash = ? AND status = 1 LIMIT 1");
     $stmt->execute([$hash]);
     $admin = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($admin) {
@@ -369,17 +369,47 @@ function huli_mcp_detect_scheme() {
         || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)) {
         $scheme = 'https';
     }
-    if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
-        $forwarded = strtolower(trim(explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
-        if ($forwarded === 'https' || $forwarded === 'http') {
-            $scheme = $forwarded;
+    // 仅当请求来自受信任代理时才允许 X-Forwarded-Proto 覆盖协议判断，防止直连部署下被伪造
+    if (huli_mcp_remote_addr_trusted()) {
+        $fw = strtolower(trim(explode(',', (string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0]));
+        if ($fw === 'https' || $fw === 'http') {
+            $scheme = $fw;
+        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_SSL']) !== 'off') {
+            $scheme = 'https';
         }
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower($_SERVER['HTTP_X_FORWARDED_SSL']) !== 'off') {
-        $scheme = 'https';
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR']) && $scheme === 'http') {
-        $scheme = 'https';
     }
     return $scheme;
+}
+
+function huli_mcp_remote_addr_trusted() {
+    if (!function_exists('huli_honored_forwarded_headers')) {
+        $ci = __DIR__ . '/../client_ip.php';
+        if (file_exists($ci)) { require_once $ci; }
+    }
+    if (function_exists('huli_honored_forwarded_headers')) {
+        return huli_honored_forwarded_headers();
+    }
+    $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+    if ($remote === '') { return false; }
+    $trusted = defined('HULI_TRUSTED_PROXIES') ? HULI_TRUSTED_PROXIES : '127.0.0.1,::1';
+    foreach (explode(',', $trusted) as $entry) {
+        $entry = trim($entry);
+        if ($entry === '') { continue; }
+        if ($remote === $entry || ip_in_range($remote, $entry)) { return true; }
+    }
+    return false;
+}
+
+function ip_in_range($ip, $cidr) {
+    if (strpos($cidr, '/') === false) { return $ip === $cidr; }
+    $parts = explode('/', $cidr, 2);
+    $ipLong = ip2long($ip);
+    if ($ipLong === false) { return false; }
+    $mask = (int)$parts[1];
+    $base = ip2long($parts[0]);
+    if ($base === false) { return false; }
+    $maskLong = (-1) << (32 - $mask);
+    return ($ipLong & $maskLong) === ($base & $maskLong);
 }
 
 function huli_mcp_public_url($path = '/mcp.php') {

@@ -1,6 +1,13 @@
 <?php
 if (!defined('HULI_ADMIN_REMEMBER_LIB')) { define('HULI_ADMIN_REMEMBER_LIB', 1); }
 
+if (!function_exists('huli_honored_forwarded_headers')) {
+    $huli_ci = __DIR__ . '/client_ip.php';
+    if (file_exists($huli_ci)) {
+        require_once $huli_ci;
+    }
+}
+
 function huli_admin_remember_cookie_name() {
     return 'huli_admin_remember';
 }
@@ -56,11 +63,14 @@ function huli_admin_remember_table(PDO $pdo = null) {
 function huli_admin_remember_is_secure_request() {
     if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') { return true; }
     if (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443) { return true; }
-    if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
-        $fw = strtolower(trim(explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
-        if ($fw === 'https') { return true; }
+    // 仅当请求来自受信任代理时才允许 X-Forwarded-* 头覆盖协议判断，防止直连部署下伪造
+    if (huli_honored_forwarded_headers()) {
+        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+            $fw = strtolower(trim(explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
+            if ($fw === 'https') { return true; }
+        }
+        if (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower($_SERVER['HTTP_X_FORWARDED_SSL']) !== 'off') { return true; }
     }
-    if (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower($_SERVER['HTTP_X_FORWARDED_SSL']) !== 'off') { return true; }
     return false;
 }
 
