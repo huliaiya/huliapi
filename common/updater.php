@@ -93,7 +93,7 @@ function huli_updater_write_status($token, array $patch) {
     $data['updated_at'] = time();
     $data['token'] = $token;
 
-    // 重要状态落库：既写文件(兼容 worker/旧版)，也写入数据库 huli_update_jobs
+    // 重要状态落库：既写文件(兼容 worker/旧版)，也写入数据库 huli_updater_jobs
     huli_updater_persist_status_db($token, $data);
 
     return huli_updater_write_json($file, $data);
@@ -109,7 +109,7 @@ function huli_updater_persist_status_db($token, array $data) {
         if (!$pdo) { return; }
         $json = json_encode($data, JSON_UNESCAPED_UNICODE);
         if ($json === false || strlen($json) > 100000) { return; }
-        $stmt = $pdo->prepare("INSERT INTO huli_update_jobs (token, payload, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE payload = VALUES(payload), updated_at = VALUES(updated_at)");
+        $stmt = $pdo->prepare("INSERT INTO huli_updater_jobs (token, payload, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE payload = VALUES(payload), updated_at = VALUES(updated_at)");
         $stmt->execute([$token, $json, time()]);
     } catch (Throwable $e) {
         error_log('[updater] 状态落库失败: ' . $e->getMessage());
@@ -363,6 +363,15 @@ function huli_updater_has_unzip_command() {
     return $available;
 }
 
+function huli_updater_zip_entry_is_safe($name) {
+    $name = str_replace('\\', '/', (string)$name);
+    if ($name === '' || $name[0] === '/' || preg_match('#^[A-Za-z]:#', $name)) { return false; }
+    foreach (explode('/', $name) as $part) {
+        if ($part === '..') { return false; }
+    }
+    return true;
+}
+
 function huli_updater_unzip($zip, $extract) {
     if (!@mkdir($extract, 0755, true) && !is_dir($extract)) {
         throw new Exception('无法创建临时解压目录。');
@@ -370,12 +379,37 @@ function huli_updater_unzip($zip, $extract) {
     if (class_exists('ZipArchive')) {
         $za = new ZipArchive;
         if ($za->open($zip) !== true) { throw new Exception('无法打开更新包文件。'); }
+        for ($i = 0; $i < $za->numFiles; $i++) {
+            $stat = $za->statIndex($i);
+            if (!$stat || !huli_updater_zip_entry_is_safe($stat['name'])) {
+                $za->close();
+                throw new Exception('更新包包含非法路径，已拒绝解压。');
+            }
+            $opsys = 0;
+            $attr = 0;
+            if ($za->getExternalAttributesIndex($i, $opsys, $attr)) {
+                $mode = ($attr >> 16) & 0xFFFF;
+                if (($mode & 0xF000) === 0xA000) {
+                    $za->close();
+                    throw new Exception('更新包包含符号链接，已拒绝解压。');
+                }
+            }
+        }
         $ok = $za->extractTo($extract);
         $za->close();
         if (!$ok) { throw new Exception('解压更新包失败。'); }
         return;
     }
     if (huli_updater_has_unzip_command()) {
+        $list = [];
+        $listCode = 1;
+        @exec('unzip -Z1 ' . escapeshellarg($zip) . ' 2>/dev/null', $list, $listCode);
+        if ($listCode !== 0) { throw new Exception('无法读取更新包目录。'); }
+        foreach ($list as $entry) {
+            if (!huli_updater_zip_entry_is_safe($entry)) {
+                throw new Exception('更新包包含非法路径，已拒绝解压。');
+            }
+        }
         $cmd = 'unzip -oq ' . escapeshellarg($zip) . ' -d ' . escapeshellarg($extract) . ' 2>&1';
         $out = [];
         $code = 1;
@@ -397,6 +431,7 @@ function huli_updater_collect_plan($root, $target, $admin_path, $admin_redirect)
     foreach ($iter as $item) {
         $relative = str_replace('\\', '/', substr($item->getPathname(), strlen($root) + 1));
         if ($relative === '') { continue; }
+        if ($item->isLink()) { continue; }
         if (in_array($relative, $protected, true)) { continue; }
         if (strpos($relative, 'install/') === 0) { continue; }
         if ($admin_redirect && ($relative === 'admin' || strpos($relative, 'admin/') === 0)) {

@@ -2,6 +2,7 @@
 if (!defined('HULI_MCP_SERVER')) { define('HULI_MCP_SERVER', 1); }
 
 require_once __DIR__ . '/mcp_lib.php';
+require_once __DIR__ . '/../client_ip.php';
 
 define('HULI_MCP_VERSION', '1.0.0');
 define('HULI_MCP_PROTOCOL_VERSION', '2024-11-05');
@@ -204,6 +205,17 @@ function huli_mcp_handle_request() {
         echo huli_mcp_json(huli_mcp_error(-32001, 'Unauthorized: 无效或缺失的 MCP Token', null));
         try {
             $pdo = huli_mcp_pdo();
+            $authIp = function_exists('huli_client_ip') ? huli_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+            $authWindow = 60;
+            $authWindowStart = (int)(time() / $authWindow) * $authWindow;
+            $authStmt = $pdo->prepare("INSERT INTO huli_rate_limits (scope, identifier, window_start, request_count) VALUES ('mcp_auth', ?, ?, LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE request_count = LAST_INSERT_ID(request_count + 1)");
+            $authStmt->execute([hash('sha256', $authIp), $authWindowStart]);
+            if ((int)$pdo->query("SELECT LAST_INSERT_ID()")->fetchColumn() > 30) {
+                header('Retry-After: 60');
+                http_response_code(429);
+                echo huli_mcp_json(huli_mcp_error(-32002, 'Too Many Requests: 未授权请求过于频繁', null));
+                exit;
+            }
             $stmt = $pdo->prepare("INSERT INTO huli_mcp_logs (role, user_id, username, method, tool_name, ip_address, user_agent, status, error_msg, latency_ms) VALUES ('user', 0, '', 'auth', NULL, ?, ?, 'error', 'Unauthorized', 0)");
             $stmt->execute([(string)($_SERVER['REMOTE_ADDR'] ?? ''), (string)($_SERVER['HTTP_USER_AGENT'] ?? '')]);
         } catch (Throwable $e) { error_log('[mcp_server] 未授权日志写入失败: ' . $e->getMessage()); }

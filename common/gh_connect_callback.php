@@ -58,16 +58,12 @@ $GLOBALS['gh_scope'] = $scope;
 $GLOBALS['gh_bind_mode'] = ($action === 'bind');
 
 if ($action === 'bind') {
-    // The callback may arrive in a brand-new session (GitHub round trip), so the
-    // account being bound is the one recorded with the state row.
-    if (!empty($_SESSION['admin_id']) || !empty($_SESSION['user_id'])) {
-        $current_id = (int)($scope === 'admin' ? ($_SESSION['admin_id'] ?? 0) : ($_SESSION['user_id'] ?? 0));
-        if ($current_id > 0) {
-            $pending_account_id = $current_id;
-        }
-    }
-    if ($pending_account_id <= 0) {
-        $fail('请先登录再进行 GitHub 绑定。');
+    // Binding is only valid for the exact account that started the flow in this
+    // session. Never trust account_id from a state row alone: a copied callback
+    // URL would otherwise bind an attacker's GitHub id to the victim account.
+    $session_account_id = (int)($scope === 'admin' ? ($_SESSION['admin_id'] ?? 0) : ($_SESSION['user_id'] ?? 0));
+    if ($session_account_id <= 0 || $pending_account_id !== $session_account_id) {
+        $fail('绑定请求已失效，请重新登录后再试。');
     }
     // Human verification happens in /gh_bind_start.php before the GitHub
     // redirect; GitHub sends us a GET request, so no token can arrive here.

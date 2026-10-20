@@ -22,6 +22,7 @@ try {
 } catch (PDOException $e) { $nickname = $username; $admin_email = ''; }
 $feedback_msg = ''; $feedback_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    huli_csrf_require();
         $type = $_POST['form_type'] ?? '';
         if ($type === 'password') {
         $current_password = $_POST['current_password']; $new_password = $_POST['new_password']; $confirm_password = $_POST['confirm_password'];
@@ -36,6 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($admin_data && password_verify($current_password, $admin_data['password'])) {
                     $update_stmt = $pdo->prepare("UPDATE huli_admins SET password = ? WHERE id = ?");
                     $update_stmt->execute([password_hash($new_password, PASSWORD_DEFAULT), $admin_id]);
+                    require_once __DIR__ . '/../common/account_security.php';
+                    huli_revoke_account_tokens($pdo, 'admin', (int)$admin_id);
                     $feedback_msg = '密码已成功更新。'; $feedback_type = 'success';
                 } else { $feedback_msg = '当前密码不正确。'; $feedback_type = 'error'; }
             } catch (PDOException $e) { $feedback_msg = '出现错误！数据库操作失败。'; $feedback_type = 'error'; }
@@ -104,7 +107,7 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -235,5 +238,6 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
     });
 })();
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

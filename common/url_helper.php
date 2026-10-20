@@ -26,3 +26,12 @@ function huli_current_origin($path = '') {
     $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
     return huli_current_scheme() . '://' . $host . $path;
 }
+
+function huli_is_safe_http_url($url) {
+    $url = trim((string)$url);
+    if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+        return false;
+    }
+    $scheme = strtolower((string)parse_url($url, PHP_URL_SCHEME));
+    return $scheme === 'http' || $scheme === 'https';
+}

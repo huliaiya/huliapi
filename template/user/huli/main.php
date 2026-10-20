@@ -45,6 +45,7 @@ try {
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_qq'])) {
+        huli_csrf_require();
         $new_qq = trim($_POST['qq'] ?? '');
         if ($new_qq !== '' && !preg_match('/^\d{5,12}$/', $new_qq)) {
             $_SESSION['feedback_msg'] = '请输入有效的QQ号（5-12位数字）。';
@@ -75,6 +76,7 @@ try {
         }
     }
     if(isset($_POST['cdkey']) && !empty($_POST['cdkey'])) {
+        huli_csrf_require();
         $cdkey = trim($_POST['cdkey']);
         $pdo->beginTransaction();
         try {
@@ -176,7 +178,7 @@ try {
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
     <title>用户中心 - <?php echo htmlspecialchars($site_name); ?></title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
@@ -366,7 +368,7 @@ try {
                     <?php endif; ?>
                     <?php if ($feedback_msg): ?>
                     <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> alert-dismissible fade show" role="alert">
-                        <?php echo $feedback_msg; ?>
+                        <?php echo htmlspecialchars($feedback_msg, ENT_QUOTES, 'UTF-8'); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                     <?php endif; ?>
@@ -826,5 +828,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 })();
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

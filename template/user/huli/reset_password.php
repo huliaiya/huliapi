@@ -33,6 +33,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings WHERE setting_key IN ('site_name')")->fetchAll(PDO::FETCH_KEY_PAIR);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $email = trim($_POST['email'] ?? '');
         $code = trim($_POST['code'] ?? '');
         $password = trim($_POST['password'] ?? '');
@@ -43,16 +44,33 @@ try {
         if (empty($email) || empty($code) || empty($password)) {
             throw new Exception('所有字段均为必填项');
         }
+        if (strlen($password) < 6) {
+            throw new Exception('密码长度不能少于6位');
+        }
         if ($password !== $confirm_password) {
             throw new Exception('两次输入的密码不一致');
         }
         $db_code_ok = function_exists('huli_verification_code_check') ? huli_verification_code_check('reset', $email, $code) : false;
-        if (!$db_code_ok && (!isset($_SESSION['reset_code']) || !isset($_SESSION['reset_code_expire']) || time() > $_SESSION['reset_code_expire'] || !hash_equals(strtolower($_SESSION['reset_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['reset_email']), strtolower($email)))) {
-            throw new Exception('邮箱验证码不正确或已过期');
+        if (!$db_code_ok) {
+            $session_code_available = isset($_SESSION['reset_code'], $_SESSION['reset_code_expire'], $_SESSION['reset_email'])
+                && time() <= (int)$_SESSION['reset_code_expire'];
+            $session_code_ok = $session_code_available
+                && hash_equals(strtolower((string)$_SESSION['reset_code']), strtolower($code))
+                && hash_equals(strtolower((string)$_SESSION['reset_email']), strtolower($email));
+            if (!$session_code_ok) {
+                $_SESSION['reset_code_attempts'] = (int)($_SESSION['reset_code_attempts'] ?? 0) + 1;
+                if ($_SESSION['reset_code_attempts'] >= 5) {
+                    unset($_SESSION['reset_code'], $_SESSION['reset_email'], $_SESSION['reset_code_expire'], $_SESSION['reset_code_attempts']);
+                    throw new Exception('验证码尝试次数过多，请重新获取验证码');
+                }
+                throw new Exception('邮箱验证码不正确或已过期');
+            }
         }
+        unset($_SESSION['reset_code_attempts']);
         $stmt = $pdo->prepare("SELECT id FROM huli_users WHERE email = ?");
         $stmt->execute([$email]);
-        if ($stmt->rowCount() === 0) {
+        $reset_user_id = (int)$stmt->fetchColumn();
+        if ($reset_user_id <= 0) {
             throw new Exception('该邮箱未注册');
         }
         $stmt = $pdo->prepare("UPDATE huli_users SET password = ? WHERE email = ?");
@@ -60,6 +78,8 @@ try {
         if ($stmt->rowCount() === 0) {
             throw new Exception('密码更新失败，请重试');
         }
+        require_once ROOT_PATH . 'common/account_security.php';
+        huli_revoke_account_tokens($pdo, 'user', $reset_user_id);
         unset($_SESSION['reset_code'], $_SESSION['reset_email'], $_SESSION['reset_code_expire']);
         if ($is_ajax) {
             header('Content-Type: application/json');
@@ -97,7 +117,7 @@ try {
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <title>重置密码 - <?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?></title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
@@ -301,16 +321,50 @@ $(document).ready(function() {
                 $btn.text('获取验证码');
             }
         }, 1000);
-        $.post('../../../common/ajax/send_code.php', {
-            email: email,
-            type: 'reset'
-        }, function(response) {
-            if (!response.success) {
+        ensureTurnstile(function(token) {
+            $.post('../../../common/ajax/send_code.php', {
+                email: email,
+                type: 'reset',
+                'cf-turnstile-response': token
+            }, function(response) {
+                resetTurnstileWidget();
+                if (!response.success) {
+                    clearInterval(interval);
+                    $btn.prop('disabled', false);
+                    $btn.text('获取验证码');
+                    $.notify({
+                        message: response.message || '验证码发送失败',
+                    },{
+                        type: 'danger',
+                        placement: { from: 'top', align: 'right' },
+                        z_index: 10800,
+                        delay: 1500,
+                        animate: {
+                            enter: 'animate__animated animate__shakeX',
+                            exit: 'animate__animated animate__fadeOutDown'
+                        }
+                    });
+                } else {
+                    $.notify({
+                        message: '验证码已发送到您的邮箱',
+                    },{
+                        type: 'success',
+                        placement: { from: 'top', align: 'right' },
+                        z_index: 10800,
+                        delay: 1500,
+                        animate: {
+                            enter: 'animate__animated animate__fadeInUp',
+                            exit: 'animate__animated animate__fadeOutDown'
+                        }
+                    });
+                }
+            }).fail(function() {
+                resetTurnstileWidget();
                 clearInterval(interval);
                 $btn.prop('disabled', false);
                 $btn.text('获取验证码');
                 $.notify({
-                    message: response.message || '验证码发送失败',
+                    message: '服务器错误，请稍后再试',
                 },{
                     type: 'danger',
                     placement: { from: 'top', align: 'right' },
@@ -321,26 +375,13 @@ $(document).ready(function() {
                         exit: 'animate__animated animate__fadeOutDown'
                     }
                 });
-            } else {
-                $.notify({
-                    message: '验证码已发送到您的邮箱',
-                },{
-                    type: 'success',
-                    placement: { from: 'top', align: 'right' },
-                    z_index: 10800,
-                    delay: 1500,
-                    animate: {
-                        enter: 'animate__animated animate__fadeInUp',
-                        exit: 'animate__animated animate__fadeOutDown'
-                    }
-                });
-            }
-        }).fail(function() {
+            });
+        }, function(message) {
             clearInterval(interval);
             $btn.prop('disabled', false);
             $btn.text('获取验证码');
             $.notify({
-                message: '服务器错误，请稍后再试',
+                message: message,
             },{
                 type: 'danger',
                 placement: { from: 'top', align: 'right' },
@@ -412,5 +453,6 @@ $(document).ready(function() {
     }
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

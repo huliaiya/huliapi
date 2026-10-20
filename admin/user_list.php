@@ -34,6 +34,7 @@ try {
         }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id']) && !isset($_POST['ids'])) {
+        huli_csrf_require();
         $id = intval($_POST['id']);
         switch ($_POST['action']) {
             case 'ban':
@@ -57,6 +58,7 @@ try {
         exit;
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['ids'])) {
+        huli_csrf_require();
         $ids = array_map('intval', $_POST['ids']);
         $ids = array_values(array_filter($ids, function ($v) { return $v > 0; }));
         if (empty($ids)) {
@@ -139,7 +141,7 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -320,7 +322,7 @@ $current_page_script = basename($_SERVER['PHP_SELF']);
             </div>
           </form>
           <?php if ($total_pages > 1): ?>
-          <ul class="pagination">
+          <ul class="pagination flex-wrap">
             <?php if ($page > 1): ?>
               <li class="page-item"><a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">上一页</a></li>
             <?php else: ?>
@@ -393,5 +395,6 @@ $(document).ready(function() {
     $('[data-bs-toggle="tooltip"]').tooltip();
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

@@ -8,8 +8,13 @@ define('STEP_COMPLETE', 4);
 define('HULI_INSTALL_PHP_MIN_VERSION', '7.4.0');
 
 $is_installed = file_exists(__DIR__ . '/install.lock');
-if ($is_installed && basename($_SERVER['PHP_SELF']) !== 'install.php' && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_COMPLETE)) {
-    die('系统已安装，如需重新安装请删除install.lock文件');
+if ($is_installed) {
+    $is_complete_view = $_SERVER['REQUEST_METHOD'] === 'GET'
+        && isset($_GET['step'])
+        && (int)$_GET['step'] === STEP_COMPLETE;
+    if (!$is_complete_view) {
+        die('系统已安装，如需重新安装请先手动删除 install/install.lock 文件');
+    }
 }
 if (!$is_installed && $_SERVER['REQUEST_METHOD'] !== 'POST' && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_CHECK_ENV) && (!isset($_GET['step']) || (int)$_GET['step'] !== STEP_COMPLETE)) {
     header('Location: ?step=' . STEP_CHECK_ENV);
@@ -30,6 +35,30 @@ function huli_installer_disclaimer_text() {
         "3. 因使用本系统所产生的任何后果由使用者自行承担，开发者不承担任何责任。\n" .
         "4. 如不同意以上条款，请立即停止安装并删除本程序。\n\n" .
         "如已阅读并同意上述全部条款，请在下方输入框中输入“我已同意”后开始安装。";
+}
+
+function huli_installer_log_html($log) {
+    $log = (string)$log;
+    if (trim($log) === '') { return ''; }
+    $html = '';
+    foreach (explode("\n", $log) as $line) {
+        $line = trim($line);
+        if ($line === '') { continue; }
+        $class = 'terminal-line';
+        if (strpos($line, '✓') === 0) {
+            $class .= ' terminal-success';
+        } elseif (strpos($line, '✗') === 0 || strpos($line, '错误') !== false) {
+            $class .= ' terminal-error';
+        } elseif (strpos($line, '⚠') === 0) {
+            $class .= ' terminal-warning';
+        } elseif (strpos($line, '>') === 0) {
+            $class .= ' terminal-prompt';
+        } else {
+            $class .= ' terminal-info';
+        }
+        $html .= '<div class="' . $class . '">' . htmlspecialchars($line, ENT_QUOTES, 'UTF-8') . '</div>';
+    }
+    return $html;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -92,6 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($smtp_user === '') $field_errors['mail_smtp_user'] = 'SMTP 用户名不能为空';
             if ($smtp_pass === '') $field_errors['mail_smtp_pass'] = 'SMTP 密码不能为空';
             if (($turnstile_site_key === '') !== ($turnstile_secret_key === '')) $field_errors['turnstile_keys'] = 'Site Key 与 Secret Key 需同时填写或同时留空';
+            if ($turnstile_enabled === '1' && ($turnstile_site_key === '' || $turnstile_secret_key === '')) $field_errors['turnstile_keys'] = '启用 Turnstile 时必须填写 Site Key 与 Secret Key';
 
             if (!empty($field_errors)) {
                  
@@ -147,6 +177,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db_port = (int)($db['port'] ?? 3306);
                 $install = $_SESSION['install_config'];
                 $log = '';
+                $_SESSION['install_log'] = '';
+                $dropped_count = 0;
+                $created_count = 0;
+                $import_failed_count = 0;
                 $log .= "> 正在生成数据库配置文件...\n";
                 $config_path = __DIR__ . '/../config.php';
                 $csrf_tail = '';
@@ -180,6 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     foreach ($tables as $table) {
                         try {
                             $pdo->exec("DROP TABLE `{$table}`");
+                            $dropped_count++;
                             $log .= "✓ 已删除表: {$table}\n";
                         } catch (PDOException $e) {
                             $log .= "⚠ 删除表失败: {$table} (" . $e->getMessage() . ")\n";
@@ -187,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
-                $log .= "✓ 数据库清理完成（仅清理本系统 huli_ 前缀数据表）\n";
+                $log .= "✓ 数据库清理完成 (共删除 {$dropped_count} 个表，仅清理本系统 huli_ 前缀数据表)\n";
                 $log .= "> 正在解析SQL文件...\n";
                 $sql = @file_get_contents('install.sql');
                 if (!$sql) throw new Exception('无法读取 install.sql 文件');
@@ -197,28 +232,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $command = trim($command);
                     if (!empty($command)) {
                         $table_name = '';
+                        $command_type = 'sql';
                         if (preg_match('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([^\s`(]+)/i', $command, $matches)) {
                             $table_name = $matches[1];
+                            $command_type = 'create';
                         }
                         if (empty($table_name) && preg_match('/INSERT\s+INTO\s+`?([^\s`]+)/i', $command, $matches)) {
                             $table_name = $matches[1];
+                            $command_type = 'insert';
                         }
                         if (empty($table_name)) $table_name = 'SQL命令';
                         try {
                             $start_time = microtime(true);
                             $pdo->exec($command);
                             $time_taken = round((microtime(true) - $start_time) * 1000, 2);
-                            $log .= "✓ [{$table_name}] 执行成功 ({$time_taken}ms)\n";
+                            if ($command_type === 'create') {
+                                $created_count++;
+                                $log .= "✓ 已创建表: {$table_name} ({$time_taken}ms)\n";
+                            } elseif ($command_type === 'insert') {
+                                $log .= "✓ 已写入初始数据: {$table_name} ({$time_taken}ms)\n";
+                            } else {
+                                $log .= "✓ [{$table_name}] 执行成功 ({$time_taken}ms)\n";
+                            }
                         } catch (PDOException $e) {
                             if (strpos($e->getMessage(), 'already exists') !== false) {
                                 $log .= "⚠ [{$table_name}] 表已存在 (跳过)\n";
                             } else {
+                                $import_failed_count++;
                                 $log .= "✗ [{$table_name}] 执行失败: " . $e->getMessage() . "\n";
                             }
                         }
                     }
                 }
-                $log .= "✓ 数据库导入完成\n";
+                $log .= "✓ 数据库导入完成 (创建 {$created_count} 个表，失败 {$import_failed_count} 条语句)\n";
                 $adminStmt = $pdo->prepare("UPDATE huli_admins SET username = ?, password = ?, email = ?, qq = ?, nickname = ? WHERE id = 1");
                 $adminUpdated = $adminStmt->execute([
                     $install['admin_username'],
@@ -274,6 +320,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } catch (Exception $e) {
         $error = $e->getMessage();
+        if (isset($action) && $action === 'install_db' && isset($log)) {
+            $log .= "✗ 安装失败: " . $e->getMessage() . "\n";
+            $_SESSION['install_log'] = $log;
+        }
         if ($action === 'install_db' && $config_written_this_run) {
             if (file_exists(__DIR__ . '/../config.php')) @unlink(__DIR__ . '/../config.php');
             if (file_exists(__DIR__ . '/install.lock')) @unlink(__DIR__ . '/install.lock');
@@ -964,7 +1014,7 @@ body {
 
         <div class="form-group mb-4">
           <label class="form-check-label">
-            <input class="form-check-input" type="checkbox" name="turnstile_enabled" value="1" <?= (!empty($_SESSION['install_config']['turnstile_enabled']) || empty($_SESSION['install_config'])) ? 'checked' : '' ?>>
+            <input class="form-check-input" type="checkbox" name="turnstile_enabled" value="1" <?= !empty($_SESSION['install_config']['turnstile_enabled']) ? 'checked' : '' ?>>
             启用 Cloudflare Turnstile 人机验证（启用后须填写下方两个 Key）
           </label>
         </div>
@@ -972,44 +1022,26 @@ body {
         <div class="form-row">
           <div class="form-group mb-4">
             <label class="form-label">Turnstile Site Key</label>
-            <input class="form-control" type="text" name="turnstile_site_key" value="<?= htmlspecialchars($_SESSION['install_config']['turnstile_site_key'] ?? '3x00000000000000000000FF') ?>">
+            <input class="form-control" type="text" name="turnstile_site_key" value="<?= htmlspecialchars($_SESSION['install_config']['turnstile_site_key'] ?? '') ?>">
           </div>
           <div class="form-group mb-4">
             <label class="form-label">Turnstile Secret Key</label>
-            <input class="form-control" type="text" name="turnstile_secret_key" value="<?= htmlspecialchars($_SESSION['install_config']['turnstile_secret_key'] ?? '1x0000000000000000000000000000000AA') ?>">
+            <input class="form-control" type="text" name="turnstile_secret_key" value="<?= htmlspecialchars($_SESSION['install_config']['turnstile_secret_key'] ?? '') ?>">
           </div>
         </div>
         <?php if ($f('turnstile_keys')): ?>
         <div class="alert alert-danger"><i class="mdi mdi-alert-circle-outline mr-1"></i><?= $f('turnstile_keys') ?></div>
         <?php else: ?>
-        <div class="text-muted small mb-3">当前默认使用 Cloudflare 官方测试密钥，任何环境均可通过验证。正式上线前请在 https://dash.cloudflare.com 创建 Turnstile 站点并替换为您自己的密钥。</div>
+        <div class="text-muted small mb-3">正式上线前请在 https://dash.cloudflare.com 创建 Turnstile 站点并填写您自己的密钥。Site Key 与 Secret Key 必须来自同一个站点。</div>
         <?php endif; ?>
 
         <?php elseif ($step == STEP_INSTALL_DB): ?>
         <div class="terminal-container">
           <h5 class="mb-3"><i class="mdi mdi-console-line mr-2"></i>安装终端</h5>
           <div class="terminal" id="install-terminal">
-            <?php if (!empty($_SESSION['install_log'])): ?>
-              <?php
-              $log_lines = explode("\n", $_SESSION['install_log']);
-              foreach ($log_lines as $line):
-                $line = trim($line);
-                if (empty($line)) continue;
-                $class = 'terminal-line';
-                if (strpos($line, '✓') === 0) {
-                  $class .= ' terminal-success';
-                } elseif (strpos($line, '✗') === 0 || strpos($line, '错误') !== false) {
-                  $class .= ' terminal-error';
-                } elseif (strpos($line, '⚠') === 0) {
-                  $class .= ' terminal-warning';
-                } elseif (strpos($line, '>') === 0) {
-                  $class .= ' terminal-prompt';
-                } else {
-                  $class .= ' terminal-info';
-                }
-              ?>
-              <div class="<?= $class ?>"><?= htmlspecialchars($line) ?></div>
-              <?php endforeach; ?>
+            <?php $install_log_html = huli_installer_log_html($_SESSION['install_log'] ?? ''); ?>
+            <?php if ($install_log_html !== ''): ?>
+              <?= $install_log_html ?>
             <?php else: ?>
               <div class="terminal-line terminal-prompt">> 准备开始安装...</div>
               <div class="terminal-line terminal-prompt">> 点击「开始安装」按钮继续</div>
@@ -1087,6 +1119,15 @@ body {
             <h5><i class="mdi mdi-security mr-2"></i>安全提示</h5>
             <p class="mb-0">为了系统安全，请立即删除或重命名 install 目录</p>
           </div>
+          <?php $install_log_html = huli_installer_log_html($_SESSION['install_log'] ?? ''); ?>
+          <?php if ($install_log_html !== ''): ?>
+          <div class="terminal-container text-start mt-4">
+            <h5 class="mb-3"><i class="mdi mdi-console-line mr-2"></i>安装日志</h5>
+            <div class="terminal" id="install-complete-terminal">
+              <?= $install_log_html ?>
+            </div>
+          </div>
+          <?php endif; ?>
         </div>
         <?php endif; ?>
 

@@ -47,6 +47,7 @@ try {
     $current_year = date('Y');
     $admin_url = $settings['admin_url'] ?? '#';
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id'])) {
+        huli_csrf_require();
         $id = intval($_POST['id']);
         switch ($_POST['action']) {
             case 'delete':
@@ -96,6 +97,7 @@ try {
         exit;
     }
     if (isset($_POST['batch_action']) && isset($_POST['ids'])) {
+        huli_csrf_require();
         $ids = array_values(array_filter(array_map('intval', (array)$_POST['ids']), function ($v) { return $v > 0; }));
         if (empty($ids)) {
             $_SESSION['feedback_msg'] = '未选择任何有效友链。';
@@ -483,7 +485,7 @@ function getStatusBadge($status) {
                   </div>
                   <div class="ml-3 flex-1">
                     <h3 class="text-sm font-semibold text-gray-900">
-                      <a href="<?= htmlspecialchars($link['url']) ?>" target="_blank" class="hover:text-primary transition-colors">
+                      <a href="<?= huli_is_safe_http_url($link['url']) ? htmlspecialchars($link['url']) : '#' ?>" target="_blank" class="hover:text-primary transition-colors">
                         <?= htmlspecialchars($link['site_name']) ?>
                         <i class="fa fa-external-link text-xs ml-1 text-gray-400"></i>
                       </a>
@@ -874,5 +876,6 @@ function getStatusBadge($status) {
       });
     });
   </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

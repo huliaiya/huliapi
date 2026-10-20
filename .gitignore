@@ -1,0 +1,8 @@
+.monkeycode/
+.monkeycode-tmp-files/
+logs/*
+!logs/.htaccess
+!logs/index.html
+install/install.lock
+*.log
+.DS_Store

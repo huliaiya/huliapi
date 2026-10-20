@@ -8,7 +8,16 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     @ini_set('session.cookie_httponly', '1');
     @ini_set('session.cookie_samesite', 'Lax');
     @ini_set('session.use_trans_sid', '0');
-    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+    $huli_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
+    if (!$huli_https && !empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+        $huli_fw = strtolower(trim(explode(',', (string)$_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
+        $huli_https = ($huli_fw === 'https');
+    }
+    if (!$huli_https && !empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_SSL']) !== 'off') {
+        $huli_https = true;
+    }
+    if ($huli_https) {
         @ini_set('session.cookie_secure', '1');
     }
     @session_start();

@@ -67,15 +67,9 @@ if (!function_exists('huli_client_ip')) {
         $remote = $_SERVER['REMOTE_ADDR'] ?? '';
         $configured = huli_configured_trusted_proxies();
         $cloudflare = huli_cloudflare_ranges();
+        $trusted = array_merge(['127.0.0.1', '::1'], $configured);
 
-        $is_local_peer = filter_var(
-            $remote,
-            FILTER_VALIDATE_IP,
-            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-        ) === false;
-
-        $trust_forwarded = (!empty($configured) && huli_is_trusted_proxy($remote, $configured))
-            || $is_local_peer
+        $trust_forwarded = huli_is_trusted_proxy($remote, $trusted)
             || huli_is_trusted_proxy($remote, $cloudflare);
 
         if ($trust_forwarded) {
@@ -95,16 +89,12 @@ if (!function_exists('huli_client_ip')) {
             }
             $chain[] = $remote;
 
-            $trusted_all = array_merge($configured, $cloudflare);
+            $trusted_all = array_merge($trusted, $cloudflare);
             for ($i = count($chain) - 1; $i >= 0; $i--) {
                 $ip = $chain[$i];
                 if (!filter_var($ip, FILTER_VALIDATE_IP)) { continue; }
                 if ($i === 0) { return $ip; }
-                $is_trusted = huli_is_trusted_proxy($ip, $trusted_all);
-                if (!$is_trusted && $is_local_peer) {
-                    $is_trusted = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
-                }
-                if (!$is_trusted) { return $ip; }
+                if (!huli_is_trusted_proxy($ip, $trusted_all)) { return $ip; }
             }
             return $remote;
         }
