@@ -83,6 +83,33 @@ $auto_origin = $_auto_scheme . '://' . $_auto_host;
     display: flex;
     align-items: center;
 }
+@media (min-width: 1025px) {
+    .lyear-layout-sidebar-close .lyear-layout-sidebar {
+        width: 0 !important;
+        border-right: 0 !important;
+        box-shadow: none !important;
+        visibility: hidden !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:hover {
+        width: var(--sidebar-width) !important;
+        border-right: 1px solid rgba(24, 39, 75, .08) !important;
+        box-shadow: 0 12px 40px rgba(24, 39, 75, .18) !important;
+        visibility: visible !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-header,
+    .lyear-layout-sidebar-close .lyear-layout-content {
+        padding-left: 0 !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar > * {
+        width: var(--sidebar-width);
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:hover .nav-drawer li a {
+        padding: 9px 12px 9px 42px !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:hover .nav-drawer > li > a > i {
+        left: 14px;
+    }
+}
 </style>
 </head>
 <body class="lyear-index">
