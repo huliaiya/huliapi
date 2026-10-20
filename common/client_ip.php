@@ -62,6 +62,18 @@ if (!function_exists('huli_configured_trusted_proxies')) {
     }
 }
 
+if (!function_exists('huli_honored_forwarded_headers')) {
+    function huli_honored_forwarded_headers() {
+        $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+        if ($remote === '') { return false; }
+        $configured = huli_configured_trusted_proxies();
+        $cloudflare = huli_cloudflare_ranges();
+        $trusted = array_merge(['127.0.0.1', '::1'], $configured);
+        return huli_is_trusted_proxy($remote, $trusted)
+            || huli_is_trusted_proxy($remote, $cloudflare);
+    }
+}
+
 if (!function_exists('huli_client_ip')) {
     function huli_client_ip() {
         $remote = $_SERVER['REMOTE_ADDR'] ?? '';

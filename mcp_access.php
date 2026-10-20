@@ -33,7 +33,12 @@ if (!$access) {
 $role = $access['role'] === 'admin' ? 'admin' : 'user';
 $lookupId = (int)$access['user_id'];
 $pdo = huli_mcp_pdo();
-$table = $role === 'admin' ? 'huli_admins' : 'huli_users';
+// 表名白名单：只允许两个固定表名，杜绝任何由外部数据驱动的表名拼接
+if ($role === 'admin') {
+    $table = 'huli_admins';
+} else {
+    $table = 'huli_users';
+}
 $stmt = $pdo->prepare("SELECT id, username, status FROM `$table` WHERE id = ? LIMIT 1");
 $stmt->execute([$lookupId]);
 $account = $stmt->fetch(PDO::FETCH_ASSOC);

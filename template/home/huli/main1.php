@@ -26,11 +26,8 @@ try {
     $total_apis_all = (int)$pdo->query("SELECT COUNT(*) FROM huli_apis")->fetchColumn();
     $error_apis_count = (int)$pdo->query("SELECT COUNT(*) FROM huli_apis WHERE status = 'error'")->fetchColumn();
     $site_name = huli_site_setting($pdo, 'site_name', 'huliapi');
-    $music_keys = ['music_enabled', 'music_github_token', 'yn_github_token', 'music_repo', 'music_branch', 'music_directory', 'music_playlist_url', 'music_cdn_base', 'music_play_mode', 'music_autoplay', 'music_default_volume', 'music_show_home'];
+    $music_keys = ['music_enabled', 'music_repo', 'music_branch', 'music_directory', 'music_playlist_url', 'music_cdn_base', 'music_play_mode', 'music_autoplay', 'music_default_volume', 'music_show_home'];
     $music_settings = array_intersect_key(huli_site_settings($pdo), array_flip($music_keys));
-    if (empty($music_settings['music_github_token']) && !empty($music_settings['yn_github_token'])) {
-        $music_settings['music_github_token'] = $music_settings['yn_github_token'];
-    }
 } catch (PDOException $e) {
     error_log('Failed to load music settings: ' . $e->getMessage());
 }

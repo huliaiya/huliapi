@@ -15,7 +15,7 @@ try {
     $params = [];
     if ($q !== '') {
         $where[] = "(name LIKE ? OR description LIKE ? OR endpoint LIKE ?)";
-        $like = '%' . $q . '%';
+        $like = '%' . addcslashes($q, '\\%_') . '%';
         array_push($params, $like, $like, $like);
     }
     if ($category_id > 0) {

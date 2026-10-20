@@ -147,7 +147,7 @@ try {
         unset($api);
     }
 } catch (PDOException $e) {
-    $db_error = "数据库连接错误: " . $e->getMessage();
+    $db_error = "数据库连接错误，请检查 config.php 中的数据库配置或稍后重试";
     $log_dir = dirname(__DIR__) . '/logs';
     if (!is_dir($log_dir)) { @mkdir($log_dir, 0755, true); }
     error_log("[" . date('Y-m-d H:i:s') . "] 数据库错误: " . $e->getMessage() . "\n", 3, $log_dir . '/db_errors.log');

@@ -42,14 +42,11 @@ try {
     if (!$api) { header('Location: index.php'); exit; }
     $params = json_decode($api['parameters'], true);
     if (!is_array($params)) $params = [];
-    $music_keys = ['music_enabled', 'music_github_token', 'yn_github_token', 'music_repo', 'music_branch', 'music_directory', 'music_playlist_url', 'music_cdn_base', 'music_play_mode', 'music_autoplay', 'music_default_volume', 'music_show_doc'];
+    $music_keys = ['music_enabled', 'music_repo', 'music_branch', 'music_directory', 'music_playlist_url', 'music_cdn_base', 'music_play_mode', 'music_autoplay', 'music_default_volume', 'music_show_doc'];
     $all_settings = huli_site_settings($pdo);
     $db_site_name = isset($all_settings['site_name']) && $all_settings['site_name'] !== '' ? $all_settings['site_name'] : '';
     if($db_site_name) $site_name = $db_site_name;
     $music_settings = array_intersect_key($all_settings, array_flip($music_keys));
-    if (empty($music_settings['music_github_token']) && !empty($music_settings['yn_github_token'])) {
-        $music_settings['music_github_token'] = $music_settings['yn_github_token'];
-    }
 } catch (PDOException $e) { }
 
 function getStatusBadge($status) {

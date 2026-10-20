@@ -39,7 +39,7 @@ try {
     if (!$plan) {
         throw new Exception("所选计费方案无效或已下架。");
     }
-    $order_id = date('YmdHis') . mt_rand(10000, 99999);
+    $order_id = date('YmdHis') . bin2hex(random_bytes(5));
     $match_code = huli_generate_match_code($pdo);
     $amount = $plan['price'];
     $sql = "INSERT INTO huli_orders (order_id, user_id, plan_id, amount, status, payment_method, match_code, provider) VALUES (?, ?, ?, ?, 'pending', 'afdian', ?, 'afdian')";
