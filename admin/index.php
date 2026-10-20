@@ -91,8 +91,12 @@ $auto_origin = $_auto_scheme . '://' . $_auto_host;
         box-shadow: none !important;
         visibility: hidden !important;
     }
+    /* 悬停时展开侧边栏（与首页一致） */
     .lyear-layout-sidebar-close .lyear-layout-sidebar:hover {
-        width: 0 !important;
+        width: var(--sidebar-width) !important;
+        border-right: 1px solid rgba(24, 39, 75, .08) !important;
+        box-shadow: 0 12px 40px rgba(24, 39, 75, .18) !important;
+        visibility: visible !important;
     }
     .lyear-layout-sidebar-close .lyear-layout-header,
     .lyear-layout-sidebar-close .lyear-layout-content {
@@ -100,6 +104,13 @@ $auto_origin = $_auto_scheme . '://' . $_auto_host;
     }
     .lyear-layout-sidebar-close .lyear-layout-sidebar > * {
         width: var(--sidebar-width);
+    }
+    /* 悬停展开时内容对齐（与首页一致） */
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:hover .nav-drawer li a {
+        padding: 9px 12px 9px 42px !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:hover .nav-drawer > li > a > i {
+        left: 14px;
     }
 }
 </style>

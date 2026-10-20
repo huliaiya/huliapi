@@ -215,8 +215,12 @@ body {
         box-shadow: none !important;
         visibility: hidden !important;
     }
+    /* 悬停时展开侧边栏（与后台/用户中心一致） */
     .lyear-layout-sidebar-close .lyear-layout-sidebar:hover {
-        width: 0 !important;
+        width: var(--sidebar-width) !important;
+        border-right: 1px solid rgba(24, 39, 75, .08) !important;
+        box-shadow: 0 12px 40px rgba(24, 39, 75, .18) !important;
+        visibility: visible !important;
     }
     .lyear-layout-sidebar-close .lyear-layout-header,
     .lyear-layout-sidebar-close .lyear-layout-content {
@@ -392,8 +396,8 @@ body {
     .lyear-layout-sidebar-close .lyear-layout-sidebar:hover .nav-drawer>li>a>i{left:14px;}
 }
 
-/* 遮罩层淡入 */
-.lyear-mask-modal{backdrop-filter:blur(2px);animation:huliMaskIn .25s ease;z-index:6;}
+/* 遮罩层淡入：z-index 低于侧边栏（5），保证侧边栏浮在遮罩之上可交互 */
+.lyear-mask-modal{animation:huliMaskIn .25s ease;z-index:4;}
 @keyframes huliMaskIn{from{opacity:0}to{opacity:1;}}
 
 /* 无障碍 */
@@ -795,15 +799,15 @@ $(document).ready(function() {
     });
 
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && body.classList.contains('lyear-layout-sidebar-close') === false && window.innerWidth <= 1024) {
+        if (e.key === 'Escape' && window.innerWidth <= 1024) {
             var sidebar = document.querySelector('.lyear-layout-sidebar');
             var mask = document.querySelector('.lyear-mask-modal');
             if (sidebar && sidebar.classList.contains('lyear-aside-open')) {
                 sidebar.classList.remove('lyear-aside-open');
-                body.classList.add('lyear-layout-sidebar-close');
                 if (mask) mask.remove();
-                syncAria();
             }
+            body.classList.add('lyear-layout-sidebar-close');
+            syncAria();
         }
     });
 
