@@ -183,7 +183,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </table>
           </div>
           <?php if (!empty($plans)): ?>
-          <ul class="pagination mt-3">
+          <ul class="pagination mt-3 flex-wrap">
             <li class="page-item disabled"><span class="page-link">上一页</span></li>
             <li class="page-item active"><span class="page-link">1</span></li>
             <li class="page-item"><a class="page-link" href="#1">2</a></li>

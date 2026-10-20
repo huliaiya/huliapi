@@ -579,7 +579,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </form>
             <div class="col-md-6">
               <nav class="float-end">
-                <ul class="pagination">
+                <ul class="pagination flex-wrap">
                   <?php if ($currentPage > 1): ?>
                     <li class="page-item">
                       <a class="page-link" href="api_list.php?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="上一页">
