@@ -10,6 +10,7 @@ function json_response($success, $message) {
 if (!isset($_SESSION['user_id'])) { json_response(false, '请先登录。'); }
 if (!isset($_POST['item_id'])) { json_response(false, '无效的请求。'); }
 require_once '../../config.php';
+huli_csrf_require();
 $user_id = $_SESSION['user_id'];
 $item_id = intval($_POST['item_id']);
 try {
@@ -54,14 +55,14 @@ try {
     if (file_put_contents('../../' . $new_file_path, $original_content) === false) {
         throw new Exception("自动安装接口文件失败，请检查/API/目录权限。");
     }
-    $sql_clone = "INSERT INTO huli_apis (name, description, endpoint, method, type, file_path, parameters, remote_url, response_format, response_example, visibility, is_billable) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'private', 0)";
+    $sql_clone = "INSERT INTO huli_apis (admin_id, name, description, endpoint, method, type, file_path, parameters, remote_url, response_format, response_example, visibility, is_billable, points_per_call) VALUES (0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'private', 0, 0)";
     $stmt_clone = $pdo->prepare($sql_clone);
     $stmt_clone->execute([
         $item['name'] . ' (已购)', $item['description'], $new_endpoint, $item['method'], $item['type'],
         $new_file_path, $item['parameters'], $item['remote_url'], $item['response_format'], $item['response_example']
     ]);
     $pdo->commit();
-    json_response(true, '购买成功！接口已自动添加到您的API列表中。');
+    json_response(true, '购买成功！接口端点：' . $new_endpoint);
 } catch (Exception $e) {
     if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
     json_response(false, '购买失败: ' . $e->getMessage());

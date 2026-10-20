@@ -31,6 +31,7 @@ try {
         }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id'])) {
+        huli_csrf_require();
         $id = intval($_POST['id']);
         switch ($_POST['action']) {
             case 'delete':
@@ -73,7 +74,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -182,7 +183,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </table>
           </div>
           <?php if (!empty($plans)): ?>
-          <ul class="pagination mt-3">
+          <ul class="pagination mt-3 flex-wrap">
             <li class="page-item disabled"><span class="page-link">上一页</span></li>
             <li class="page-item active"><span class="page-link">1</span></li>
             <li class="page-item"><a class="page-link" href="#1">2</a></li>
@@ -209,5 +210,6 @@ $(function () {
     <?php endif; ?>
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

@@ -2,6 +2,7 @@
 if (!defined('HULI_MCP_TOOLS_USER')) { define('HULI_MCP_TOOLS_USER', 1); }
 
 require_once __DIR__ . '/mcp_lib.php';
+require_once __DIR__ . '/../url_helper.php';
 
 function huli_mcp_user_row($ctx) {
     $pdo = huli_mcp_pdo();
@@ -122,17 +123,19 @@ huli_mcp_user_register('call_api', '以当前账号身份调用一个本地 API�
     if ($method !== 'POST') {
         $method = 'GET';
     }
-    $params['api_key'] = $user['api_key'];
+    $params['apikey'] = $user['api_key'];
 
     $filePath = (string)$api['file_path'];
     if ($filePath === '' || strpos($filePath, '://') !== false || strpos($filePath, '..') !== false || $filePath[0] !== 'A') {
         throw new RuntimeException('接口路径不合法');
     }
-    $base = huli_mcp_public_url('');
-    $url = rtrim($base, '/') . '/' . ltrim($filePath, '/');
-    if (!huli_mcp_safe_outbound_url($url)) {
-        throw new RuntimeException('目标地址不合法');
+    $stmt_site = $pdo->prepare("SELECT setting_value FROM huli_settings WHERE setting_key = 'site_url' LIMIT 1");
+    $stmt_site->execute();
+    $site_url = trim((string)$stmt_site->fetchColumn());
+    if (!huli_is_safe_http_url($site_url)) {
+        throw new RuntimeException('站点 URL 未配置或格式不正确，请先在后台设置站点 URL');
     }
+    $url = rtrim($site_url, '/') . '/' . ltrim($filePath, '/');
 
     $ch = curl_init();
     $curlOpts = [

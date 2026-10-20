@@ -1,6 +1,15 @@
 <?php
 class TemplateManager {
     private static $pdo = null;
+
+    private static function safeFolderName($folder) {
+        $folder = trim((string)$folder);
+        if ($folder === '' || !preg_match('/^[A-Za-z0-9_-]+$/', $folder)) {
+            return '';
+        }
+        return $folder;
+    }
+
     private static function getDb() {
         if (self::$pdo === null) {
             $dsn = "mysql:host=".DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=".DB_NAME.";charset=".DB_CHARSET;
@@ -23,7 +32,7 @@ class TemplateManager {
             $stmt = self::getDb()->prepare("SELECT folder FROM huli_site_home_templates WHERE is_active = 1 LIMIT 1");
             $stmt->execute();
             $result = $stmt->fetch();
-            return $result ? $result['folder'] : 'default';
+            return $result ? (self::safeFolderName($result['folder']) ?: 'default') : 'default';
         } catch (Exception $e) {
             return 'default';
         }
@@ -53,6 +62,8 @@ class TemplateManager {
         }
     }
     public static function addHomeTemplate($name, $folder, $description = '') {
+        $folder = self::safeFolderName($folder);
+        if ($folder === '') { return false; }
         try {
             $stmt = self::getDb()->prepare("INSERT INTO huli_site_home_templates (name, folder, description) VALUES (?, ?, ?)");
             return $stmt->execute([$name, $folder, $description]);
@@ -73,7 +84,7 @@ class TemplateManager {
             $stmt = self::getDb()->prepare("SELECT folder FROM huli_site_user_templates WHERE is_active = 1 LIMIT 1");
             $stmt->execute();
             $result = $stmt->fetch();
-            return $result ? $result['folder'] : 'default';
+            return $result ? (self::safeFolderName($result['folder']) ?: 'default') : 'default';
         } catch (Exception $e) {
             return 'default';
         }
@@ -103,6 +114,8 @@ class TemplateManager {
         }
     }
     public static function addUserTemplate($name, $folder, $description = '') {
+        $folder = self::safeFolderName($folder);
+        if ($folder === '') { return false; }
         try {
             $stmt = self::getDb()->prepare("INSERT INTO huli_site_user_templates (name, folder, description) VALUES (?, ?, ?)");
             return $stmt->execute([$name, $folder, $description]);

@@ -40,6 +40,7 @@ if (!empty($_SESSION['gh_connect_error'])) {
     unset($_SESSION['gh_connect_error']);
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    huli_csrf_require();
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     if (!huli_turnstile_verify($turnstile_reason)) {
@@ -54,6 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 DB_PASS
             );
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $lock_message = huli_login_lock_message($pdo, 'user', $username);
+            if ($lock_message !== '') {
+                $error_msg = $lock_message;
+            } else {
             $stmt = $pdo->prepare(
                 "SELECT id, username, email, password, status
                   FROM huli_users
@@ -96,6 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
                 $error_msg = '用户名或密码不正确。';
                 try { huli_record_login($pdo, 'user', 0, $username, 'failed'); } catch (Throwable $e) {}
+            }
             }
         } catch (PDOException $e) {
             $error_msg = '系统服务暂时不可用。';
@@ -298,5 +304,6 @@ $(document).ready(function() {
     });
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

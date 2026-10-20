@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../common/session_boot.php';
+require_once __DIR__ . '/../common/url_helper.php';
 @error_reporting(0);
 @ini_set('display_errors', 'Off');
 if (!isset($_SESSION['admin_id'])) {
@@ -15,6 +16,7 @@ $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
 $feedback_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    huli_csrf_require();
     try {
         $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -35,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (mb_strlen($data['site_name']) > 50) {
             throw new Exception("网站名称不能超过50个字符");
         }
-        if (empty($data['url']) || !filter_var($data['url'], FILTER_VALIDATE_URL)) {
+        if (empty($data['url']) || !huli_is_safe_http_url($data['url'])) {
             throw new Exception("请输入有效的URL（以http://或https://开头）");
         }
 if (!empty($data['logo'])) {
@@ -75,7 +77,7 @@ if (!empty($data['logo'])) {
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <link rel="stylesheet" type="text/css" href="../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
@@ -215,5 +217,6 @@ function previewLogo(url) {
     }
 }
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

@@ -5,6 +5,7 @@ ob_start();
 
 require_once __DIR__ . '/../redis_client.php';
 require_once __DIR__ . '/../client_ip.php';
+require_once __DIR__ . '/api_owner.php';
 
 function getUserIP() {
     return huli_client_ip();
@@ -28,8 +29,12 @@ function checkApiRateLimit($pdo, $settings, $scope, $identifier, $limit, $window
         $stmt = $pdo->prepare("INSERT INTO huli_rate_limits (scope, identifier, window_start, request_count) VALUES (?, ?, ?, LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE request_count = LAST_INSERT_ID(request_count + 1)");
         $stmt->execute([$scope, $identifier, $window_start]);
         $count = (int)$pdo->query("SELECT LAST_INSERT_ID()")->fetchColumn();
-        if ($count % 64 === 0) {
-            $pdo->prepare("DELETE FROM huli_rate_limits WHERE window_start < ?")->execute([time() - 86400]);
+        if (mt_rand(1, 100) === 1) {
+            try {
+                $pdo->prepare("DELETE FROM huli_rate_limits WHERE window_start < ?")->execute([time() - 86400]);
+            } catch (Throwable $e) {
+                error_log('huliapi 限速记录清理失败: ' . $e->getMessage());
+            }
         }
         return $count > $limit;
     } catch (Throwable $e) {
@@ -247,11 +252,29 @@ try {
     }
     $valid_user = null;
     $is_super_member = false;
+    $is_temp_user = false;
+    $temp_schema_ok = false;
     if ($api_key) {
-        $stmt_user = $pdo->prepare("SELECT id, username, email, status, balance, points, membership_level, membership_expire FROM huli_users WHERE api_key = ? LIMIT 1");
-        $stmt_user->execute([$api_key]);
-        $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
+        try {
+            $stmt_user = $pdo->prepare("SELECT id, username, email, status, balance, points, membership_level, membership_expire, call_limit, expires_at FROM huli_users WHERE api_key = ? LIMIT 1");
+            $stmt_user->execute([$api_key]);
+            $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
+            $temp_schema_ok = true;
+        } catch (PDOException $e) {
+            $stmt_user = $pdo->prepare("SELECT id, username, email, status, balance, points, membership_level, membership_expire FROM huli_users WHERE api_key = ? LIMIT 1");
+            $stmt_user->execute([$api_key]);
+            $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
+        }
         if ($user && $user['status'] === 'active') {
+            if (isset($user['username']) && strpos((string)$user['username'], 'temp_') === 0) {
+                $is_temp_user = true;
+                if (!empty($user['expires_at']) && strtotime($user['expires_at']) <= time()) {
+                    api_error_exit(403, '临时密钥已过期，请重新申请');
+                }
+                if (array_key_exists('call_limit', $user) && $user['call_limit'] !== null && (int)$user['call_limit'] <= 0) {
+                    api_error_exit(403, '临时密钥调用次数已用尽，请重新申请');
+                }
+            }
             $valid_apikey_provided = true;
             $valid_user = $user;
             $log_user_id = $user['id'];
@@ -264,6 +287,10 @@ try {
                 }
             }
         }
+    }
+    $api_owner_user_id = huli_api_owner_user_id($api);
+    if ($valid_user && $api_owner_user_id !== null && (int)$valid_user['id'] !== $api_owner_user_id) {
+        api_error_exit(403, '该接口为其他用户购买的私有接口，您无权调用');
     }
     if (!$valid_apikey_provided && $enable_free_qps_limit && $free_qps_limit > 0 && $free_qps_seconds > 0) {
         if (checkApiRateLimit($pdo, $settings, 'ip', $log_ip_address, $free_qps_limit, $free_qps_seconds)) {
@@ -316,7 +343,8 @@ try {
     if ($user_info && $user_info['email']) {
         $today = date('Y-m-d');
         $site_name = $settings['site_name'] ?? 'huliapi';
-        $logo_url = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/assets/images/logo-sidebar.png';
+        $site_base = rtrim((string)($settings['site_url'] ?? ''), '/');
+        $logo_url = $site_base !== '' ? $site_base . '/assets/images/logo-sidebar.png' : '';
         $current_year = date('Y');
         $need_send = false;
         $mail_subject = '';
@@ -438,6 +466,23 @@ try {
     }
     $pdo->beginTransaction();
     try {
+        if ($is_temp_user && $temp_schema_ok) {
+            $stmt_temp = $pdo->prepare("SELECT username, call_limit, expires_at FROM huli_users WHERE id = ? FOR UPDATE");
+            $stmt_temp->execute([$log_user_id]);
+            $temp_row = $stmt_temp->fetch(PDO::FETCH_ASSOC);
+            if (!$temp_row) {
+                $pdo->rollBack();
+                api_error_exit(403, '临时密钥已失效，请重新申请');
+            }
+            if (!empty($temp_row['expires_at']) && strtotime($temp_row['expires_at']) <= time()) {
+                $pdo->rollBack();
+                api_error_exit(403, '临时密钥已过期，请重新申请');
+            }
+            if ($temp_row['call_limit'] !== null && (int)$temp_row['call_limit'] <= 0) {
+                $pdo->rollBack();
+                api_error_exit(403, '临时密钥调用次数已用尽，请重新申请');
+            }
+        }
         if ($log_user_id && $is_success && !$is_super_member) {
             if ($billing_type === 'balance') {
                 $stmt_lock = $pdo->prepare("SELECT balance FROM huli_users WHERE id = ? FOR UPDATE");
@@ -460,7 +505,16 @@ try {
         }
         $pdo->prepare("UPDATE huli_apis SET total_calls = total_calls + 1 WHERE id = ?")->execute([$log_api_id]);
         if ($log_user_id) {
-            $pdo->prepare("UPDATE huli_users SET call_count = call_count + 1 WHERE id = ?")->execute([$log_user_id]);
+            if ($is_temp_user && $temp_schema_ok) {
+                $stmt_temp_use = $pdo->prepare("UPDATE huli_users SET call_count = call_count + 1, call_limit = CASE WHEN call_limit IS NULL THEN NULL ELSE GREATEST(call_limit - 1, 0) END WHERE id = ? AND (call_limit IS NULL OR call_limit > 0)");
+                $stmt_temp_use->execute([$log_user_id]);
+                if ($stmt_temp_use->rowCount() === 0) {
+                    $pdo->rollBack();
+                    api_error_exit(403, '临时密钥调用次数已用尽，请重新申请');
+                }
+            } else {
+                $pdo->prepare("UPDATE huli_users SET call_count = call_count + 1 WHERE id = ?")->execute([$log_user_id]);
+            }
             if ($is_success && !$is_super_member) {
                 if ($billing_type === 'balance') {
                     $pdo->prepare("UPDATE huli_users SET balance = balance - ? WHERE id = ?")->execute([$billing_amount, $log_user_id]);

@@ -23,14 +23,14 @@ $email = filter_var(trim($_POST['email']), FILTER_VALIDATE_EMAIL);
 $type = $_POST['type'] ?? '';
 if (!$email) { json_response(false, '请输入有效的邮箱地址。'); }
 if (!in_array($type, ['register', 'reset', 'admin_reset', 'friend_link', 'feedback'])) { json_response(false, '无效的操作类型。'); }
+$turnstile_reason = '';
+if (!huli_turnstile_verify($turnstile_reason)) {
+    json_response(false, $turnstile_reason ?: '人机验证失败，请完成 Cloudflare 验证后重试');
+}
 if (isset($_SESSION['last_sent_time']) && time() - $_SESSION['last_sent_time'] < 60) {
     json_response(false, '请求过于频繁，请稍后再试。');
 }
 if ($type === 'friend_link' || $type === 'feedback') {
-    $turnstile_reason = '';
-    if (!huli_turnstile_verify($turnstile_reason)) {
-        json_response(false, $turnstile_reason ?: '人机验证失败，请完成 Cloudflare 验证后重试');
-    }
     if (!isset($_SESSION['user_email']) || $_SESSION['user_email'] !== $email) {
         json_response(false, '验证邮箱与登录账号不一致');
     }
@@ -92,7 +92,7 @@ try {
         if ((int)$stmt_admin->fetchColumn() !== 1) { json_response(false, '管理员已关闭找回密码功能。'); }
         $stmt_check = $pdo->prepare("SELECT id FROM huli_admins WHERE email = ?");
         $stmt_check->execute([$email]);
-        if (!$stmt_check->fetch()) { json_response(false, '该邮箱未绑定任何管理员账号。'); }
+        if (!$stmt_check->fetch()) { json_response(true, '如果该邮箱已绑定管理员账号，验证码将发送至该邮箱，请注意查收。'); }
     }
     $stmt_get = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     $settings = $stmt_get->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -149,6 +149,7 @@ if ($type === 'register') {
     $_SESSION['reg_code'] = $code;
     $_SESSION['reg_email'] = $email;
     $_SESSION['reg_code_expire'] = time() + 300;
+    unset($_SESSION['reg_code_attempts']);
 } elseif ($type === 'reset') {
     $mail->Subject = '【' . ($settings['site_name'] ?? '系统') . '】密码重置 - 您的验证码';
     $mail->Body = '
@@ -185,6 +186,7 @@ if ($type === 'register') {
     $_SESSION['reset_code'] = $code;
     $_SESSION['reset_email'] = $email;
     $_SESSION['reset_code_expire'] = time() + 300;
+    unset($_SESSION['reset_code_attempts']);
 } elseif ($type === 'admin_reset') {
     $mail->Subject = '【' . ($settings['site_name'] ?? '系统') . '】管理员密码重置 - 您的验证码';
     $mail->Body = '
@@ -221,6 +223,7 @@ if ($type === 'register') {
     $_SESSION['admin_reset_code'] = $code;
     $_SESSION['admin_reset_email'] = $email;
     $_SESSION['admin_reset_code_expire'] = time() + 300;
+    unset($_SESSION['admin_reset_code_attempts']);
 } elseif ($type === 'friend_link') {
     $mail->Subject = '【' . ($settings['site_name'] ?? '系统') . '】友情链接申请 - 您的验证码';
     $mail->Body = '
@@ -303,7 +306,10 @@ if ($type === 'register') {
     $stmt_log_send = $pdo->prepare("INSERT INTO huli_verification_code_logs (ip_address, email) VALUES (?, ?)");
     $stmt_log_send->execute([$client_ip, $email]);
 
-    json_response(true, '验证码已成功发送到您的邮箱，请注意查收。');
+    $success_message = $type === 'admin_reset'
+        ? '如果该邮箱已绑定管理员账号，验证码将发送至该邮箱，请注意查收。'
+        : '验证码已成功发送到您的邮箱，请注意查收。';
+    json_response(true, $success_message);
 } catch (Exception $e) {
     error_log('[send_code] 邮件发送失败: ' . $e->getMessage() . ' ErrorInfo: ' . $mail->ErrorInfo);
     json_response(false, "邮件发送失败，请稍后再试。");

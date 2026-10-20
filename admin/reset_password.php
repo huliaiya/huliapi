@@ -35,6 +35,7 @@ $success_msg = '';
 $turnstile_reason = '';
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $email = trim($_POST['email']);
         $code = trim($_POST['code']);
         $password = $_POST['password'] ?? '';
@@ -52,9 +53,22 @@ try {
             throw new Exception('密码至少 6 位');
         }
         $db_code_ok = function_exists('huli_verification_code_check') ? huli_verification_code_check('admin_reset', $email, $code) : false;
-        if (!$db_code_ok && (!isset($_SESSION['admin_reset_code']) || !isset($_SESSION['admin_reset_code_expire']) || time() > $_SESSION['admin_reset_code_expire'] || !hash_equals(strtolower($_SESSION['admin_reset_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['admin_reset_email']), strtolower($email)))) {
-            throw new Exception('邮箱验证码不正确或已过期');
+        if (!$db_code_ok) {
+            $session_code_available = isset($_SESSION['admin_reset_code'], $_SESSION['admin_reset_code_expire'], $_SESSION['admin_reset_email'])
+                && time() <= (int)$_SESSION['admin_reset_code_expire'];
+            $session_code_ok = $session_code_available
+                && hash_equals(strtolower((string)$_SESSION['admin_reset_code']), strtolower($code))
+                && hash_equals(strtolower((string)$_SESSION['admin_reset_email']), strtolower($email));
+            if (!$session_code_ok) {
+                $_SESSION['admin_reset_code_attempts'] = (int)($_SESSION['admin_reset_code_attempts'] ?? 0) + 1;
+                if ($_SESSION['admin_reset_code_attempts'] >= 5) {
+                    unset($_SESSION['admin_reset_code'], $_SESSION['admin_reset_email'], $_SESSION['admin_reset_code_expire'], $_SESSION['admin_reset_code_attempts']);
+                    throw new Exception('验证码尝试次数过多，请重新获取验证码');
+                }
+                throw new Exception('邮箱验证码不正确或已过期');
+            }
         }
+        unset($_SESSION['admin_reset_code_attempts']);
         $stmt = $pdo->prepare("SELECT id, status FROM huli_admins WHERE email = ?");
         $stmt->execute([$email]);
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -69,6 +83,8 @@ try {
         if ($stmt->rowCount() === 0) {
             throw new Exception('密码更新失败，请重试');
         }
+        require_once __DIR__ . '/../common/account_security.php';
+        huli_revoke_account_tokens($pdo, 'admin', (int)$admin['id']);
         unset($_SESSION['admin_reset_code'], $_SESSION['admin_reset_email'], $_SESSION['admin_reset_code_expire']);
         if ($is_ajax) {
             header('Content-Type: application/json');
@@ -96,7 +112,7 @@ try {
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -286,31 +302,45 @@ $(document).ready(function() {
                 $btn.text('获取验证码');
             }
         }, 1000);
-        $.post('../common/ajax/send_code.php', {
-            email: email,
-            type: 'admin_reset'
-        }, function(response) {
-            if (!response.success) {
+        ensureTurnstile(function(token) {
+            $.post('../common/ajax/send_code.php', {
+                email: email,
+                type: 'admin_reset',
+                'cf-turnstile-response': token
+            }, function(response) {
+                resetTurnstileWidget();
+                if (!response.success) {
+                    clearInterval(interval);
+                    $btn.prop('disabled', false);
+                    $btn.text('获取验证码');
+                    $.notify({ message: response.message || '验证码发送失败' }, {
+                        type: 'danger', placement: { from: 'top', align: 'right' },
+                        z_index: 10800, delay: 1500,
+                        animate: { enter: 'animate__animated animate__shakeX', exit: 'animate__animated animate__fadeOutDown' }
+                    });
+                } else {
+                    $.notify({ message: '验证码已发送到您的邮箱' }, {
+                        type: 'success', placement: { from: 'top', align: 'right' },
+                        z_index: 10800, delay: 1500,
+                        animate: { enter: 'animate__animated animate__fadeInUp', exit: 'animate__animated animate__fadeOutDown' }
+                    });
+                }
+            }).fail(function() {
+                resetTurnstileWidget();
                 clearInterval(interval);
                 $btn.prop('disabled', false);
                 $btn.text('获取验证码');
-                $.notify({ message: response.message || '验证码发送失败' }, {
+                $.notify({ message: '服务器错误，请稍后再试' }, {
                     type: 'danger', placement: { from: 'top', align: 'right' },
                     z_index: 10800, delay: 1500,
                     animate: { enter: 'animate__animated animate__shakeX', exit: 'animate__animated animate__fadeOutDown' }
                 });
-            } else {
-                $.notify({ message: '验证码已发送到您的邮箱' }, {
-                    type: 'success', placement: { from: 'top', align: 'right' },
-                    z_index: 10800, delay: 1500,
-                    animate: { enter: 'animate__animated animate__fadeInUp', exit: 'animate__animated animate__fadeOutDown' }
-                });
-            }
-        }).fail(function() {
+            });
+        }, function(message) {
             clearInterval(interval);
             $btn.prop('disabled', false);
             $btn.text('获取验证码');
-            $.notify({ message: '服务器错误，请稍后再试' }, {
+            $.notify({ message: message }, {
                 type: 'danger', placement: { from: 'top', align: 'right' },
                 z_index: 10800, delay: 1500,
                 animate: { enter: 'animate__animated animate__shakeX', exit: 'animate__animated animate__fadeOutDown' }
@@ -365,5 +395,6 @@ $(document).ready(function() {
     }
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

@@ -64,12 +64,12 @@ try {
     $lastQueried = $order['last_queried_at'] ? strtotime($order['last_queried_at']) : 0;
     $shouldQuery = time() - $lastQueried >= 20;
 
-    $stmt = $pdo->prepare("UPDATE huli_orders SET last_queried_at = CURRENT_TIMESTAMP, query_attempts = query_attempts + 1 WHERE id = ?");
-    $stmt->execute([$order['id']]);
-
     if (!$shouldQuery) {
         huli_query_json(['success' => true, 'status' => 'pending', 'message' => '等待支付确认中']);
     }
+
+    $stmt = $pdo->prepare("UPDATE huli_orders SET last_queried_at = CURRENT_TIMESTAMP, query_attempts = query_attempts + 1 WHERE id = ?");
+    $stmt->execute([$order['id']]);
 
     $client = new AfdianClient($config['user_id'], $config['token']);
     $afdianOrder = $client->findOrderByRemark($order['match_code'], 2);

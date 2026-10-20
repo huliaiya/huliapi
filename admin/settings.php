@@ -33,6 +33,17 @@ $feedback_msg = ''; $feedback_type = ''; $page_title = '系统设置';
 $turnstile_feedback_msg = ''; $turnstile_feedback_type = '';
 
 function huli_music_http_get($url, $token = '') {
+    $parts = @parse_url((string)$url);
+    if (!$parts || empty($parts['scheme']) || empty($parts['host'])) {
+        return ['ok' => false, 'code' => 0, 'err' => '目标地址无效'];
+    }
+    $scheme = strtolower((string)$parts['scheme']);
+    $port = isset($parts['port']) ? (int)$parts['port'] : ($scheme === 'https' ? 443 : 80);
+    $pinnedIp = huli_mcp_resolve_outbound_ip((string)$parts['host'], $port, $scheme);
+    if ($pinnedIp === '') {
+        return ['ok' => false, 'code' => 0, 'err' => '目标地址不允许访问'];
+    }
+    if (strpos($pinnedIp, ':') !== false) { $pinnedIp = '[' . trim($pinnedIp, '[]') . ']'; }
     $headers = ['Accept: application/vnd.github.v3+json', 'User-Agent: huliapi-settings'];
     if ($token !== '') $headers[] = 'Authorization: token ' . $token;
     $ch = curl_init($url);
@@ -41,6 +52,11 @@ function huli_music_http_get($url, $token = '') {
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
     curl_setopt($ch, CURLOPT_TIMEOUT, 12);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+    curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+    if (defined('CURLOPT_REDIR_PROTOCOLS')) { curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); }
+    curl_setopt($ch, CURLOPT_RESOLVE, [$parts['host'] . ':' . $port . ':' . $pinnedIp]);
     $body = curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curl_err = curl_errno($ch) ? curl_error($ch) : '';
@@ -82,7 +98,7 @@ $defaults = [
     'allow_registration' => 1, 'allow_temp_key' => 1, 'temp_key_duration' => 24, 'temp_key_limit' => 100,
     'mail_smtp_host' => '', 'mail_smtp_port' => '465', 'mail_smtp_secure' => 'ssl', 'mail_smtp_user' => '', 'mail_smtp_pass' => '',
     'admin_notify_email' => '', 'mail_reg_enabled' => 0, 'mail_forgot_enabled' => 0, 'turnstile_enabled' => 0,
-    'turnstile_site_key' => '3x00000000000000000000FF', 'turnstile_secret_key' => '1x0000000000000000000000000000000AA',
+    'turnstile_site_key' => '', 'turnstile_secret_key' => '',
     'qps_mode' => 'database', 'redis_host' => '127.0.0.1', 'redis_port' => 6379, 'redis_username' => '', 'redis_password' => '', 'redis_database' => 0,
     'enable_free_qps_limit' => 1, 'free_qps_seconds' => 1, 'free_qps_limit' => 10, 'enable_member_qps_limit' => 1, 'member_qps_seconds' => 1, 'member_qps_limit' => 20,
     'warn_points_threshold' => 5, 'warn_balance_threshold' => 0.01, 'enable_warn_notification' => 1, 'enable_daily_points' => 0, 'daily_free_points' => 100, 'enable_daily_points_notification' => 1,
@@ -94,7 +110,7 @@ $defaults = [
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $init_sql = "INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('turnstile_enabled', '0'), ('turnstile_site_key', '3x00000000000000000000FF'), ('turnstile_secret_key', '1x0000000000000000000000000000000AA'), ('qps_mode', 'database'), ('redis_host', '127.0.0.1'), ('redis_port', '6379'), ('redis_password', ''), ('redis_database', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100'), ('enable_daily_points_notification', '1'), ('icp_record_number', ''), ('police_record_number', ''), ('favicon_url', ''), ('yn_github_token', ''), ('update_github_token', ''), ('update_schedule_enabled', '0'), ('update_schedule_time', '08:00'), ('site_url', ''), ('ghconnect_enabled', '0'), ('ghconnect_client_id', ''), ('ghconnect_client_secret', '');";
+    $init_sql = "INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES ('site_name', 'huliapi'), ('site_description', 'huliapi致力于为用户提供稳定、高效的API接口服务，包含随机一言、工具类API等多种接口'), ('copyright_info', 'Copyright © 2025-2026 huliapi 版权所有'), ('allow_registration', '1'), ('allow_temp_key', '1'), ('temp_key_duration', '24'), ('temp_key_limit', '100'), ('mail_smtp_host', ''), ('mail_smtp_port', '465'), ('mail_smtp_secure', 'ssl'), ('mail_smtp_user', ''), ('mail_smtp_pass', ''), ('mail_reg_enabled', '0'), ('mail_forgot_enabled', '0'), ('turnstile_enabled', '0'), ('turnstile_site_key', ''), ('turnstile_secret_key', ''), ('qps_mode', 'database'), ('redis_host', '127.0.0.1'), ('redis_port', '6379'), ('redis_password', ''), ('redis_database', '0'), ('enable_free_qps_limit', '1'), ('free_qps_seconds', '1'), ('free_qps_limit', '10'), ('enable_member_qps_limit', '1'), ('member_qps_seconds', '1'), ('member_qps_limit', '20'), ('warn_points_threshold', '5'), ('warn_balance_threshold', '0.01'), ('enable_warn_notification', '1'), ('enable_daily_points', '0'), ('daily_free_points', '100'), ('enable_daily_points_notification', '1'), ('icp_record_number', ''), ('police_record_number', ''), ('favicon_url', ''), ('yn_github_token', ''), ('update_github_token', ''), ('update_schedule_enabled', '0'), ('update_schedule_time', '08:00'), ('site_url', ''), ('ghconnect_enabled', '0'), ('ghconnect_client_id', ''), ('ghconnect_client_secret', '');";
     $pdo->exec($init_sql);
     $stmt_music_default = $pdo->prepare("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES (?, ?)");
     foreach ($music_defaults as $music_key => $music_value) {
@@ -223,6 +239,17 @@ try {
                 $push_feedback_type = 'success';
             }
         } else {
+        $ts_enabled_post = isset($_POST['turnstile_enabled']) ? '1' : '0';
+        $ts_site_post = huli_turnstile_normalize_key($_POST['turnstile_site_key'] ?? '');
+        $ts_secret_post = huli_turnstile_normalize_key($_POST['turnstile_secret_key'] ?? '');
+        $ts_site_is_test = $ts_site_post !== '' && strpos(HULI_TURNSTILE_TEST_SITE_KEYS, '|' . $ts_site_post . '|') !== false;
+        $ts_secret_is_test = $ts_secret_post !== '' && strpos(HULI_TURNSTILE_TEST_SECRET_KEYS, '|' . $ts_secret_post . '|') !== false;
+        if ($ts_enabled_post === '1' && ($ts_site_post === '' || $ts_secret_post === '')) {
+            throw new Exception('启用人机验证前必须填写 Turnstile Site Key 与 Secret Key。');
+        }
+        if ($ts_enabled_post === '1' && $ts_site_is_test && $ts_secret_is_test) {
+            throw new Exception('Turnstile 不能使用 Cloudflare 官方测试密钥上线，请填写同一站点的正式密钥。');
+        }
         $pdo->beginTransaction();
         $stmt = $pdo->prepare("INSERT INTO huli_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
         $bool_keys = ['allow_registration', 'allow_temp_key', 'mail_reg_enabled', 'mail_forgot_enabled', 'turnstile_enabled', 'enable_free_qps_limit', 'enable_member_qps_limit', 'enable_warn_notification', 'enable_daily_points', 'enable_daily_points_notification', 'update_schedule_enabled', 'ghconnect_enabled'];
@@ -316,7 +343,7 @@ function huli_render_channel_card_settings($row) {
     $h .= '<div class="col-md-12"><label class="form-label d-block">订阅事件</label>';
     $h .= '<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="events[]" value="login.notify" id="evt_s_' . $ch . '_login"' . (in_array('login.notify', $events) ? ' checked' : '') . '><label class="form-check-label" for="evt_s_' . $ch . '_login">登录提醒（管理员 / 用户登录时触发）</label></div>';
     $h .= '</div>';
-    $h .= '<div class="col-md-12 d-flex gap-2 align-items-center">';
+    $h .= '<div class="col-md-12 d-flex flex-wrap gap-2 align-items-center">';
     $h .= '<div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="enabled" id="en_s_' . $ch . '"' . ($enabled ? ' checked' : '') . '><label class="form-check-label" for="en_s_' . $ch . '">启用此通道</label></div>';
     $h .= '<button type="submit" class="btn btn-primary ms-auto"><i class="mdi mdi-content-save-outline"></i> 保存配置</button>';
     $h .= '</div>';
@@ -337,7 +364,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -345,9 +372,14 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
     <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
 <style>
-.card-body .nav-tabs { flex-wrap: wrap; }
-.card-body .nav-tabs .nav-item { flex: 1 1 25%; text-align: center; }
-.card-body .nav-tabs .nav-item .nav-link { width: 100%; }
+.settings-tabs { flex-wrap: wrap; }
+.settings-tabs .nav-item { flex: 1 1 0; min-width: 100px; text-align: center; }
+.settings-tabs .nav-item .nav-link { width: 100%; white-space: nowrap; }
+.tab-content { padding-top: .25rem; }
+@media (max-width: 767.98px) {
+  .settings-pane-actions { flex-wrap: wrap; gap: .5rem; }
+  .settings-tabs .nav-item { min-width: 0; }
+}
 </style>
 </head>
 <body>
@@ -357,7 +389,19 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
       <div class="card">
         <header class="card-header"><div class="card-title">系统设置</div></header>
         <div class="card-body">
-          <ul class="nav nav-tabs">
+          <div class="settings-tab-select-wrap d-md-none mb-3">
+            <label for="settings-tab-select" class="form-label">设置分类</label>
+            <select class="form-select" id="settings-tab-select" aria-label="设置分类">
+              <option value="#config">基本设置</option>
+              <option value="#function">功能设置</option>
+              <option value="#mail">邮件设置</option>
+              <option value="#turnstile-pane">人机验证</option>
+              <option value="#ghconnect-pane">GitHub 登录</option>
+              <option value="#music">音乐设置</option>
+              <option value="#update-pane">更新管理</option>
+            </select>
+          </div>
+          <ul class="nav nav-tabs settings-tabs d-none d-md-flex">
             <li class="nav-item">
               <button class="nav-link active" id="basic-config" data-bs-toggle="tab" data-bs-target="#config" type="button">基本设置</button>
             </li>
@@ -382,7 +426,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
           </ul>
             <div class="tab-content">
               <div class="tab-pane fade show active" id="config" aria-labelledby="basic-config">
-                <form method="POST" action="settings.php" class="edit-form">
+                <form method="POST" action="settings.php#config" class="edit-form">
                 <?php if ($feedback_msg): ?>
                 <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
                   <?php echo htmlspecialchars($feedback_msg); ?>
@@ -433,7 +477,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 <?php foreach ($channels as $c) { echo huli_render_channel_card_settings($c); } ?>
               </div>
               <div class="tab-pane fade" id="function" aria-labelledby="basic-function">
-                <form method="POST" action="settings.php" class="edit-form">
+                <form method="POST" action="settings.php#function" class="edit-form">
                 <input type="hidden" name="checkbox_keys[]" value="allow_registration">
                 <input type="hidden" name="checkbox_keys[]" value="allow_temp_key">
                 <input type="hidden" name="checkbox_keys[]" value="enable_free_qps_limit">
@@ -575,7 +619,12 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 </form>
               </div>
               <div class="tab-pane fade" id="mail" aria-labelledby="basic-mail">
-                <form method="POST" action="settings.php" class="edit-form">
+                <form method="POST" action="settings.php#mail" class="edit-form">
+                <?php if ($feedback_msg): ?>
+                <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
+                  <?php echo htmlspecialchars($feedback_msg); ?>
+                </div>
+                <?php endif; ?>
                 <input type="hidden" name="checkbox_keys[]" value="mail_reg_enabled">
                 <input type="hidden" name="checkbox_keys[]" value="mail_forgot_enabled">
                 <div class="mb-3">
@@ -617,7 +666,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   <label for="mail_smtp_pass" class="form-label">发信邮箱密码/授权码</label>
                   <input class="form-control" type="password" id="mail_smtp_pass" name="mail_smtp_pass" value="<?php echo htmlspecialchars($settings['mail_smtp_pass']); ?>" placeholder="请输入密码或授权码">
                 </div>
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 settings-pane-actions">
                   <a href="mail_test.php" class="text-primary">发送测试邮件...</a>
                   <button type="submit" class="btn btn-primary me-1">保存设置</button>
                 </div>
@@ -677,7 +726,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   </ol>
                 </div>
                 <small class="form-text text-muted d-block mb-3">需先勾选启用开关并填写两个 Key，后台与用户端登录/注册/重置密码/申请临时密钥才会使用 Turnstile 校验。</small>
-                <div class="d-flex align-items-center mb-2">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2 settings-pane-actions">
                   <button type="submit" class="btn btn-primary me-1" onclick="location.hash='#turnstile-pane'">保存设置</button>
                   <button type="button" id="ts-test-keys-btn" class="btn btn-outline-info ms-2">
                     <i class="mdi mdi-shield-check-outline"></i> 检测密钥配置
@@ -692,7 +741,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 <div class="mb-2" id="ts-e2e-widget"></div>
                 <div class="mb-2" id="ts-e2e-status"></div>
                 <input type="hidden" id="ts-e2e-token" name="cf-turnstile-response" value="">
-                <div class="d-flex align-items-center mb-3">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3 settings-pane-actions">
                   <button type="button" id="ts-e2e-reload-btn" class="btn btn-outline-secondary me-2">
                     <i class="mdi mdi-refresh"></i> 按上方表单 Site Key 重载组件
                   </button>
@@ -725,8 +774,8 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                   </div>
                   <div class="alert alert-secondary mb-3 small">
                     在 GitHub → Settings → Developer settings → OAuth Apps 新建应用，Authorization callback URL 填：<br>
-                    <code><?php echo htmlspecialchars(huli_current_origin('/admin/gh_callback.php')); ?></code><br>
-                    前台与后台共用这一个回调地址，无需创建两个应用。
+                    <code class="text-break"><?php echo htmlspecialchars(huli_current_origin('/gh_callback.php')); ?></code><br>
+                    前台与后台共用这一个根目录回调地址，无需创建两个应用。
                   </div>
                   <button type="submit" class="btn btn-primary">保存 GitHub 设置</button>
                 </form>
@@ -799,7 +848,7 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
                 </form>
               </div>
               <div class="tab-pane fade" id="update-pane" aria-labelledby="basic-update">
-                <form method="POST" action="settings.php" class="edit-form">
+                <form method="POST" action="settings.php#update-pane" class="edit-form">
                   <input type="hidden" name="checkbox_keys[]" value="update_schedule_enabled">
                   <?php if ($feedback_msg): ?>
                   <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> mb-3">
@@ -1038,9 +1087,14 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             $('#ts-e2e-result').html('<div class="alert alert-danger py-1 px-2 mb-0 small">请求失败，请检查网络连接后重试。</div>');
         });
     });
+    var settingsTabSelect = document.getElementById('settings-tab-select');
+    function syncSettingsTabSelect(target) {
+        if (settingsTabSelect && target) { settingsTabSelect.value = target; }
+    }
     document.querySelectorAll('[data-bs-toggle="tab"]').forEach(function (el) {
         el.addEventListener('shown.bs.tab', function (ev) {
             var target = ev.target.getAttribute('data-bs-target');
+            syncSettingsTabSelect(target);
             if (target && target.charAt(0) === '#') { history.replaceState(null, '', target); }
             if (target === '#turnstile-pane' || target === '#turnstile') {
                 var currentKey = $.trim($('#turnstile_site_key').val());
@@ -1054,11 +1108,23 @@ $GLOBALS['mail_cfg_ok_settings'] = $mail_cfg_ok ?? false;
             }
         });
     });
-    if (location.hash === '#turnstile' || location.hash === '#turnstile-pane') {
-        var turnstileTab = document.getElementById('basic-turnstile');
-        if (turnstileTab) {
-            var tab = new bootstrap.Tab(turnstileTab);
-            tab.show();
+    if (settingsTabSelect) {
+        settingsTabSelect.addEventListener('change', function () {
+            var target = this.value;
+            var btn = document.querySelector('.settings-tabs [data-bs-target="' + target + '"]');
+            if (btn && window.bootstrap && bootstrap.Tab) {
+                (bootstrap.Tab.getInstance(btn) || new bootstrap.Tab(btn)).show();
+            }
+        });
+        var activeSettingsTab = document.querySelector('.settings-tabs .nav-link.active');
+        if (activeSettingsTab) { syncSettingsTabSelect(activeSettingsTab.getAttribute('data-bs-target')); }
+    }
+    var initialHash = location.hash;
+    if (initialHash) {
+        var initialTarget = initialHash === '#turnstile' ? '#turnstile-pane' : initialHash;
+        var initialTab = document.querySelector('.settings-tabs [data-bs-target="' + initialTarget + '"]');
+        if (initialTab && window.bootstrap && bootstrap.Tab) {
+            (bootstrap.Tab.getInstance(initialTab) || new bootstrap.Tab(initialTab)).show();
         }
     } else {
         var tsPane = document.getElementById('turnstile-pane');

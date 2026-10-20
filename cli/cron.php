@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 @error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
 @ini_set('display_errors', 'Off');
 $root = dirname(__DIR__);

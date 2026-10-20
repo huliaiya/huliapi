@@ -46,11 +46,28 @@ function huli_api_check() {
     ]);
 }
 
+function huli_update_require_owner($token, $status = null) {
+    $owner = 0;
+    $task = huli_updater_read_json(huli_updater_task_file($token));
+    if (is_array($task) && isset($task['admin_id'])) {
+        $owner = (int)$task['admin_id'];
+    }
+    if ($owner <= 0 && is_array($status) && isset($status['admin_id'])) {
+        $owner = (int)$status['admin_id'];
+    }
+    $current_admin = isset($_SESSION['admin_id']) ? (int)$_SESSION['admin_id'] : 0;
+    if ($owner <= 0 || $owner !== $current_admin) {
+        http_response_code(403);
+        huli_api(['success' => false, 'message' => '无权访问该更新任务。']);
+    }
+}
+
 function huli_api_status() {
     $token = isset($_POST['token']) ? $_POST['token'] : (isset($_SESSION['huli_update_token']) ? $_SESSION['huli_update_token'] : '');
     $token = huli_updater_safe_token($token);
     if ($token === '') { huli_api(['success' => false, 'message' => '没有正在进行的更新任务。']); }
     $status = huli_updater_read_status($token);
+    huli_update_require_owner($token, $status);
     if (!$status) { huli_api(['success' => false, 'message' => '未找到更新任务状态。']); }
     huli_api(['success' => true, 'status' => $status]);
 }
@@ -60,6 +77,7 @@ function huli_api_log() {
     $token = huli_updater_safe_token($token);
     if ($token === '') { huli_api(['success' => false, 'message' => '没有正在进行的更新任务。']); }
     $status = huli_updater_read_status($token);
+    huli_update_require_owner($token, $status);
     $lines = [];
     $log_exists = false;
     $pick = huli_updater_worker_log_file($token);
@@ -92,6 +110,7 @@ function huli_api_start() {
     huli_updater_write_json(huli_updater_task_file($token), $task);
     huli_updater_write_status($token, [
         'status' => 'running',
+        'admin_id' => isset($_SESSION['admin_id']) ? (int)$_SESSION['admin_id'] : 0,
         'stage' => 'queued',
         'percent' => 2,
         'message' => '更新任务已创建，正在启动后台执行...',
@@ -481,7 +500,7 @@ function refreshCheck() {
     }
     $('#update-source').html(sourceText);
     if (info.body && info.body.length) {
-      $('#changelog').html('<pre class="bg-light p-3 rounded" style="white-space: pre-wrap;">' + esc(info.body) + '</pre>');
+      $('#changelog').html('<pre class="bg-light p-3 rounded" style="white-space: pre-wrap; overflow-x: auto; word-break: break-word;">' + esc(info.body) + '</pre>');
     } else if (info.name) {
       $('#changelog').html('<p>' + esc(info.name) + '</p>');
     } else {

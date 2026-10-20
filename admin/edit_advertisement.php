@@ -8,6 +8,7 @@ if (!isset($_SESSION['admin_id'])) {
 }
 if (file_exists('../config.php')) {
     require_once '../config.php';
+require_once __DIR__ . '/../common/url_helper.php';
 } else {
     die("出现错误！配置文件丢失。");
 }
@@ -29,6 +30,7 @@ try {
         die("未找到该广告位信息");
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $data = [
             'title' => trim($_POST['title'] ?? ''),
             'link_url' => trim($_POST['link_url'] ?? ''),
@@ -42,7 +44,7 @@ try {
         if (mb_strlen($data['title']) > 100) {
             throw new Exception("广告标题不能超过100个字符");
         }
-        if (empty($data['link_url']) || !filter_var($data['link_url'], FILTER_VALIDATE_URL)) {
+        if (empty($data['link_url']) || !huli_is_safe_http_url($data['link_url'])) {
             throw new Exception("请输入有效的链接URL（以http://或https://开头）");
         }
         $updateStmt = $pdo->prepare("UPDATE huli_advertisements SET title = ?, link_url = ?, contact = ?, status = ?, sort_order = ? WHERE id = ?");
@@ -73,7 +75,7 @@ try {
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <link rel="stylesheet" type="text/css" href="../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
@@ -165,5 +167,6 @@ try {
     });
 })();
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

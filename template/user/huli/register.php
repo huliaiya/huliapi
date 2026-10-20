@@ -38,6 +38,7 @@ try {
     $registration_allowed = isset($settings['allow_registration']) ? (bool)$settings['allow_registration'] : true;
     $mail_reg_enabled = isset($settings['mail_reg_enabled']) ? (bool)$settings['mail_reg_enabled'] : false;
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         if (!$registration_allowed) {
             throw new Exception('注册功能已关闭');
         }
@@ -64,9 +65,22 @@ try {
         }
         if ($mail_reg_enabled) {
             $db_code_ok = function_exists('huli_verification_code_check') ? huli_verification_code_check('register', $email, $code) : false;
-            if (!$db_code_ok && (empty($code) || !isset($_SESSION['reg_code']) || !isset($_SESSION['reg_code_expire']) || time() > $_SESSION['reg_code_expire'] || !hash_equals(strtolower($_SESSION['reg_code']), strtolower($code)) || !hash_equals(strtolower($_SESSION['reg_email']), strtolower($email)))) {
+            $session_code_available = isset($_SESSION['reg_code'], $_SESSION['reg_code_expire'], $_SESSION['reg_email'])
+                && time() <= (int)$_SESSION['reg_code_expire'];
+            if (!$db_code_ok && $session_code_available) {
+                $_SESSION['reg_code_attempts'] = (int)($_SESSION['reg_code_attempts'] ?? 0) + 1;
+                if ($_SESSION['reg_code_attempts'] > 5) {
+                    unset($_SESSION['reg_code'], $_SESSION['reg_email'], $_SESSION['reg_code_expire'], $_SESSION['reg_code_attempts']);
+                    throw new Exception('验证码尝试次数过多，请重新获取验证码');
+                }
+            }
+            $session_code_ok = $session_code_available
+                && hash_equals(strtolower((string)$_SESSION['reg_code']), strtolower($code))
+                && hash_equals(strtolower((string)$_SESSION['reg_email']), strtolower($email));
+            if (!$db_code_ok && !$session_code_ok) {
                 throw new Exception('邮箱验证码不正确或已过期');
             }
+            unset($_SESSION['reg_code_attempts']);
         }
         $stmt_check_user = $pdo->prepare("SELECT id FROM huli_users WHERE username = ?");
         $stmt_check_user->execute([$username]);
@@ -83,7 +97,7 @@ try {
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$username, $email, $qq, password_hash($password, PASSWORD_DEFAULT), $api_key]);
         if ($mail_reg_enabled) {
-            unset($_SESSION['reg_code'], $_SESSION['reg_email']);
+            unset($_SESSION['reg_code'], $_SESSION['reg_email'], $_SESSION['reg_code_attempts']);
         }
         if ($is_ajax) {
             header('Content-Type: application/json');
@@ -323,25 +337,33 @@ $(document).ready(function() {
                 $btn.prop('disabled', false).text('获取验证码');
             }
         }, 1000);
-        $.ajax({
-            url: '../../../common/ajax/send_code.php',
-            type: 'POST',
-            data: { email: email, type: 'register' },
-            dataType: 'json',
-            success: function(response) {
-                if (response && response.success) {
-                    showSuccess('验证码已发送，请注意查收');
-                } else {
+        ensureTurnstile(function(token) {
+            $.ajax({
+                url: '../../../common/ajax/send_code.php',
+                type: 'POST',
+                data: { email: email, type: 'register', 'cf-turnstile-response': token },
+                dataType: 'json',
+                success: function(response) {
+                    resetTurnstileWidget();
+                    if (response && response.success) {
+                        showSuccess('验证码已发送，请注意查收');
+                    } else {
+                        clearInterval(interval);
+                        $btn.prop('disabled', false).text('获取验证码');
+                        showError(response ? response.message : '验证码发送失败');
+                    }
+                },
+                error: function(xhr) {
+                    resetTurnstileWidget();
                     clearInterval(interval);
                     $btn.prop('disabled', false).text('获取验证码');
-                    showError(response ? response.message : '验证码发送失败');
+                    showError('发送验证码时出错: ' + getErrorMessage(xhr));
                 }
-            },
-            error: function(xhr) {
-                clearInterval(interval);
-                $btn.prop('disabled', false).text('获取验证码');
-                showError('发送验证码时出错: ' + getErrorMessage(xhr));
-            }
+            });
+        }, function(message) {
+            clearInterval(interval);
+            $btn.prop('disabled', false).text('获取验证码');
+            showError(message);
         });
     });
     $('.signup-form').on('submit', function(event) {
@@ -442,5 +464,6 @@ $(document).ready(function() {
     }
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

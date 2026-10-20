@@ -255,7 +255,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <div class="toast show align-items-center text-white bg-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?> border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
                 <div class="toast-body">
-                    <?php echo $feedback_msg; ?>
+                    <?php echo htmlspecialchars($feedback_msg, ENT_QUOTES, 'UTF-8'); ?>
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>

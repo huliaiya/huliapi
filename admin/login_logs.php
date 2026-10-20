@@ -15,6 +15,7 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        huli_csrf_require();
         if ($_POST['action'] === 'clear' && isset($_POST['range'])) {
             $range = $_POST['range'];
             $where = '';
@@ -72,20 +73,26 @@ try {
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" type="text/css" href="../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/style.min.css">
+<style>
+.d-col-ip code { word-break: break-all; }
+@media (max-width: 768px) {
+    .d-col-location, .d-col-network, .d-col-ua { display: none !important; }
+}
+</style>
 
 </head>
 <body>
 <div class="container-fluid">
   <div class="row">
     <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
             <div>
                 <h2 class="fw-bold mb-1">登录日志</h2>
                 <div class="text-muted small">仅统计后台管理员的登录记录</div>
@@ -96,7 +103,7 @@ try {
             </div>
         </div>
         <?php if ($feedback_msg): ?>
-            <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?>"><?php echo $feedback_msg; ?></div>
+            <div class="alert alert-<?php echo $feedback_type === 'success' ? 'success' : 'danger'; ?>"><?php echo htmlspecialchars($feedback_msg, ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
         <div class="row g-3 mb-3">
             <?php
@@ -197,5 +204,6 @@ try {
 <script type="text/javascript" src="../assets/js/jquery.min.js"></script>
 <script type="text/javascript" src="../assets/js/popper.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

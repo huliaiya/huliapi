@@ -21,7 +21,7 @@ function checkUserLoginStatus() {
     try {
         $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-         $stmt = $pdo->prepare("SELECT username, email, qq, membership_level, membership_expire FROM huli_users WHERE id = ? AND status = 1");
+         $stmt = $pdo->prepare("SELECT username, email, qq, membership_level, membership_expire FROM huli_users WHERE id = ? AND status = 'active'");
          $stmt->execute([$_SESSION['user_id']]);
          $user = $stmt->fetch(PDO::FETCH_ASSOC);
          if ($user) {
@@ -94,7 +94,7 @@ if ($currentTemplate !== $activeTemplate) {
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <meta name="author" content="yinq">
 <title>用户中心 - huliapi</title>
     <?php if($favicon_url):?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($favicon_url);?>"><?php endif;?>
@@ -106,6 +106,26 @@ if ($currentTemplate !== $activeTemplate) {
 <link rel="stylesheet" type="text/css" href="../../../assets/css/animate.min.css">
 <link rel="stylesheet" type="text/css" href="../../../assets/js/bootstrap-multitabs/multitabs.min.css">
 <link rel="stylesheet" type="text/css" href="../../../assets/css/style.min.css">
+<style>
+@media (min-width: 1025px) {
+    .lyear-layout-sidebar-close .lyear-layout-sidebar {
+        width: 0 !important;
+        border-right: 0 !important;
+        box-shadow: none !important;
+        visibility: hidden !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:hover {
+        width: 0 !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-header,
+    .lyear-layout-sidebar-close .lyear-layout-content {
+        padding-left: 0 !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar > * {
+        width: var(--sidebar-width);
+    }
+}
+</style>
 </head>
 <body class="lyear-index">
 <div class="lyear-layout-web">

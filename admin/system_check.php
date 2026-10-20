@@ -106,7 +106,7 @@ $checks['update_branch_latency'] = ['name' => '更新分支连接延迟', 'requi
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -136,12 +136,12 @@ $checks['update_branch_latency'] = ['name' => '更新分支连接延迟', 'requi
                             <?php endif; ?>
                         </div>
                         <div class="flex-grow-1">
-                            <h5 class="mb-1 fw-bold"><?php echo $check['name']; ?></h5>
-                            <p class="mb-0 text-muted small"><?php echo $check['help']; ?></p>
+                            <h5 class="mb-1 fw-bold"><?php echo htmlspecialchars((string)$check['name'], ENT_QUOTES, 'UTF-8'); ?></h5>
+                            <p class="mb-0 text-muted small"><?php echo htmlspecialchars((string)$check['help'], ENT_QUOTES, 'UTF-8'); ?></p>
                         </div>
                         <div class="ms-3">
                             <span class="fw-bold <?php echo $check['status'] ? 'text-success' : (!empty($check['warn']) ? 'text-warning' : 'text-danger'); ?>">
-                                <?php echo $check['current']; ?>
+                                <?php echo htmlspecialchars((string)$check['current'], ENT_QUOTES, 'UTF-8'); ?>
                             </span>
                         </div>
                     </li>

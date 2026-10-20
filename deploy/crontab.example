@@ -1,0 +1,6 @@
+# huliapi 定时任务示例
+# 替换 /var/www/huliapi 为实际部署目录，并使用与 Web 服务相同的 PHP CLI。
+# 安装方式：crontab -e 后粘贴以下内容。
+
+*/5 * * * * php /var/www/huliapi/cli/update_scheduler.php >> /var/www/huliapi/logs/cron.log 2>&1
+* * * * * php /var/www/huliapi/cli/cron.php >> /var/www/huliapi/logs/cron.log 2>&1

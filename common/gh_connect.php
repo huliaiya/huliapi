@@ -67,7 +67,7 @@ function gh_connect_base_url(): string {
 // GitHub OAuth Apps allow only one callback URL, so both scopes must use
 // the same path; the originating scope is carried in the session instead.
 function gh_connect_redirect_uri(string $scope = ''): string {
-    return gh_connect_base_url() . '/admin/gh_callback.php';
+    return gh_connect_base_url() . '/gh_callback.php';
 }
 
 function gh_connect_pdo(): ?PDO {
@@ -97,10 +97,23 @@ function gh_connect_pdo(): ?PDO {
             `scope` varchar(16) NOT NULL DEFAULT 'user',
             `action` varchar(16) NOT NULL DEFAULT 'login',
             `account_id` int(11) NOT NULL DEFAULT 0,
+            `ua_hash` char(64) NOT NULL DEFAULT '',
+            `ip_hash` char(64) NOT NULL DEFAULT '',
             `created_at` int(10) unsigned NOT NULL,
             PRIMARY KEY (`state`),
             KEY `idx_created` (`created_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        try {
+            $cols = $pdo->query("SHOW COLUMNS FROM `huli_oauth_states`")->fetchAll(PDO::FETCH_COLUMN);
+            if (!in_array('ua_hash', $cols, true)) {
+                $pdo->exec("ALTER TABLE `huli_oauth_states` ADD COLUMN `ua_hash` char(64) NOT NULL DEFAULT '' AFTER `account_id`");
+            }
+            if (!in_array('ip_hash', $cols, true)) {
+                $pdo->exec("ALTER TABLE `huli_oauth_states` ADD COLUMN `ip_hash` char(64) NOT NULL DEFAULT '' AFTER `ua_hash`");
+            }
+        } catch (Throwable $e) {
+            error_log('[gh_connect] OAuth 状态表结构迁移失败: ' . $e->getMessage());
+        }
         return $pdo;
     } catch (Throwable $e) {
         error_log('[gh_connect] 数据库不可用: ' . $e->getMessage());
@@ -148,8 +161,10 @@ function gh_connect_random_state(string $scope, string $action, int $account_id 
     if ($pdo) {
         try {
             $pdo->prepare("DELETE FROM huli_oauth_states WHERE created_at < ?")->execute([time() - 900]);
-            $pdo->prepare("INSERT INTO huli_oauth_states (state, scope, action, account_id, created_at) VALUES (?, ?, ?, ?, ?)")
-                ->execute([$state, $scope === 'admin' ? 'admin' : 'user', $action === 'bind' ? 'bind' : 'login', $account_id, time()]);
+            $ua_hash = hash('sha256', (string)($_SERVER['HTTP_USER_AGENT'] ?? ''));
+            $ip_hash = hash('sha256', (string)($_SERVER['REMOTE_ADDR'] ?? ''));
+            $pdo->prepare("INSERT INTO huli_oauth_states (state, scope, action, account_id, ua_hash, ip_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                ->execute([$state, $scope === 'admin' ? 'admin' : 'user', $action === 'bind' ? 'bind' : 'login', $account_id, $ua_hash, $ip_hash, time()]);
         } catch (Throwable $e) {
             error_log('[gh_connect] 写入 state 失败: ' . $e->getMessage());
         }
@@ -168,7 +183,7 @@ function gh_connect_consume_state(string $state): ?array {
     $pdo = gh_connect_pdo();
     if ($pdo) {
         try {
-            $stmt = $pdo->prepare("SELECT scope, action, account_id, created_at FROM huli_oauth_states WHERE state = ? LIMIT 1");
+            $stmt = $pdo->prepare("SELECT scope, action, account_id, ua_hash, ip_hash, created_at FROM huli_oauth_states WHERE state = ? LIMIT 1");
             $stmt->execute([$state]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
             $pdo->prepare("DELETE FROM huli_oauth_states WHERE state = ?")->execute([$state]);
@@ -179,6 +194,17 @@ function gh_connect_consume_state(string $state): ?array {
     if (is_array($row)) {
         if (time() - (int)$row['created_at'] > 600) {
             return null;
+        }
+        $saved_state = (string)($_SESSION['gh_connect_state'] ?? '');
+        $session_ok = $saved_state !== '' && hash_equals($saved_state, $state);
+        if (!$session_ok) {
+            $ua_hash = hash('sha256', (string)($_SERVER['HTTP_USER_AGENT'] ?? ''));
+            $ip_hash = hash('sha256', (string)($_SERVER['REMOTE_ADDR'] ?? ''));
+            if (empty($row['ua_hash']) || empty($row['ip_hash'])
+                || !hash_equals((string)$row['ua_hash'], $ua_hash)
+                || !hash_equals((string)$row['ip_hash'], $ip_hash)) {
+                return null;
+            }
         }
         unset($_SESSION['gh_connect_state'], $_SESSION['gh_connect_state_at']);
         return [

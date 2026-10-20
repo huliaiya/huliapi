@@ -8,6 +8,7 @@ require_once '../common/TemplateManager.php';
 $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = ''; $feedback_type = ''; $page_title = '模板管理中心';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    huli_csrf_require();
     try {
         if (isset($_POST['set_home_active'])) {
             $templateId = (int)$_POST['home_template_id'];
@@ -73,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
+    huli_csrf_require();
     $type = $_POST['type'] ?? '';
     $templateId = (int)$_POST['delete'];
     try {
@@ -111,7 +113,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-touch-fullscreen" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -219,7 +221,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <div class="card template-card <?php echo $template['is_active'] ? 'active' : ''; ?>">
                       <div class="template-thumbnail">
                         <?php if (file_exists("../template/home/{$template['folder']}/preview.jpg")): ?>
-                          <img src="../template/home/<?php echo $template['folder']; ?>/preview.jpg" alt="<?php echo $template['name']; ?>预览图">
+                          <img src="../template/home/<?php echo htmlspecialchars($template['folder']); ?>/preview.jpg" alt="<?php echo htmlspecialchars($template['name']); ?>预览图">
                         <?php else: ?>
                           <i class="mdi mdi-image-off" style="font-size: 3rem; color: #ccc;"></i>
                         <?php endif; ?>
@@ -289,7 +291,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <div class="card template-card <?php echo $template['is_active'] ? 'active' : ''; ?>">
                       <div class="template-thumbnail">
                         <?php if (file_exists("../template/user/{$template['folder']}/preview.jpg")): ?>
-                          <img src="../template/user/<?php echo $template['folder']; ?>/preview.jpg" alt="<?php echo $template['name']; ?>预览图">
+                          <img src="../template/user/<?php echo htmlspecialchars($template['folder']); ?>/preview.jpg" alt="<?php echo htmlspecialchars($template['name']); ?>预览图">
                         <?php else: ?>
                           <i class="mdi mdi-image-off" style="font-size: 3rem; color: #ccc;"></i>
                         <?php endif; ?>
@@ -350,5 +352,6 @@ $(document).ready(function() {
     }
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

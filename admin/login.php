@@ -27,6 +27,7 @@ if (!empty($_SESSION['gh_connect_error'])) {
     unset($_SESSION['gh_connect_error']);
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    huli_csrf_require();
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     if (!huli_turnstile_verify($turnstile_reason)) {
@@ -39,6 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $lock_message = huli_login_lock_message($pdo, 'admin', $username);
+            if ($lock_message !== '') {
+                $error_msg = $lock_message;
+            } else {
             $stmt = $pdo->prepare("SELECT id, username, email, password, nickname, status FROM huli_admins WHERE email = ? OR username = ? ORDER BY (email = ?) DESC LIMIT 1");
             $stmt->execute([$username, $username, $username]);
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -66,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error_msg = '账号或密码不正确';
                 try { huli_record_login($pdo, 'admin', 0, $username, 'failed'); } catch (Throwable $e) {}
             }
+            }
         } catch (PDOException $e) {
             $error_msg = '系统服务暂时不可用，请稍后重试。';
         }
@@ -78,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <title>登录 - <?php echo htmlspecialchars($settings['site_name'] ?? 'huliapi'); ?></title>
     <?php if ($favicon_url): ?><link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($favicon_url); ?>"><?php endif; ?>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -196,7 +202,7 @@ body {
       <span class="mdi mdi-lock" aria-hidden="true"></span>
       <input type="password" class="form-control" id="password" name="password" placeholder="密码">
     </div>
-    <?php echo huli_turnstile_widget_html(true); ?>
+    <?php echo huli_turnstile_widget_html(); ?>
     <div class="mb-3">
       <div class="form-check">
         <input type="checkbox" class="form-check-input" id="remember" name="remember">
@@ -280,5 +286,6 @@ $(document).ready(function() {
     });
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

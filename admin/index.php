@@ -12,6 +12,7 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'logout') {
+    huli_csrf_require();
     require_once __DIR__ . '/../common/admin_remember.php';
     huli_admin_remember_revoke();
     session_destroy();
@@ -49,7 +50,7 @@ $auto_origin = $_auto_scheme . '://' . $_auto_host;
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <meta name="description" content="<?php echo htmlspecialchars($auto_origin); ?> - 仪表盘">
 <meta name="author" content="yinq">
 <title><?php echo htmlspecialchars($auto_origin); ?> - 仪表盘</title>
@@ -82,6 +83,24 @@ $auto_origin = $_auto_scheme . '://' . $_auto_host;
 .sidebar-main .nav-item > a {
     display: flex;
     align-items: center;
+}
+@media (min-width: 1025px) {
+    .lyear-layout-sidebar-close .lyear-layout-sidebar {
+        width: 0 !important;
+        border-right: 0 !important;
+        box-shadow: none !important;
+        visibility: hidden !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar:hover {
+        width: 0 !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-header,
+    .lyear-layout-sidebar-close .lyear-layout-content {
+        padding-left: 0 !important;
+    }
+    .lyear-layout-sidebar-close .lyear-layout-sidebar > * {
+        width: var(--sidebar-width);
+    }
 }
 </style>
 </head>
@@ -220,7 +239,7 @@ $auto_origin = $_auto_scheme . '://' . $_auto_host;
           <li class="dropdown">
             <a href="javascript:void(0)" data-bs-toggle="dropdown" class="dropdown-toggle d-flex align-items-center huli-user-toggle">
               <img class="avatar-md rounded-circle" src="<?php echo htmlspecialchars(huli_avatar_url($admin_qq)); ?>" alt="" style="width:40px;height:40px;object-fit:cover;" />
-              <span style="margin-left: 10px;"><?php echo htmlspecialchars($username); ?></span>
+              <span style="margin-left: 10px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><?php echo htmlspecialchars($username); ?></span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
               <li>
@@ -303,5 +322,6 @@ $(function() {
     });
 })();
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

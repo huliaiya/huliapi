@@ -19,6 +19,7 @@ try {
         if (!$announcement) { header('Location: announcement_list.php'); exit; }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $id = isset($_POST['id']) ? intval($_POST['id']) : null;
         $title = trim($_POST['title']);
         $content = trim($_POST['content']);
@@ -46,7 +47,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -116,5 +117,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <script type="text/javascript" src="../assets/js/popper.min.js"></script>
 <script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="../assets/js/main.min.js"></script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

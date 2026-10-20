@@ -10,6 +10,7 @@ try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id'])) {
+        huli_csrf_require();
         $id = intval($_POST['id']);
         switch ($_POST['action']) {
             case 'delete':
@@ -46,7 +47,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -76,10 +77,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <table class="table table-bordered">
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th class="d-none d-md-table-cell">ID</th>
                   <th>标题</th>
                   <th>状态</th>
-                  <th>创建时间</th>
+                  <th class="d-none d-md-table-cell">创建时间</th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -91,7 +92,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <?php else: ?>
                   <?php foreach ($announcements as $item): ?>
                   <tr>
-                    <td><?php echo $item['id']; ?></td>
+                    <td class="d-none d-md-table-cell"><?php echo $item['id']; ?></td>
                     <td><?php echo htmlspecialchars($item['title']); ?></td>
                     <td>
                       <?php if ($item['is_active']): ?>
@@ -100,9 +101,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <span class="badge bg-secondary">草稿</span>
                       <?php endif; ?>
                     </td>
-                    <td><?php echo $item['created_at']; ?></td>
+                    <td class="d-none d-md-table-cell"><?php echo $item['created_at']; ?></td>
                     <td>
-                      <div class="btn-group btn-group-sm">
+                      <div class="btn-group btn-group-sm flex-wrap">
                         <a href="announcement_edit.php?id=<?php echo $item['id']; ?>" class="btn btn-default" data-bs-toggle="tooltip" title="编辑">
                           <i class="mdi mdi-pencil"></i>
                         </a>
@@ -117,7 +118,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </table>
           </div>
           <?php if ($total_pages > 1): ?>
-          <ul class="pagination">
+          <ul class="pagination flex-wrap">
             <?php if ($page > 1): ?>
               <li class="page-item">
                 <a class="page-link" href="?page=<?php echo $page - 1; ?>">上一页</a>
@@ -168,5 +169,6 @@ $(function () {
   <?php endif; ?>
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>

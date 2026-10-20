@@ -23,6 +23,7 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'logout') {
+    huli_csrf_require();
     require_once __DIR__ . '/../common/admin_remember.php';
     huli_admin_remember_revoke();
     session_destroy();
@@ -334,7 +335,7 @@ function formatUptime($seconds) {
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimal-ui">
 <title>huliapi - 统计面板</title>
 <link rel="stylesheet" type="text/css" href="../assets/css/materialdesignicons.min.css">
 <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css">
@@ -472,7 +473,7 @@ function formatUptime($seconds) {
 <div class="container-fluid">
     <?php if ($db_error): ?>
     <div class="alert alert-danger mt-3">
-        <?php echo $db_error; ?>
+        <?php echo htmlspecialchars($db_error); ?>
     </div>
     <?php endif; ?>
     <?php $login_notice = gh_connect_enabled() ? gh_connect_take_flash('admin') : null; ?>
@@ -701,5 +702,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<?php echo huli_csrf_script(); ?>
 </body>
 </html>
