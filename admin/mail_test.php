@@ -16,6 +16,7 @@ require '../common/PHPMailer/src/PHPMailer.php';
 require '../common/PHPMailer/src/SMTP.php';
 $feedback_output = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['recipient_email'])) {
+    huli_csrf_require();
     ob_start();
     try {
         $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);

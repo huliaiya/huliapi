@@ -29,6 +29,7 @@ try {
         die("未找到该广告信息");
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_delete'])) {
+        huli_csrf_require();
         $deleteStmt = $pdo->prepare("DELETE FROM huli_advertisements WHERE id = ?");
         $deleteStmt->execute([$id]);
         if ($deleteStmt->rowCount() > 0) {

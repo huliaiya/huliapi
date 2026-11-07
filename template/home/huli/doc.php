@@ -12,6 +12,7 @@ require_once ROOT_PATH . 'common/TemplateManager.php';
 require_once ROOT_PATH . 'common/url_helper.php';
 require_once ROOT_PATH . 'common/gallery.php';
 require_once ROOT_PATH . 'common/settings_helper.php';
+require_once ROOT_PATH . 'common/schema_bootstrap.php';
 $template = TemplateManager::getActiveUserTemplate();
 $template_base_url = "/template/user/{$template}/";
 $is_logged_in = isset($_SESSION['user_id']);
@@ -33,9 +34,7 @@ if (!$api_id) { header('Location: index.php'); exit; }
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $columns = $pdo->query("SHOW COLUMNS FROM `huli_apis`")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('created_at', $columns)) $pdo->exec("ALTER TABLE `huli_apis` ADD `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `status`;");
-    if (!in_array('updated_at', $columns)) $pdo->exec("ALTER TABLE `huli_apis` ADD `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`;");
+    huli_schema_bootstrap($pdo);
     $stmt_api = $pdo->prepare("SELECT * FROM huli_apis WHERE id = ?");
     $stmt_api->execute([$api_id]);
     $api = $stmt_api->fetch(PDO::FETCH_ASSOC);

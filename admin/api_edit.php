@@ -11,6 +11,9 @@ if (file_exists('../config.php')) {
 } else {
     die("出现错误！配置文件丢失。");
 }
+if (!defined('API_ROOT')) {
+    define('API_ROOT', dirname(__DIR__) . '/API');
+}
 require_once __DIR__ . '/../common/mcp/mcp_lib.php';
 $admin_id = $_SESSION['admin_id'];
 $feedback_msg = '';
@@ -65,6 +68,53 @@ function hasAuthCode($content, $relativePath) {
     $pattern = '/<\?php\s*require_once\s+(__DIR__\s*\.\s*[\'"]\/' . preg_quote($relativePath, '/') . '\/api_auth\.php[\'"])\s*;\s*/i';
     return preg_match($pattern, $content) === 1;
 }
+
+/**
+ * 校验并规范化接口调用地址（endpoint）。
+ *
+ * 只允许「字母 / 数字 / 下划线 / 中划线 / 点 / 斜杠」，且禁止出现
+ * `.`、`..`、绝对路径、反斜杠、空字符串、控制字符与空白字符，
+ * 从根本上杜绝通过调用地址写入 API 目录之外的任意文件。
+ *
+ * @throws Exception 当地址非法时抛出
+ */
+function huli_normalize_api_endpoint($raw) {
+    $endpoint = trim((string)$raw);
+    if ($endpoint === '') {
+        throw new Exception('调用地址不能为空。');
+    }
+    if (strlen($endpoint) > 200) {
+        throw new Exception('调用地址过长（最多 200 个字符）。');
+    }
+    if (preg_match('/[\x00-\x20\x7F]/', $endpoint)) {
+        throw new Exception('调用地址不能包含空白或控制字符。');
+    }
+    if (strpos($endpoint, '\\') !== false) {
+        throw new Exception('调用地址不能包含反斜杠。');
+    }
+    $segments = explode('/', $endpoint);
+    $normalized = [];
+    foreach ($segments as $segment) {
+        if ($segment === '') {
+            throw new Exception('调用地址不能以斜杠开头/结尾，也不能包含连续的斜杠。');
+        }
+        if ($segment === '.' || $segment === '..') {
+            throw new Exception('调用地址不能包含 . 或 .. 目录。');
+        }
+        if (!preg_match('/^[A-Za-z0-9._-]+$/', $segment)) {
+            throw new Exception('调用地址仅允许字母、数字、下划线、中划线和点。');
+        }
+        $normalized[] = $segment;
+    }
+    $lastIndex = count($normalized) - 1;
+    if (preg_match('/\.php$/i', $normalized[$lastIndex])) {
+        $normalized[$lastIndex] = preg_replace('/\.php$/i', '', $normalized[$lastIndex]);
+    }
+    if ($normalized[$lastIndex] === '') {
+        throw new Exception('调用地址的文件名不能为空。');
+    }
+    return implode('/', $normalized);
+}
 try {
     $pdo = new PDO(
         "mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET,
@@ -99,7 +149,7 @@ try {
         }
         $api['endpoint'] = rawurldecode($api['endpoint']);
         $api['is_billable'] = isset($api['is_billable']) ? $api['is_billable'] : 0;
-        $api['price_per_call'] = isset($api['price_per_call']) ? max('0.01', $api['price_per_call']) : '0.01';
+        $api['price_per_call'] = isset($api['price_per_call']) ? number_format(max(0.01, (float)$api['price_per_call']), 4, '.', '') : '0.01';
         $api['points_per_call'] = isset($api['points_per_call']) ? max(1, (int)$api['points_per_call']) : 1;
         if (!in_array($api['visibility'], ['public', 'private', 'balance', 'points'])) {
             $api['visibility'] = 'public';
@@ -133,17 +183,25 @@ try {
         if (!in_array($visibility, ['public', 'private', 'balance', 'points'])) {
             throw new Exception('无效的权限设置');
         }
-        $endpoint_clean = preg_replace('/\.+/', '', $endpoint_raw);
+        $endpoint_clean = huli_normalize_api_endpoint($endpoint_raw);
+        $stmt_dup = $pdo->prepare("SELECT id FROM huli_apis WHERE endpoint = ? LIMIT 1");
+        $stmt_dup->execute([$endpoint_clean]);
+        $dup_id = $stmt_dup->fetchColumn();
+        if ($dup_id !== false && (int)$dup_id !== (int)$api_id) {
+            throw new Exception('该调用地址已被其他接口占用，请更换。');
+        }
         $endpoint_parts = explode('/', $endpoint_clean);
         $filename = array_pop($endpoint_parts);
         $subdirectory = implode('/', $endpoint_parts);
-        $api_dir = '../API' . (!empty($subdirectory) ? '/' . $subdirectory : '');
+        $api_dir = API_ROOT . (!empty($subdirectory) ? '/' . $subdirectory : '');
         if (!is_dir($api_dir)) {
-            mkdir($api_dir, 0755, true);
+            if (!@mkdir($api_dir, 0755, true) && !is_dir($api_dir)) {
+                throw new Exception('无法创建接口目录，请检查API目录权限。');
+            }
         }
         $encoded_filename = rawurlencode($filename);
         $file_path = 'API/' . (!empty($subdirectory) ? $subdirectory . '/' : '') . $encoded_filename . '.php';
-        $full_path = '../' . $file_path;
+        $full_path = API_ROOT . '/' . (!empty($subdirectory) ? $subdirectory . '/' : '') . $encoded_filename . '.php';
         switch ($visibility) {
             case 'public':
                 $is_billable = 0;
@@ -247,7 +305,7 @@ try {
                     WHERE id=? AND admin_id = ?";
             $stmt = $pdo->prepare($sql);
             $result = $stmt->execute([
-                $name, trim($_POST['description']), $endpoint_raw, $type, $status,
+                $name, trim($_POST['description']), $endpoint_clean, $type, $status,
                 $visibility, $is_billable, $price_per_call, $points_per_call,
                 $remote_url, $method, $file_path, $params_json,
                 trim($_POST['request_example']), $_POST['response_format'],
@@ -268,7 +326,7 @@ try {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
-                $admin_id, $name, trim($_POST['description']), $endpoint_raw, $type, $status,
+                $admin_id, $name, trim($_POST['description']), $endpoint_clean, $type, $status,
                 $visibility, $is_billable, $price_per_call, $points_per_call,
                 $remote_url, $method, $file_path, $params_json,
                 trim($_POST['request_example']), $_POST['response_format'],

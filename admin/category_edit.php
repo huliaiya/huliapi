@@ -21,6 +21,7 @@ try {
         if (!$category) { header('Location: category_list.php'); exit; }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $category_id = isset($_POST['id']) ? intval($_POST['id']) : null;
         $name = trim($_POST['name']);
         if (empty($name)) {

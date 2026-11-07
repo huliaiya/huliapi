@@ -363,6 +363,44 @@ function huli_updater_has_unzip_command() {
     return $available;
 }
 
+/**
+ * 校验压缩包内的单个条目名是否安全（防 Zip Slip / 路径穿越）。
+ */
+function huli_updater_zip_entry_is_safe($name) {
+    $name = str_replace('\\', '/', (string)$name);
+    if ($name === '') { return true; }
+    if ($name[0] === '/') { return false; }
+    if (preg_match('/^[A-Za-z]:/', $name)) { return false; }
+    if (preg_match('#(^|/)\.\.(/|$)#', $name)) { return false; }
+    return true;
+}
+
+/**
+ * 解压完成后再次确认没有文件被写到目标目录之外。
+ */
+function huli_updater_verify_extract_containment($extract) {
+    $base = realpath($extract);
+    if ($base === false) {
+        throw new Exception('解压目录不存在。');
+    }
+    $basePrefix = rtrim($base, '/\\') . DIRECTORY_SEPARATOR;
+    $iter = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+    foreach ($iter as $item) {
+        $path = $item->getPathname();
+        if (is_link($path)) {
+            throw new Exception('更新包包含非法符号链接，已中止。');
+        }
+        $real = realpath($path);
+        if ($real === false) { continue; }
+        if (strpos($real, $basePrefix) !== 0 && $real !== $base) {
+            throw new Exception('更新包包含越界文件，已中止。');
+        }
+    }
+}
+
 function huli_updater_unzip($zip, $extract) {
     if (!@mkdir($extract, 0755, true) && !is_dir($extract)) {
         throw new Exception('无法创建临时解压目录。');
@@ -370,17 +408,36 @@ function huli_updater_unzip($zip, $extract) {
     if (class_exists('ZipArchive')) {
         $za = new ZipArchive;
         if ($za->open($zip) !== true) { throw new Exception('无法打开更新包文件。'); }
+        for ($i = 0; $i < $za->numFiles; $i++) {
+            if (!huli_updater_zip_entry_is_safe($za->getNameIndex($i))) {
+                $za->close();
+                throw new Exception('更新包包含非法路径，已拒绝解压。');
+            }
+        }
         $ok = $za->extractTo($extract);
         $za->close();
         if (!$ok) { throw new Exception('解压更新包失败。'); }
+        huli_updater_verify_extract_containment($extract);
         return;
     }
     if (huli_updater_has_unzip_command()) {
+        $list = [];
+        $listCode = 1;
+        @exec('unzip -Z1 ' . escapeshellarg($zip) . ' 2>/dev/null', $list, $listCode);
+        if ($listCode !== 0) { throw new Exception('无法读取更新包文件列表。'); }
+        foreach ($list as $entry) {
+            if (!huli_updater_zip_entry_is_safe($entry)) {
+                throw new Exception('更新包包含非法路径，已拒绝解压。');
+            }
+        }
         $cmd = 'unzip -oq ' . escapeshellarg($zip) . ' -d ' . escapeshellarg($extract) . ' 2>&1';
         $out = [];
         $code = 1;
         @exec($cmd, $out, $code);
-        if ($code === 0) { return; }
+        if ($code === 0) {
+            huli_updater_verify_extract_containment($extract);
+            return;
+        }
         throw new Exception('解压更新包失败：' . trim(implode(' ', array_slice($out, 0, 3))));
     }
     throw new Exception('服务器不支持 ZipArchive，也没有可用的 unzip 命令。请安装 php-zip 扩展后重试。');

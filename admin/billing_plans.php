@@ -31,6 +31,7 @@ try {
         }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id'])) {
+        huli_csrf_require();
         $id = intval($_POST['id']);
         switch ($_POST['action']) {
             case 'delete':

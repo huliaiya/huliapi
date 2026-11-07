@@ -47,6 +47,7 @@ try {
     $current_year = date('Y');
     $admin_url = $settings['admin_url'] ?? '#';
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['id'])) {
+        huli_csrf_require();
         $id = intval($_POST['id']);
         switch ($_POST['action']) {
             case 'delete':
@@ -96,6 +97,7 @@ try {
         exit;
     }
     if (isset($_POST['batch_action']) && isset($_POST['ids'])) {
+        huli_csrf_require();
         $ids = array_values(array_filter(array_map('intval', (array)$_POST['ids']), function ($v) { return $v > 0; }));
         if (empty($ids)) {
             $_SESSION['feedback_msg'] = '未选择任何有效友链。';
