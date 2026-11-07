@@ -30,6 +30,7 @@ try {
         $plan = $stmt->fetch(PDO::FETCH_ASSOC) ?: $plan;
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $id          = isset($_POST['id']) ? intval($_POST['id']) : 0;
         $name        = trim($_POST['name']);
         $description = trim($_POST['description']);

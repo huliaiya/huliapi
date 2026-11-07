@@ -23,20 +23,53 @@ try {
     $todayEnd   = date('Y-m-d 00:00:00', strtotime('+1 day'));
     $yestStart  = date('Y-m-d 00:00:00', strtotime('-1 day'));
     $yestEnd    = $todayStart;
+
+    $logStats = $pdo->query("SELECT
+        COALESCE(SUM(CASE WHEN request_time >= '$todayStart' THEN 1 ELSE 0 END), 0) AS today_calls,
+        COALESCE(SUM(CASE WHEN request_time < '$todayStart' THEN 1 ELSE 0 END), 0) AS yesterday_calls
+        FROM huli_api_logs
+        WHERE request_time >= '$yestStart' AND request_time < '$todayEnd'")->fetch(PDO::FETCH_ASSOC) ?: ['today_calls' => 0, 'yesterday_calls' => 0];
+
+    $apiStats = $pdo->query("SELECT COUNT(*) AS total_apis, COALESCE(SUM(total_calls), 0) AS total_calls FROM huli_apis")->fetch(PDO::FETCH_ASSOC) ?: ['total_apis' => 0, 'total_calls' => 0];
+
+    $orderRows = $pdo->query("SELECT status, COUNT(*) AS c, COALESCE(SUM(amount), 0) AS amt
+        FROM huli_orders
+        WHERE status IN ('paid', 'failed') AND created_at >= '$todayStart' AND created_at < '$todayEnd'
+        GROUP BY status")->fetchAll(PDO::FETCH_ASSOC);
+    $todayIncome = 0.0;
+    $successOrders = 0;
+    $failedOrders = 0;
+    foreach ($orderRows as $orderRow) {
+        if ($orderRow['status'] === 'paid') {
+            $todayIncome = (float)$orderRow['amt'];
+            $successOrders = (int)$orderRow['c'];
+        } elseif ($orderRow['status'] === 'failed') {
+            $failedOrders = (int)$orderRow['c'];
+        }
+    }
+    $pendingOrders = (int)$pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'pending'")->fetchColumn();
+
+    $linkStats = $pdo->query("SELECT
+        COALESCE(SUM(CASE WHEN status = 'approved' AND is_hidden = 0 THEN 1 ELSE 0 END), 0) AS friend_links,
+        COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_links,
+        COALESCE(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected_links
+        FROM huli_friend_links
+        WHERE status IN ('approved', 'pending', 'rejected')")->fetch(PDO::FETCH_ASSOC) ?: [];
+
     $rawStats = [
-        'today_calls' => (int)$pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE request_time >= '$todayStart' AND request_time < '$todayEnd'")->fetchColumn(),
-        'yesterday_calls' => (int)$pdo->query("SELECT COUNT(*) FROM huli_api_logs WHERE request_time >= '$yestStart' AND request_time < '$yestEnd'")->fetchColumn(),
-        'total_calls' => (int)$pdo->query("SELECT COALESCE(SUM(total_calls), 0) FROM huli_apis")->fetchColumn(),
-        'today_income' => (float)$pdo->query("SELECT COALESCE(SUM(amount), 0) FROM huli_orders WHERE status = 'paid' AND created_at >= '$todayStart' AND created_at < '$todayEnd'")->fetchColumn(),
-        'total_apis' => (int)$pdo->query("SELECT COUNT(*) FROM huli_apis")->fetchColumn(),
+        'today_calls' => (int)($logStats['today_calls'] ?? 0),
+        'yesterday_calls' => (int)($logStats['yesterday_calls'] ?? 0),
+        'total_calls' => (int)($apiStats['total_calls'] ?? 0),
+        'total_apis' => (int)($apiStats['total_apis'] ?? 0),
+        'today_income' => $todayIncome,
+        'success_orders' => $successOrders,
+        'failed_orders' => $failedOrders,
+        'pending_orders' => $pendingOrders,
         'total_users' => (int)$pdo->query("SELECT COUNT(*) FROM huli_users")->fetchColumn(),
         'pending_feedback' => (int)$pdo->query("SELECT COUNT(*) FROM huli_feedback WHERE status = 'pending'")->fetchColumn(),
-        'success_orders' => (int)$pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'paid' AND created_at >= '$todayStart' AND created_at < '$todayEnd'")->fetchColumn(),
-        'failed_orders' => (int)$pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'failed' AND created_at >= '$todayStart' AND created_at < '$todayEnd'")->fetchColumn(),
-        'pending_orders' => (int)$pdo->query("SELECT COUNT(*) FROM huli_orders WHERE status = 'pending'")->fetchColumn(),
-        'friend_links' => (int)$pdo->query("SELECT COUNT(*) FROM huli_friend_links WHERE status='approved' AND is_hidden=0")->fetchColumn(),
-        'pending_links' => (int)$pdo->query("SELECT COUNT(*) FROM huli_friend_links WHERE status='pending'")->fetchColumn(),
-        'rejected_links' => (int)$pdo->query("SELECT COUNT(*) FROM huli_friend_links WHERE status='rejected'")->fetchColumn(),
+        'friend_links' => (int)($linkStats['friend_links'] ?? 0),
+        'pending_links' => (int)($linkStats['pending_links'] ?? 0),
+        'rejected_links' => (int)($linkStats['rejected_links'] ?? 0),
     ];
 
     function formatNumber($number) {

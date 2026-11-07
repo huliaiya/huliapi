@@ -29,6 +29,7 @@ try {
         die("未找到该广告位信息");
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $data = [
             'title' => trim($_POST['title'] ?? ''),
             'link_url' => trim($_POST['link_url'] ?? ''),

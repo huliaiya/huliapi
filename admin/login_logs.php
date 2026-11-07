@@ -15,6 +15,7 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        huli_csrf_require();
         if ($_POST['action'] === 'clear' && isset($_POST['range'])) {
             $range = $_POST['range'];
             $where = '';

@@ -16,13 +16,15 @@ $homeTemplateBaseUrl = "/template/home/{$homeTemplate}/";
 $userTemplate = TemplateManager::getActiveUserTemplate();
 $userTemplateBaseUrl = "/template/User/{$userTemplate}/";
 $apis = [];
+$categoryMap = [];
 $site_name = 'huliapi';
 $music_settings = [];
 try {
     $pdo = new PDO("mysql:host=".DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=".DB_NAME.";charset=".DB_CHARSET, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt_apis = $pdo->query("SELECT * FROM huli_apis WHERE status = 'normal' ORDER BY id DESC");
+    $stmt_apis = $pdo->query("SELECT id, name, description, endpoint, status, visibility, is_billable, price_per_call, points_per_call, category_id, total_calls, response_format FROM huli_apis WHERE status = 'normal' ORDER BY id DESC");
     $apis = $stmt_apis->fetchAll(PDO::FETCH_ASSOC);
+    $categoryMap = $pdo->query("SELECT id, name FROM huli_api_categories")->fetchAll(PDO::FETCH_KEY_PAIR);
     $total_apis_all = (int)$pdo->query("SELECT COUNT(*) FROM huli_apis")->fetchColumn();
     $error_apis_count = (int)$pdo->query("SELECT COUNT(*) FROM huli_apis WHERE status = 'error'")->fetchColumn();
     $site_name = huli_site_setting($pdo, 'site_name', 'huliapi');
@@ -632,15 +634,10 @@ body {
                 <div class="badge-container">
                     <?php echo getVisibilityAndBillingBadges($api['visibility'], $api['is_billable'], $api['price_per_call'], $api['points_per_call']); ?>
                 </div>
-                <?php if (!empty($api['category_id'])): ?>
-                    <?php
-                    $stmtCat = $pdo->prepare("SELECT name FROM huli_api_categories WHERE id = ?");
-                    $stmtCat->execute([$api['category_id']]);
-                    $categoryName = $stmtCat->fetchColumn();
-                    ?>
+                <?php if (!empty($api['category_id']) && isset($categoryMap[$api['category_id']])): ?>
                     <span class="badge bg-light text-dark mb-2">
                         <i class="mdi mdi-tag-outline me-1"></i>
-                        <?php echo htmlspecialchars($categoryName); ?>
+                        <?php echo htmlspecialchars($categoryMap[$api['category_id']]); ?>
                     </span>
                 <?php endif; ?>
                 <p class="card-text text-muted mb-3"><?php echo htmlspecialchars($api['description']); ?></p>

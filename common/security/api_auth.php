@@ -5,6 +5,7 @@ ob_start();
 
 require_once __DIR__ . '/../redis_client.php';
 require_once __DIR__ . '/../client_ip.php';
+require_once __DIR__ . '/../schema_bootstrap.php';
 
 function getUserIP() {
     return huli_client_ip();
@@ -59,27 +60,57 @@ function api_error_exit($code, $message) {
     exit;
 }
 
+/**
+ * 将阻塞型任务（例如 SMTP 发信）推迟到响应发送之后再执行，
+ * 避免拖慢接口本身的响应时间。
+ */
+if (!function_exists('huli_defer')) {
+    function huli_defer($job) {
+        if (is_callable($job)) {
+            $GLOBALS['huli_deferred_jobs'][] = $job;
+        }
+    }
+}
+$GLOBALS['huli_deferred_jobs'] = [];
+
 $valid_apikey_provided = false;
 $response_processed = false;
 register_shutdown_function(function() use (&$response_processed) {
-    if ($response_processed) return;
-    $content = ob_get_clean();
-    if ($content === false || $content === '') return;
-    $content_type = null;
-    foreach (headers_list() as $header) {
-        if (stripos($header, 'Content-Type:') === 0) {
-            $content_type = trim(substr($header, strlen('Content-Type:')));
-            break;
+    if (!$response_processed) {
+        $content = ob_get_clean();
+        if ($content !== false && $content !== '') {
+            $content_type = null;
+            foreach (headers_list() as $header) {
+                if (stripos($header, 'Content-Type:') === 0) {
+                    $content_type = trim(substr($header, strlen('Content-Type:')));
+                    break;
+                }
+            }
+            if (!$content_type) {
+                $first_char = substr(ltrim($content), 0, 1);
+                $content_type = ($first_char === '{' || $first_char === '[') ? 'application/json' : 'text/plain';
+            }
+            if (strpos($content_type, 'application/json') !== false) {
+                echo $content;
+            } else {
+                echo $content . "\nTips：huliapi技术支持";
+            }
         }
     }
-    if (!$content_type) {
-        $first_char = substr(ltrim($content), 0, 1);
-        $content_type = ($first_char === '{' || $first_char === '[') ? 'application/json' : 'text/plain';
+    if (function_exists('fastcgi_finish_request')) {
+        @fastcgi_finish_request();
+    } elseif (function_exists('ob_end_flush')) {
+        while (ob_get_level() > 0) {
+            @ob_end_flush();
+        }
+        @flush();
     }
-    if (strpos($content_type, 'application/json') !== false) {
-        echo $content;
-    } else {
-        echo $content . "\nTips：huliapi技术支持";
+    foreach (($GLOBALS['huli_deferred_jobs'] ?? []) as $job) {
+        try {
+            $job();
+        } catch (Throwable $e) {
+            error_log('[api_auth] 延迟任务执行失败: ' . $e->getMessage());
+        }
     }
 });
 
@@ -115,85 +146,7 @@ $encoded_endpoint = implode('/', array_map('rawurlencode', explode('/', $endpoin
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . (defined('DB_PORT') ? DB_PORT : 3306) . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 3]);
 
-    static $schema_checked = false;
-    if (!$schema_checked) {
-        $schema_checked = true;
-        $user_columns = $pdo->query("SHOW COLUMNS FROM `huli_users`")->fetchAll(PDO::FETCH_COLUMN);
-        if (!in_array('points', $user_columns)) {
-            $pdo->exec("ALTER TABLE `huli_users` ADD `points` INT NOT NULL DEFAULT 0 AFTER `balance`");
-        }
-        if (!in_array('membership_level', $user_columns)) {
-            $pdo->exec("ALTER TABLE `huli_users` ADD `membership_level` ENUM('normal', 'super') NOT NULL DEFAULT 'normal'");
-        }
-        if (!in_array('membership_expire', $user_columns)) {
-            $pdo->exec("ALTER TABLE `huli_users` ADD `membership_expire` DATETIME NULL DEFAULT NULL");
-        }
-        if (!in_array('last_points_warn_date', $user_columns)) {
-            $pdo->exec("ALTER TABLE `huli_users` ADD `last_points_warn_date` DATE NULL DEFAULT NULL");
-        }
-        if (!in_array('last_balance_warn_date', $user_columns)) {
-            $pdo->exec("ALTER TABLE `huli_users` ADD `last_balance_warn_date` DATE NULL DEFAULT NULL");
-        }
-        $log_columns = $pdo->query("SHOW COLUMNS FROM `huli_api_logs`")->fetchAll(PDO::FETCH_COLUMN);
-        if (!in_array('billing_type', $log_columns)) {
-            $pdo->exec("ALTER TABLE `huli_api_logs` ADD `billing_type` VARCHAR(20) NOT NULL DEFAULT 'free' AFTER `is_success`");
-        }
-        if (!in_array('billing_amount', $log_columns)) {
-            $pdo->exec("ALTER TABLE `huli_api_logs` ADD `billing_amount` DECIMAL(10,4) NOT NULL DEFAULT 0 AFTER `billing_type`");
-        }
-        $index_check = $pdo->query("SHOW INDEX FROM `huli_api_logs` WHERE Key_name = 'idx_user_time'")->fetch();
-        if (!$index_check) $pdo->exec("ALTER TABLE `huli_api_logs` ADD INDEX `idx_user_time` (`user_id`, `request_time`)");
-        $ip_index_check = $pdo->query("SHOW INDEX FROM `huli_api_logs` WHERE Key_name = 'idx_ip_time'")->fetch();
-        if (!$ip_index_check) $pdo->exec("ALTER TABLE `huli_api_logs` ADD INDEX `idx_ip_time` (`ip_address`, `request_time`)");
-        $claim_table_check = $pdo->query("SHOW TABLES LIKE 'huli_daily_points_claim'")->fetch();
-        if (!$claim_table_check) {
-            $pdo->exec("CREATE TABLE huli_daily_points_claim (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                claim_date DATE NOT NULL,
-                points_granted INT NOT NULL DEFAULT 0,
-                claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_user_date (user_id, claim_date),
-                INDEX idx_user (user_id)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-        }
-        $rate_table_check = $pdo->query("SHOW TABLES LIKE 'huli_rate_limits'")->fetch();
-        if (!$rate_table_check) {
-            $pdo->exec("CREATE TABLE huli_rate_limits (
-                scope VARCHAR(16) NOT NULL,
-                identifier VARCHAR(64) NOT NULL,
-                window_start INT UNSIGNED NOT NULL,
-                request_count INT UNSIGNED NOT NULL DEFAULT 0,
-                PRIMARY KEY (scope, identifier, window_start)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-        }
-        $required_settings = [
-            'enable_free_qps_limit'    => 1,
-            'qps_mode'                 => 'database',
-            'redis_host'               => '127.0.0.1',
-            'redis_port'               => 6379,
-            'redis_password'           => '',
-            'redis_database'           => 0,
-            'free_qps_seconds'         => 1,
-            'free_qps_limit'           => 10,
-            'enable_member_qps_limit'  => 1,
-            'member_qps_seconds'       => 1,
-            'member_qps_limit'         => 20,
-            'daily_free_points'        => 100,
-            'enable_daily_points'      => 1,
-            'warn_points_threshold'    => 5,
-            'warn_balance_threshold'   => 0.01,
-            'enable_warn_notification' => 1,
-            'enable_daily_points_notification' => 1
-        ];
-        $settings_check = $pdo->query("SELECT setting_key FROM huli_settings")->fetchAll(PDO::FETCH_COLUMN);
-        foreach ($required_settings as $key => $value) {
-            if (!in_array($key, $settings_check)) {
-                $stmt = $pdo->prepare("INSERT IGNORE INTO huli_settings (setting_key, setting_value) VALUES (?, ?)");
-                $stmt->execute([$key, $value]);
-            }
-        }
-    }
+    huli_schema_bootstrap($pdo);
     $settings = [];
     $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM huli_settings");
     while ($row = $stmt_settings->fetch(PDO::FETCH_ASSOC)) {
@@ -212,7 +165,7 @@ try {
     $enable_warn_notification= (int)($settings['enable_warn_notification'] ?? 1);
     $enable_daily_points_notification = (int)($settings['enable_daily_points_notification'] ?? 1);
     $api = null;
-    $stmt = $pdo->prepare("SELECT * FROM huli_apis WHERE endpoint = ? LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, status, visibility, is_billable, price_per_call, points_per_call FROM huli_apis WHERE endpoint = ? LIMIT 1");
     $stmt->execute([$encoded_endpoint]);
     $api = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$api) {
@@ -302,7 +255,10 @@ try {
                         $user['points'] += $daily_free_points;
                         $daily_points_granted = true;
                         if ($enable_daily_points_notification) {
-                            sendDailyPointsNotification($pdo, $settings, $user['email'] ?? '', $daily_free_points);
+                            $daily_email = $user['email'] ?? '';
+                            huli_defer(function() use ($pdo, $settings, $daily_email, $daily_free_points) {
+                                sendDailyPointsNotification($pdo, $settings, $daily_email, $daily_free_points);
+                            });
                         }
                     } catch (Exception $e) {
                         $pdo->rollBack();
@@ -418,14 +374,18 @@ try {
                 $mail->isHTML(true);
                 $mail->Subject = $mail_subject;
                 $mail->Body    = $mail_body;
-                $mail->send();
-                if ($billing_type === 'points') {
-                    $pdo->prepare("UPDATE huli_users SET last_points_warn_date = ? WHERE id = ?")->execute([$today, $user['id']]);
-                } else {
-                    $pdo->prepare("UPDATE huli_users SET last_balance_warn_date = ? WHERE id = ?")->execute([$today, $user['id']]);
-                }
+                $warn_col = ($billing_type === 'points') ? 'last_points_warn_date' : 'last_balance_warn_date';
+                $warn_user_id = $user['id'];
+                huli_defer(function() use ($mail, $pdo, $warn_col, $today, $warn_user_id) {
+                    try {
+                        $mail->send();
+                        $pdo->prepare("UPDATE huli_users SET `$warn_col` = ? WHERE id = ?")->execute([$today, $warn_user_id]);
+                    } catch (Exception $e) {
+                        error_log('[api_auth] 余额/积分告警邮件发送失败: ' . $e->getMessage());
+                    }
+                });
             } catch (Exception $e) {
-                error_log('[api_auth] 余额/积分告警邮件发送失败: ' . $e->getMessage());
+                error_log('[api_auth] 余额/积分告警邮件准备失败: ' . $e->getMessage());
             }
         }
     }

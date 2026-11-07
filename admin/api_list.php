@@ -15,6 +15,7 @@ $username = htmlspecialchars($_SESSION['admin_username']);
 $feedback_msg = '';
 $feedback_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['id'])) {
+    huli_csrf_require();
     try {
         $id = intval($_POST['id']);
         if ($id <= 0) {
@@ -31,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if (!empty($api['file_path'])) {
             $safe_path = realpath('../' . $api['file_path']);
             $base_dir = realpath('../API');
-            if ($safe_path && $base_dir && strpos($safe_path, $base_dir) === 0 && file_exists($safe_path)) {
+            if ($safe_path && $base_dir && strpos($safe_path, rtrim($base_dir, '/\\') . DIRECTORY_SEPARATOR) === 0 && file_exists($safe_path)) {
                 if (!unlink($safe_path)) {
                     throw new Exception('无法删除接口文件');
                 }
@@ -97,7 +98,7 @@ try {
                     if (!empty($api['file_path'])) {
                         $safe_path = realpath('../' . $api['file_path']);
                         $base_dir = realpath('../API');
-                        if ($safe_path && $base_dir && strpos($safe_path, $base_dir) === 0 && file_exists($safe_path)) {
+                        if ($safe_path && $base_dir && strpos($safe_path, rtrim($base_dir, '/\\') . DIRECTORY_SEPARATOR) === 0 && file_exists($safe_path)) {
                             if (!unlink($safe_path)) {
                                 $fileErrors[] = $api['id'];
                             }

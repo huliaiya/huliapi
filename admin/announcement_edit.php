@@ -19,6 +19,7 @@ try {
         if (!$announcement) { header('Location: announcement_list.php'); exit; }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $id = isset($_POST['id']) ? intval($_POST['id']) : null;
         $title = trim($_POST['title']);
         $content = trim($_POST['content']);

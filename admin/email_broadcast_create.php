@@ -20,6 +20,7 @@ try {
         if (!$broadcast) { $feedback_msg = '群发任务不存在'; $feedback_type = 'error'; $edit_id = 0; }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        huli_csrf_require();
         $title = trim($_POST['title'] ?? '');
         $content = $_POST['content'] ?? '';
         $schedule = trim($_POST['scheduled_at'] ?? '');

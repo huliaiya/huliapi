@@ -8,15 +8,21 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $withCategories = isset($_GET['with_categories']) && $_GET['with_categories'] == '1';
     if ($withCategories) {
-        $categories = [];
-        $stmtCategories = $pdo->query("SELECT * FROM huli_api_categories ORDER BY name");
-        while ($category = $stmtCategories->fetch(PDO::FETCH_ASSOC)) {
-            $stmtApis = $pdo->prepare("SELECT id, name, endpoint FROM huli_apis WHERE category_id = ? ORDER BY name");
-            $stmtApis->execute([$category['id']]);
-            $category['apis'] = $stmtApis->fetchAll(PDO::FETCH_ASSOC);
-            $category['api_count'] = count($category['apis']);
-            $categories[] = $category;
+        $categories = $pdo->query("SELECT * FROM huli_api_categories ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+        $stmtApis = $pdo->query("SELECT id, name, endpoint, category_id FROM huli_apis ORDER BY name");
+        $byCategory = [];
+        while ($row = $stmtApis->fetch(PDO::FETCH_ASSOC)) {
+            $byCategory[(string)$row['category_id']][] = [
+                'id'       => $row['id'],
+                'name'     => $row['name'],
+                'endpoint' => $row['endpoint'],
+            ];
         }
+        foreach ($categories as &$category) {
+            $category['apis'] = $byCategory[(string)$category['id']] ?? [];
+            $category['api_count'] = count($category['apis']);
+        }
+        unset($category);
         $stmtUncategorized = $pdo->query("SELECT id, name, endpoint FROM huli_apis WHERE category_id IS NULL OR category_id = 0 ORDER BY name");
         $uncategorized = $stmtUncategorized->fetchAll(PDO::FETCH_ASSOC);
         header('Content-Type: application/json');
